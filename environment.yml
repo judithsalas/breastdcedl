@@ -1,0 +1,12 @@
+# Entorno conda del proyecto. Es el mismo en el portátil (Windows) y en el PC
+# de la universidad (Ubuntu). Crear con:
+#     conda env create -f environment.yml
+# PyTorch NO va aquí: se instala aparte en cada máquina (ver README.md).
+name: cancer
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -r requirements.txt

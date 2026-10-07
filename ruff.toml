@@ -1,0 +1,4 @@
+line-length = 110
+target-version = "py312"
+# El material del profesor se usa tal cual: no se le pasa el linter.
+extend-exclude = ["breastdcedl"]
