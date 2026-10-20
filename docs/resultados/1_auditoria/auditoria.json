@@ -1,0 +1,205 @@
+{
+  "fecha": "2026-10-20 14:17",
+  "recuentos": {
+    "por_split": {
+      "test": {
+        "pacientes": 176,
+        "cortes": 1758,
+        "pacientes_pcr": 53,
+        "proporcion_pcr": 0.30113636363636365
+      },
+      "train": {
+        "pacientes": 1097,
+        "cortes": 10945,
+        "pacientes_pcr": 322,
+        "proporcion_pcr": 0.2935278030993619
+      }
+    },
+    "por_cohorte": [
+      {
+        "split": "test",
+        "cohorte": "duke",
+        "pacientes": 42,
+        "proporcion_pcr": 0.21428571428571427
+      },
+      {
+        "split": "test",
+        "cohorte": "spy1",
+        "pacientes": 35,
+        "proporcion_pcr": 0.34285714285714286
+      },
+      {
+        "split": "test",
+        "cohorte": "spy2",
+        "pacientes": 99,
+        "proporcion_pcr": 0.32323232323232326
+      },
+      {
+        "split": "train",
+        "cohorte": "duke",
+        "pacientes": 209,
+        "proporcion_pcr": 0.21052631578947367
+      },
+      {
+        "split": "train",
+        "cohorte": "spy1",
+        "pacientes": 104,
+        "proporcion_pcr": 0.25
+      },
+      {
+        "split": "train",
+        "cohorte": "spy2",
+        "pacientes": 784,
+        "proporcion_pcr": 0.32142857142857145
+      }
+    ],
+    "por_subtipo_train": {
+      "HER2pos": {
+        "pacientes": 287,
+        "proporcion_pcr": 0.42857142857142855
+      },
+      "HRposHER2neg": {
+        "pacientes": 453,
+        "proporcion_pcr": 0.141280353200883
+      },
+      "TripleNeg": {
+        "pacientes": 354,
+        "proporcion_pcr": 0.3785310734463277
+      },
+      "desconocido": {
+        "pacientes": 3,
+        "proporcion_pcr": 0.3333333333333333
+      }
+    },
+    "por_fold": {
+      "0": {
+        "pacientes": 219,
+        "proporcion_pcr": 0.2922374429223744,
+        "duke": 42,
+        "spy1": 21,
+        "spy2": 156
+      },
+      "1": {
+        "pacientes": 219,
+        "proporcion_pcr": 0.2831050228310502,
+        "duke": 42,
+        "spy1": 21,
+        "spy2": 156
+      },
+      "2": {
+        "pacientes": 220,
+        "proporcion_pcr": 0.2681818181818182,
+        "duke": 41,
+        "spy1": 21,
+        "spy2": 158
+      },
+      "3": {
+        "pacientes": 220,
+        "proporcion_pcr": 0.3409090909090909,
+        "duke": 42,
+        "spy1": 21,
+        "spy2": 157
+      },
+      "4": {
+        "pacientes": 219,
+        "proporcion_pcr": 0.2831050228310502,
+        "duke": 42,
+        "spy1": 20,
+        "spy2": 157
+      }
+    },
+    "cortes_por_paciente": {
+      "min": 5,
+      "mediana": 10.0,
+      "max": 10,
+      "con_menos_de_10": 7
+    },
+    "siempre_no_pcr_accuracy": 0.7054202670856244
+  },
+  "referencias_sin_imagen": {
+    "cohorte": {
+      "auc_por_fold": [
+        0.534475806451613,
+        0.5260427367988495,
+        0.5377934519423098,
+        0.5929655172413792,
+        0.5537805629751387
+      ],
+      "media": 0.549011615081858,
+      "desviacion": 0.02654898616424871
+    },
+    "subtipo": {
+      "auc_por_fold": [
+        0.6967741935483871,
+        0.6472159441134169,
+        0.6304347826086957,
+        0.6749425287356322,
+        0.6364290117115265
+      ],
+      "media": 0.6571592921435317,
+      "desviacion": 0.027966042014030794
+    },
+    "cohorte_y_subtipo": {
+      "auc_por_fold": [
+        0.7063508064516129,
+        0.643312101910828,
+        0.6254342562374987,
+        0.6885977011494253,
+        0.6533799054859256
+      ],
+      "media": 0.663414954247058,
+      "desviacion": 0.03326040605233189
+    }
+  },
+  "problemas": [],
+  "muestra": false,
+  "imagenes": {
+    "pacientes": 1097,
+    "cortes": 10945,
+    "pre_menor_que_early": 0.9963536918869644,
+    "lavado_late_menor_que_early": 0.2041932543299909,
+    "por_cohorte": {
+      "duke": {
+        "pacientes": 209,
+        "PRE": 0.2600342290888047,
+        "EARLY": 0.3774055827089039,
+        "LATE": 0.4076602347960747,
+        "realce": 0.11737135362009928,
+        "realce_pcr0": 0.11468817396468413,
+        "realce_pcr1": 0.127433277327906
+      },
+      "spy1": {
+        "pacientes": 104,
+        "PRE": 0.2774140155659272,
+        "EARLY": 0.3879644640649741,
+        "LATE": 0.4157416310949395,
+        "realce": 0.11055044849904685,
+        "realce_pcr0": 0.1098468102323703,
+        "realce_pcr1": 0.11266136329907638
+      },
+      "spy2": {
+        "pacientes": 784,
+        "PRE": 0.2781228640306817,
+        "EARLY": 0.4269821944551504,
+        "LATE": 0.44477240315505434,
+        "realce": 0.14885933042446875,
+        "realce_pcr0": 0.14780695758535897,
+        "realce_pcr1": 0.15108100641814493
+      }
+    },
+    "auc_indicadores": {
+      "realce": {
+        "todas": 0.5428250851532759,
+        "duke": 0.5541322314049586,
+        "spy1": 0.5374753451676528,
+        "spy2": 0.5217955603293949
+      },
+      "fraccion_realza": {
+        "todas": 0.5456020837507514,
+        "duke": 0.5422865013774105,
+        "spy1": 0.5665680473372782,
+        "spy2": 0.5214449815013724
+      }
+    }
+  }
+}
