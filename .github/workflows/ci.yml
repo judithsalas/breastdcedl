@@ -1,0 +1,23 @@
+name: CI
+
+# Lint (ruff) y tests (pytest) en cada push y pull request.
+# GitHub no tiene GPU AMD: los tests corren en CPU, igual que en el portátil.
+on: [push, pull_request]
+
+jobs:
+  lint-y-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Tests (pytest)
+        run: pytest -q

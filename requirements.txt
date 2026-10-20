@@ -1,8 +1,17 @@
+# Librerías comunes a las dos máquinas, con versión fija.
+# Tras cada `git pull`:  pip install -r requirements.txt
+#
+# PyTorch (torch==2.14.0, torchvision==0.29.0) NO está aquí a propósito:
+# el paquete es distinto según la máquina (CPU en el portátil, ROCm en la
+# universidad). Ver la sección "Instalar PyTorch" del README.
+
 numpy==2.5.3
 pandas==3.0.6
 pillow==12.3.0
 matplotlib==3.11.2
 scikit-learn==1.9.1
 requests==2.34.2
+
+# Desarrollo: tests y linter (también los usa GitHub Actions)
 pytest==9.1.1
 ruff==0.16.8

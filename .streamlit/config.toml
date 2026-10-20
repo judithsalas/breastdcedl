@@ -1,0 +1,12 @@
+# Configuración de la app (Streamlit la lee desde la raíz del repositorio).
+[server]
+# Límite de cada fichero subido, en MB. Coincide con el de src/data/entrada.py (2 MB), que lo
+# vuelve a comprobar por si la app se lanza con otra configuración.
+maxUploadSize = 2
+
+[client]
+# Sin el menú de desarrollador (botón Deploy, etc.): la app es para usarla, no para editarla.
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false
