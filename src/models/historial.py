@@ -30,7 +30,7 @@ import pandas as pd
 from src.config import COMPARACION, es_estandar
 from src.data.caso import RAIZ_REPO
 from src.evaluation.metricas import coma
-from src.models.construir import cambios, contar_parametros, crear_modelo, huella
+from src.models.construir import cambios, contar_parametros, crear_modelo, huella, receta
 from src.models.versiones import ESTADO, ORIGEN, VERSIONES
 
 DOCUMENTO = RAIZ_REPO / "docs" / "ARQUITECTURAS.md"
@@ -65,16 +65,24 @@ def validaciones_validas(historico: pd.DataFrame, perdida: str = "normal") -> pd
     return filas.groupby("modelo").tail(1)
 
 
+def desplegable(modelo: str) -> bool:
+    """¿Puede ser el modelo final? No si necesita algo que la app no tiene, como la caja del tumor (D33)."""
+    return modelo in VERSIONES and receta(modelo).get("recorte") != "caja"
+
+
 def elegir_mejor(historico: pd.DataFrame) -> dict | None:
     """Aplica el criterio de comparación de docs/ARQUITECTURAS.md (D16).
 
-    1. Validaciones cruzadas completas de 5 folds, pérdida normal, huella ✓.
+    1. Validaciones cruzadas completas de 5 folds, pérdida normal, huella ✓, de versiones
+       desplegables (las que necesitan la caja del tumor solo sirven para comparar, D33).
     2. La de mayor AUC medio en validación es la referencia.
     3. Empatan con ella las que quedan a menos de una desviación (la de la referencia).
     4. Entre las empatadas, primero las que no sobreajustan (diferencia train − val ≤ 0,15);
        después, la de menos parámetros; a igualdad, la más antigua.
     """
     candidatas = validaciones_validas(historico, "normal")
+    if not candidatas.empty:
+        candidatas = candidatas[candidatas.modelo.map(desplegable)]
     if candidatas.empty:
         return None
     referencia = candidatas.loc[candidatas.auc_val.idxmax()]

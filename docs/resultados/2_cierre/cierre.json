@@ -1,0 +1,257 @@
+{
+  "huella_modelo": "b193afa060fd",
+  "calibracion": {
+    "a": 0.14651471821111062,
+    "b": -0.7078405158222709,
+    "metodo": "Platt (regresión logística sobre el logit de cada corte)",
+    "brier_sin_calibrar": 0.20951092008546837,
+    "brier_calibrado": 0.20678862423968972,
+    "tabla_sin_calibrar": [
+      {
+        "prob_media": 0.0917247483166019,
+        "proporcion_real": 0.20909090909090908,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.15987875824963502,
+        "proporcion_real": 0.23636363636363636,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.19411549283530885,
+        "proporcion_real": 0.26605504587155965,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.21966395158885102,
+        "proporcion_real": 0.2818181818181818,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.24080884887413545,
+        "proporcion_real": 0.24545454545454545,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.25963804595377465,
+        "proporcion_real": 0.28440366972477066,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.27948121850689256,
+        "proporcion_real": 0.2818181818181818,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.3019772050167442,
+        "proporcion_real": 0.3577981651376147,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.33347263536669997,
+        "proporcion_real": 0.34545454545454546,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.4339836453804465,
+        "proporcion_real": 0.42727272727272725,
+        "pacientes": 110
+      }
+    ],
+    "tabla_calibrada": [
+      {
+        "prob_media": 0.2568431327043073,
+        "proporcion_real": 0.20909090909090908,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.2784105979703534,
+        "proporcion_real": 0.23636363636363636,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.2855436502996524,
+        "proporcion_real": 0.27522935779816515,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.2902557638842618,
+        "proporcion_real": 0.2727272727272727,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.29386464705062804,
+        "proporcion_real": 0.24545454545454545,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.29696124240715116,
+        "proporcion_real": 0.29357798165137616,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.3000808765254625,
+        "proporcion_real": 0.2727272727272727,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.3034483565883092,
+        "proporcion_real": 0.3669724770642202,
+        "pacientes": 109
+      },
+      {
+        "prob_media": 0.3079721960116273,
+        "proporcion_real": 0.33636363636363636,
+        "pacientes": 110
+      },
+      {
+        "prob_media": 0.325041369569477,
+        "proporcion_real": 0.42727272727272725,
+        "pacientes": 110
+      }
+    ]
+  },
+  "agregaciones": {
+    "media": {
+      "auc": 0.5740532959326788,
+      "ic95": [
+        0.5354402916323427,
+        0.6136358148214098
+      ]
+    },
+    "mediana": {
+      "auc": 0.5721578841915448,
+      "ic95": [
+        0.5335500378536726,
+        0.6116569825893068
+      ]
+    },
+    "máximo": {
+      "auc": 0.5800040072129834,
+      "ic95": [
+        0.5421267528274569,
+        0.6191469671648057
+      ]
+    },
+    "voto": {
+      "auc": 0.562684832698858,
+      "ic95": [
+        0.5295251865604992,
+        0.5972646670167822
+      ]
+    }
+  },
+  "umbrales": {
+    "elegido": {
+      "criterio": "máxima sensibilidad con especificidad ≥ 0,80",
+      "umbral": 0.3042334608328854,
+      "matriz_confusion": {
+        "VP": 98,
+        "VN": 622,
+        "FP": 153,
+        "FN": 224
+      },
+      "sensibilidad": 0.30434782608695654,
+      "especificidad": 0.8025806451612904,
+      "precision_pcr": 0.3904382470119522,
+      "recall_pcr": 0.30434782608695654,
+      "f1_pcr": 0.34205933682373474,
+      "precision_no_pcr": 0.735224586288416,
+      "recall_no_pcr": 0.8025806451612904,
+      "f1_no_pcr": 0.7674275138803208,
+      "f1_macro": 0.5547434253520278,
+      "accuracy": 0.6563354603463992
+    },
+    "youden": {
+      "criterio": "máximo de sensibilidad + especificidad − 1",
+      "umbral": 0.30169266903698866,
+      "matriz_confusion": {
+        "VP": 125,
+        "VN": 570,
+        "FP": 205,
+        "FN": 197
+      },
+      "sensibilidad": 0.38819875776397517,
+      "especificidad": 0.7354838709677419,
+      "precision_pcr": 0.3787878787878788,
+      "recall_pcr": 0.38819875776397517,
+      "f1_pcr": 0.3834355828220859,
+      "precision_no_pcr": 0.7431551499348109,
+      "recall_no_pcr": 0.7354838709677419,
+      "f1_no_pcr": 0.7392996108949417,
+      "f1_macro": 0.5613675968585138,
+      "accuracy": 0.6335460346399271
+    },
+    "f1_macro": {
+      "criterio": "máxima F1 macro",
+      "umbral": 0.30169266903698866,
+      "matriz_confusion": {
+        "VP": 125,
+        "VN": 570,
+        "FP": 205,
+        "FN": 197
+      },
+      "sensibilidad": 0.38819875776397517,
+      "especificidad": 0.7354838709677419,
+      "precision_pcr": 0.3787878787878788,
+      "recall_pcr": 0.38819875776397517,
+      "f1_pcr": 0.3834355828220859,
+      "precision_no_pcr": 0.7431551499348109,
+      "recall_no_pcr": 0.7354838709677419,
+      "f1_no_pcr": 0.7392996108949417,
+      "f1_macro": 0.5613675968585138,
+      "accuracy": 0.6335460346399271
+    },
+    "0,5": {
+      "criterio": "umbral por defecto",
+      "umbral": 0.5,
+      "matriz_confusion": {
+        "VP": 0,
+        "VN": 774,
+        "FP": 1,
+        "FN": 322
+      },
+      "sensibilidad": 0.0,
+      "especificidad": 0.9987096774193548,
+      "precision_pcr": 0.0,
+      "recall_pcr": 0.0,
+      "f1_pcr": 0.0,
+      "precision_no_pcr": 0.7062043795620438,
+      "recall_no_pcr": 0.9987096774193548,
+      "f1_no_pcr": 0.8273650454302512,
+      "f1_macro": 0.4136825227151256,
+      "accuracy": 0.7055606198723792
+    }
+  },
+  "por_cohorte": {
+    "duke": {
+      "pacientes": 209,
+      "pcr": 44,
+      "auc": 0.5049586776859505,
+      "ic95": [
+        0.4089531680440771,
+        0.5978771797152618
+      ]
+    },
+    "spy1": {
+      "pacientes": 104,
+      "pcr": 26,
+      "auc": 0.5285996055226825,
+      "ic95": [
+        0.39642639372822297,
+        0.6729720816731406
+      ]
+    },
+    "spy2": {
+      "pacientes": 784,
+      "pcr": 252,
+      "auc": 0.5787758085690415,
+      "ic95": [
+        0.5365595456639614,
+        0.6220976389549204
+      ]
+    }
+  },
+  "pacientes": 1097,
+  "pacientes_pcr": 322
+}

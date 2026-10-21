@@ -1,0 +1,27 @@
+{
+  "modelo": "b193afa060fd",
+  "ISPY1_1012_z020": {
+    "probabilidad_pipeline": 0.2951679825782776,
+    "cohorte": "spy1"
+  },
+  "ISPY1_1208_z015": {
+    "probabilidad_pipeline": 0.2937883138656616,
+    "cohorte": "spy1"
+  },
+  "ISPY2-554577_z026": {
+    "probabilidad_pipeline": 0.3001559376716614,
+    "cohorte": "spy2"
+  },
+  "ISPY2-273691_z009": {
+    "probabilidad_pipeline": 0.31191056966781616,
+    "cohorte": "spy2"
+  },
+  "Breast_MRI_387_z023": {
+    "probabilidad_pipeline": 0.27618280053138733,
+    "cohorte": "duke"
+  },
+  "Breast_MRI_735_z018": {
+    "probabilidad_pipeline": 0.30026721954345703,
+    "cohorte": "duke"
+  }
+}

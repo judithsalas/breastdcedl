@@ -46,7 +46,7 @@ from src.data.caso import NOMBRE_COHORTE, RAIZ_REPO, RESULTADOS
 from src.evaluation.metricas import auc_con_ic, brier, coma, metricas_con_umbral, tabla_calibracion
 from src.evaluation.umbral import ESPECIFICIDAD_MINIMA, comparar_umbrales
 from src.models.final import CARPETA_FINAL, cargar_modelo_final, huella_modelo, sha256
-from src.models.historial import HISTORICO, elegir_mejor, leer_historico, validaciones_validas
+from src.models.historial import HISTORICO, desplegable, elegir_mejor, leer_historico, validaciones_validas
 
 CARPETA_RUNS = RAIZ_REPO / "runs"
 FIGURAS = RESULTADOS / "2_cierre"
@@ -373,6 +373,9 @@ def main() -> None:
                     "perdida": resumen["perdida"], "motivo_perdida": "elegida a mano con --cv"}
     else:
         carpeta, eleccion = elegir_validacion(args.modo)
+    if not desplegable(eleccion["version"]):
+        raise SystemExit(f"{eleccion['version']} se entrenó recortando con la caja del tumor, que la app y la "
+                         "validación privada no tienen: no puede ser el modelo final (D33).")
     manifiesto = cerrar(carpeta, eleccion)
     print(f"Modelo final: {manifiesto['version']} ({eleccion['perdida']}), umbral {manifiesto['umbral']:.3f}, "
           f"huella {manifiesto['huella_modelo']}")

@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 from src.data.caso import RAIZ_REPO
+from src.data.recorte import LADO_RECORTE
 from src.models.cnn import CANALES_POR_ENTRADA, LADO_ENTRADA
 from src.models.construir import contar_parametros, crear_modelo, receta
 from src.models.versiones import POR_DEFECTO, VERSIONES
@@ -48,11 +49,14 @@ def etapas(nombre: str) -> list[dict]:
         lineas_entrada += ["÷ media del PRE en el tejido", "(intensidad relativa, dentro)"]
     if v["entrada"] == "fases+realce":
         lineas_entrada += ["+ EARLY−PRE, LATE−EARLY", "(calculados dentro)"]
+    lado = LADO_ENTRADA
+    if receta(nombre).get("recorte") == "caja":            # D33: la red ve un recorte alrededor del tumor
+        lado = LADO_RECORTE
+        lineas_entrada += [f"recorte {LADO_RECORTE}×{LADO_RECORTE} en el tumor", "(con la caja; no desplegable)"]
     lista = [{"tipo": "entrada", "titulo": "Entrada", "lineas": lineas_entrada,
-              "forma": f"{canales_entrada} @ {LADO_ENTRADA}×{LADO_ENTRADA}", "lado": LADO_ENTRADA,
+              "forma": f"{canales_entrada} @ {lado}×{lado}", "lado": lado,
               "canales": canales_entrada, "params": 0}]
 
-    lado = LADO_ENTRADA
     bloques = list(modelo.extractor)
     por_bloque = len(bloques) // len(filtros)
     for i, c in enumerate(filtros):
