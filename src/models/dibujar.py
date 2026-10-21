@@ -134,7 +134,8 @@ def dibujar(nombre: str) -> list:
                  fontsize=14, fontweight="bold", color=TEXTO, y=0.99)
     como = receta(nombre)
     aumento = como["aumento"]
-    nombre_aumento = {"geometrico": "geométrico"}.get(aumento, aumento)
+    nombre_aumento = {"geometrico": "geométrico",
+                      "geometrico+giros90": "geométrico con giros de 90°"}.get(aumento, aumento)
     nota_receta = f" Entrenada con aumento {nombre_aumento} (solo en entrenamiento)." if aumento else ""
     if como.get("optimizador") == "adamw":
         nota_receta += f" Optimizador AdamW, weight decay {como['weight_decay']:g}."
