@@ -110,7 +110,8 @@ Estado de cada punto de la rúbrica:
 - (2026-10-21) **Segunda ronda entrenada** (cnn_v5–v7, R5): ninguna mejora clara. cnn_v8 se cayó
   porque la tarjeta gráfica se quedó colgada; hubo que reiniciar el PC con el botón. **Tercera
   ronda definida** (D29): cnn_v10 (giros de 90°), figura de orientación en la auditoría y cnn_v9
-  reservada a la espera del profesor.
+  reservada a la espera del profesor. **Comparar el fold 0 con la referencia** mientras entrena
+  (D30). **Parámetros en `config.json`** y pruebas de un fold con `src.training.experimento` (D31).
 
 ---
 
@@ -285,7 +286,7 @@ su revisión. Sin ellos, las ejecuciones nuevas no servirían para los puntos 2,
 rúbrica y habría que repetirlas.
 - **AUC por paciente de entrenamiento en cada época** (punto 5). Se mide en modo evaluación sobre
   una **muestra fija y estratificada de 220 pacientes** de entrenamiento (provisional;
-  `pacientes_auc_train` en `src/config.py`, `--pacientes-auc-train`; 0 = todas, que es lo que usa
+  `pacientes_auc_train` en `src/config.py`, desde D31 en `config.json`; `--pacientes-auc-train`; 0 = todas, que es lo que usa
   el modo rápido).
   - **Por qué 220:** es el tamaño de un fold, así que el AUC de entrenamiento y el de validación
     tienen un ruido parecido y su diferencia es comparable. Además alarga poco cada época: unos
@@ -667,6 +668,52 @@ Se decide:
   tests nuevos para los giros y para la figura.
 - Por qué cada cosa, desde cero: `COMO_SE_HIZO.md` §3.10; hipótesis y «qué esperamos ver» en la ficha
   de cnn_v10.
+
+### D30 · Comparar el fold 0 con la referencia mientras entrena (2026-10-21)
+Judith pidió ver pronto, con dos líneas, si una versión nueva va bien, sin esperar a los 5 folds.
+- **`python -m src.training.comparar <referencia> <nueva> [--fold k]`** (`src/training/comparar.py`):
+  - cuatro paneles por época, con una línea por versión: AUC por paciente y pérdida, en validación y
+    en entrenamiento (la curva ROC no sirve para seguir épocas; es del modelo cerrado);
+  - imprime la época elegida y, en las pacientes del fold, el AUC por hospital y «¿delata el
+    hospital?»;
+  - guarda `graficas/comparacion_fold<k>_con_<referencia>.png` en la carpeta de la nueva, así que va en
+    el zip de `para_claude`.
+- **Busca sola** la última validación cruzada de cada versión con pérdida normal, o acepta rutas.
+- **Funciona con un fold a medias** (el historial se guarda cada época) y **no carga torch**: se puede
+  usar mientras entrena. Por eso `auc_por_cohorte` y `senal_de_hospital` pasan de
+  `validacion_cruzada.py` a `src/evaluation/metricas.py`, sin cambiar lo que calculan.
+- **El plan no cambia a «solo el fold 0»:** un fold baila ±0,04, más que las diferencias que se buscan;
+  las decisiones siguen saliendo de los 5 folds (D16, rúbrica punto 2). El fold 0 sirve para parar
+  pronto una versión que vaya claramente peor (regla de `CLAUDE.md`).
+- Ya existían, y se redibujan cada época: `fold_0/graficas/curvas.png` (entrenamiento frente a
+  validación, dos líneas) y `graficas/curvas_folds.png` (todos los folds).
+- Por qué, desde cero: `COMO_SE_HIZO.md` §4.8. Test: `tests/test_comparar.py`.
+
+### D31 · Un solo fichero de configuración, `config.json` (2026-10-21)
+Judith pidió tener los parámetros en un JSON, como plantilla.
+- **`config.json` en la raíz**, con cuatro secciones:
+  - `experimento`: versión, modo, pérdida, folds, cambios sobre el modo y nota;
+  - `modos`: `rapido` y `completo`, con los mismos valores que antes tenía `src/config.py`;
+  - `evaluacion`: agregación, umbral durante el entrenamiento y especificidad mínima del umbral final;
+  - `comparacion`: límite de sobreajuste (0,15).
+
+  `_ayuda` explica cada parámetro.
+- **`src/config.py` lo lee y lo comprueba:** si falta o sobra un parámetro, o el JSON está mal escrito,
+  da un mensaje claro. `entrenar.py` (agregación y umbral), `umbral.py` (especificidad mínima) e
+  `historial.py` (sobreajuste) toman los valores de ahí; ya no hay números sueltos en el código.
+- **`python -m src.training.experimento [--config otro.json] [--ver]`** lanza la sección
+  `experimento` (un fold, o los que se digan) y guarda `config_usada.json` en la carpeta de la
+  ejecución. El plan no la usa: sigue entrenando los 5 folds con el modo estándar.
+- **No va en el JSON lo que define una versión** (capas, dropout, aumento, optimizador, weight decay):
+  sigue en `versiones.py`, con su huella. Cambiarlo es otra versión.
+- **Protección en el criterio:** `validaciones_validas` solo cuenta validaciones cruzadas con el
+  batch, el learning rate y la semilla de su modo (`es_estandar`). Así una prueba con otro learning
+  rate no sustituye a la versión. Las épocas y la paciencia no están en el histórico y no se
+  comprueban.
+- **Probado:** tests nuevos (`test_config.py`, `test_experimento.py` y uno en `test_plan.py`), y una
+  ejecución de prueba con imágenes sintéticas (cnn_v10, fold 0, learning rate cambiado). El
+  histórico guarda el learning rate cambiado y el comparador la encuentra.
+- Por qué, desde cero: `COMO_SE_HIZO.md` §4.9.
 
 ---
 

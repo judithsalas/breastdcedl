@@ -1,0 +1,69 @@
+{
+  "_leeme": [
+    "Parámetros de ejecución del proyecto, en un solo sitio (D31). Explicación de cada uno en _ayuda, al final.",
+    "experimento: lo que lanza 'python -m src.training.experimento'. Es la plantilla para probar cosas: se edita aquí o se copia a otro fichero y se lanza con --config.",
+    "modos: el estándar con el que se comparan las versiones. Si se cambia un valor, las ejecuciones anteriores dejan de contar para el criterio. Para probar otro valor, usa experimento.cambios.",
+    "No está aquí lo que define una versión (capas, aumento, optimizador, weight decay, dropout): está en src/models/versiones.py, porque cambiarlo es crear otra versión con su ficha."
+  ],
+  "experimento": {
+    "modelo": "cnn_v10",
+    "modo": "completo",
+    "perdida": "normal",
+    "folds": [0],
+    "cambios": {},
+    "nota": "prueba de un fold"
+  },
+  "modos": {
+    "rapido": {
+      "n_pacientes": 40,
+      "fold_val": 0,
+      "batch_size": 16,
+      "epocas_max": 2,
+      "paciencia": 2,
+      "learning_rate": 0.001,
+      "pacientes_auc_train": 0,
+      "semilla": 42,
+      "num_workers": 0
+    },
+    "completo": {
+      "n_pacientes": null,
+      "fold_val": 0,
+      "batch_size": 32,
+      "epocas_max": 60,
+      "paciencia": 10,
+      "learning_rate": 0.001,
+      "pacientes_auc_train": 220,
+      "semilla": 42,
+      "num_workers": 4
+    }
+  },
+  "evaluacion": {
+    "agregacion": "mean",
+    "umbral_entrenamiento": 0.5,
+    "especificidad_minima": 0.8
+  },
+  "comparacion": {
+    "sobreajuste_maximo": 0.15
+  },
+  "_ayuda": {
+    "experimento.modelo": "Versión de la red que se entrena, por su nombre en src/models/versiones.py (cnn_v3, cnn_v10...).",
+    "experimento.modo": "rapido (comprobar que funciona, sus cifras no cuentan) o completo (entrenamiento real).",
+    "experimento.perdida": "normal o ponderada (BCE con pos_weight = no pCR / pCR, para que la red no ignore la clase minoritaria).",
+    "experimento.folds": "Folds de validación que se entrenan: [0] para una prueba rápida (~10 min), [0, 1, 2, 3, 4] para la validación cruzada completa (~45 min). Para decidir y para el informe cuentan los 5 (D16, rúbrica punto 2).",
+    "experimento.cambios": "Valores de 'modos' que se cambian solo en esta ejecución, por ejemplo {\"learning_rate\": 0.0001}. Las ejecuciones con cambios en batch, learning rate o semilla no cuentan para el criterio de comparación.",
+    "experimento.nota": "Comentario libre que se guarda con los resultados y en runs/historico.csv.",
+    "modos.n_pacientes": "Cuántas pacientes de train se usan. null = todas (1.097).",
+    "modos.fold_val": "Fold de validación cuando se entrena una sola vez con src.training.entrenar (0-4). En la validación cruzada se recorren los folds de experimento.folds.",
+    "modos.batch_size": "Cortes por lote. Fijo en 32 en modo completo para que todas las versiones sean comparables.",
+    "modos.epocas_max": "Épocas como máximo (una época = ver una vez los ~8.800 cortes de entrenamiento).",
+    "modos.paciencia": "Épocas seguidas sin mejorar el AUC por paciente en validación antes de parar (parada temprana). Se guarda la mejor época.",
+    "modos.learning_rate": "Tasa de aprendizaje inicial del optimizador (Adam o AdamW, según la versión).",
+    "modos.pacientes_auc_train": "Pacientes de train (muestra fija y estratificada) sobre las que se mide el AUC de entrenamiento cada época, para ver el sobreajuste. 220 = el tamaño de un fold, para que su ruido se parezca al de validación. 0 = todas.",
+    "modos.semilla": "Semilla de todo lo aleatorio (pesos iniciales, orden de los lotes, aumento). Misma semilla, mismo resultado.",
+    "modos.num_workers": "Procesos que cargan imágenes en paralelo. 4 en el PC de la uni; si se queda sin memoria o la tarjeta falla, bajar a 2.",
+    "evaluacion.agregacion": "Cómo se juntan los cortes de una paciente en una probabilidad: mean, median, max o voto (utils_caso). Con cnn_v3 dan lo mismo (R5); se usa la media.",
+    "evaluacion.umbral_entrenamiento": "Umbral para la matriz de confusión y la sensibilidad durante el entrenamiento. El umbral definitivo se elige al cerrar el modelo, con validación, nunca con test (D21).",
+    "evaluacion.especificidad_minima": "Criterio clínico del umbral final: la mayor sensibilidad con especificidad ≥ este valor, porque decir pCR cuando queda tumor es el error más grave (D21).",
+    "comparacion.sobreajuste_maximo": "Diferencia de AUC entrenamiento − validación a partir de la cual una versión se considera sobreajustada y pierde los empates (D16)."
+  }
+}

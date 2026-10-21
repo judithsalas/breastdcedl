@@ -80,10 +80,10 @@ En 5 folds se da media ± desviación. ⚠ = la versión cambió después de esa
 | [cnn_v5](#cnn_v5) | cnn_v3 | normalizacion: None → pre | 97.809 | por entrenar | — | — | 0,575 ± 0,035 | — | 0,104 |
 | [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | por entrenar | — | — | 0,591 ± 0,041 | — | 0,065 |
 | [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | por entrenar | — | — | 0,588 ± 0,042 | — | 0,103 |
-| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | por entrenar | — | — | 0,558 | — | 0,099 |
-| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | por entrenar | — | — | — | — | — |
+| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | por entrenar | — | — | 0,593 ± 0,025 | — | 0,169 |
+| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | por entrenar | — | — | 0,587 | — | 0,044 |
 
-**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7.
+**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v8.
 <!-- auto:resumen:fin -->
 
 Las ejecuciones de cnn_v1 (R1, R2) se entrenaron antes de que existiera el histórico. Aparecen
@@ -124,6 +124,8 @@ una está en `runs/<ejecución>/` (en la máquina donde se entrenó).
 | 2026-10-21 14:43 | `20261021-144306_cv_cnn_v6_completo` | cnn_v6 | normal | 0,1,2,3,4 | 6,0 | 0,591 ± 0,041 | 0,656 | 0,065 | 0,438 | `5f5b8fc2` ✓ |
 | 2026-10-21 15:23 | `20261021-152323_cv_cnn_v7_completo` | cnn_v7 | normal | 0,1,2,3,4 | 11,2 | 0,588 ± 0,042 | 0,691 | 0,103 | 0,450 | `07d7985c` ✓ |
 | 2026-10-21 16:16 | `20261021-161603_cv_cnn_v8_completo` | cnn_v8 | normal | 0 | 23,0 | 0,558 | 0,658 | 0,099 | 0,500 | `6e0fa692` ✓ |
+| 2026-10-21 19:22 | `20261021-192232_cv_cnn_v8_completo` | cnn_v8 | normal | 0,1,2,3,4 | 19,2 | 0,593 ± 0,025 | 0,762 | 0,169 | 0,478 | `6e0fa692` ✓ |
+| 2026-10-21 20:35 | `20261021-203548_cv_cnn_v10_completo` | cnn_v10 | normal | 0 | 10,0 | 0,587 | 0,631 | 0,044 | 0,502 | `a5610d0f` ✓ |
 <!-- auto:ejecuciones:fin -->
 
 ---

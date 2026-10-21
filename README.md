@@ -44,7 +44,7 @@ generan desde el código (`python -m src.models.dibujar cnn_v2`):
 │   ├── training/         3. entrenar, validación cruzada y plan de experimentos
 │   ├── evaluation/       4. cerrar el modelo, el «médico» sin imagen y test
 │   ├── utils/            CPU o GPU, semilla
-│   └── config.py         modos `rapido` y `completo`
+│   └── config.py         lee config.json
 ├── tests/              comprobaciones automáticas (`pytest -q`)
 ├── app/                la app web (Streamlit)
 ├── docs/
@@ -57,6 +57,7 @@ generan desde el código (`python -m src.models.dibujar cnn_v2`):
 │   ├── final/            el modelo final (pesos que usa la app)
 │   └── clinico/          el «médico» sin imagen (un JSON pequeño)
 ├── runs/               cada entrenamiento (solo en tu ordenador; a GitHub va historico.csv)
+├── config.json         parámetros de ejecución y plantilla de experimentos (D31)
 ├── environment.yml     entorno conda (Python 3.12)
 └── requirements.txt    librerías con versión fija (sin PyTorch)
 ```
@@ -179,7 +180,14 @@ Y antes de irse: `git add`, `git commit` y **`git push`**. Lo que no está en Gi
 | AUC de entrenamiento | sobre sus 40 pacientes | sobre 220 pacientes fijas de train (D12) |
 | ¿Sus métricas cuentan? | **no** | sí |
 
-Valores provisionales, definidos en [`src/config.py`](src/config.py).
+Los valores están en [`config.json`](config.json), con una explicación de cada parámetro en `_ayuda`.
+La sección `experimento` es la plantilla para probar algo, por ejemplo una versión en un solo fold:
+
+```bash
+python -m src.training.experimento --ver                             # qué se va a lanzar
+nohup python -m src.training.experimento > experimento.log 2>&1 &   # lanzarlo
+python -m src.training.comparar cnn_v3 cnn_v10                       # seguirlo frente a cnn_v3
+```
 
 El modo `rapido` usa solo pacientes ya descargadas, así que funciona con una descarga
 parcial (`descargar_datos.py --pacientes 100` basta).

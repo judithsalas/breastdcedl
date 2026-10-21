@@ -41,10 +41,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 
 from src.config import obtener_config
-from src.evaluation.metricas import referencias_triviales
+from src.evaluation.metricas import auc_por_cohorte, referencias_triviales, senal_de_hospital
 from src.training import historico
 from src.training.entrenar import (
     CARPETA_RUNS,
@@ -88,32 +87,6 @@ def media_y_desviacion(filas: list[dict]) -> dict:
             "desviacion": float(valores.std(ddof=1)) if len(valores) > 1 else float("nan"),
         }
     return resumen
-
-
-def auc_por_cohorte(pacientes: pd.DataFrame) -> dict:
-    """AUC fuera de fold dentro de cada cohorte (NaN si en una cohorte solo hay una clase)."""
-    salida = {}
-    for cohorte, grupo in pacientes.groupby("cohorte"):
-        auc = (float(roc_auc_score(grupo.pCR, grupo.prob_media)) if grupo.pCR.nunique() == 2
-               else float("nan"))
-        salida[str(cohorte)] = {"pacientes": len(grupo), "pcr": int(grupo.pCR.sum()), "auc": auc}
-    return salida
-
-
-def senal_de_hospital(pacientes: pd.DataFrame) -> dict:
-    """¿La puntuación de la red delata el hospital? (D28)
-
-    AUC de la probabilidad para distinguir cada cohorte del resto. 0,5 = mirando la puntuación
-    no se sabe de qué hospital es la paciente; cuanto más lejos de 0,5 (por arriba o por abajo),
-    más «sabe» la red el hospital. Con cnn_v3 salió 0,66 para I-SPY2: parte de su AUC venía de
-    reconocer el hospital, que tiene más pCR, y no del tumor.
-    """
-    salida = {}
-    for cohorte in sorted(pacientes.cohorte.dropna().unique()):
-        es = pacientes.cohorte == cohorte
-        if 0 < es.sum() < len(pacientes):
-            salida[str(cohorte)] = float(roc_auc_score(es, pacientes.prob_media))
-    return salida
 
 
 def resumir(carpeta: Path, por_fold: dict[int, dict], cabecera: dict) -> dict:

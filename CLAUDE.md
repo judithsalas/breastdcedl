@@ -97,7 +97,7 @@ Repositorio del proyecto: **`judithsalas/breastdcedl`** (en el PC de la uni,
 Mismo entorno conda `cancer` (Python 3.12) y mismo `requirements.txt` en ambas. PyTorch no
 está en `requirements.txt` porque el paquete depende del hardware. El código no distingue
 máquinas: `src/utils/dispositivo.py` detecta GPU o CPU. Los modos `rapido`/`completo`
-(`src/config.py`) indican tipo de ejecución, no máquina.
+(`config.json`, D31) indican tipo de ejecución, no máquina.
 
 ## Convenciones
 
@@ -118,6 +118,9 @@ máquinas: `src/utils/dispositivo.py` detecta GPU o CPU. Los modos `rapido`/`com
 - Los `__init__.py` se dejan **vacíos** (petición de Judith, 2026-10-20). El código va en módulos
   con nombre: rutas y acceso a `utils_caso` en `src/data/caso.py`; crear una versión de la red,
   su huella y sus cambios en `src/models/construir.py`. Lo comprueba `tests/test_estructura.py`.
+- Parámetros de ejecución (modos, evaluación, plantilla de experimentos) en `config.json` (D31).
+  Lo que define una versión de la red, en `src/models/versiones.py`. No se meten números sueltos en
+  el código.
 - Antes de subir: `ruff check .` y `pytest -q`.
 - Claude trabaja en la nube sobre una copia del repo y entrega un zip con los ficheros
   cambiados. Si hay que mover o borrar ficheros, el zip trae además un script de un solo uso.

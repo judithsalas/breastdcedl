@@ -48,3 +48,11 @@ def test_estado_del_plan(tmp_path, monkeypatch):
     estado = {f["plan"]: f for f in plan.estado("completo")}
     assert estado["cnn_v2"]["hecho"] and estado["cnn_v3"]["hecho"] and not estado["cnn_v4"]["hecho"]
     assert estado["mejor"]["version"] == "cnn_v3" and not estado["mejor"]["hecho"]
+
+
+def test_una_prueba_con_otro_learning_rate_no_sustituye_a_la_version():
+    """Una validación cruzada de cnn_v3 con lr 0,0001 (experimento con cambios) no cuenta (D31)."""
+    estandar = {**fila("cnn_v3", 0.58, 0.03, 0.08, n=1), "batch": 32, "lr": 0.001, "semilla": 42}
+    otra_lr = {**fila("cnn_v3", 0.70, 0.02, 0.05, n=2), "batch": 32, "lr": 0.0001, "semilla": 42}
+    validas = historial.validaciones_validas(pd.DataFrame([estandar, otra_lr]))
+    assert list(validas.auc_val) == [0.58]

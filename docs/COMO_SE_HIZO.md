@@ -672,6 +672,87 @@ sigue ganando cnn_v3, el paso 9 ya está hecho.
 - **Para qué sirve todo esto:** se puede seguir cualquier cifra del informe hasta el entrenamiento
   exacto que la produjo.
 
+### 4.8 Ver pronto si una versión va bien: el fold 0 contra la referencia (D30)
+
+Judith pidió no esperar 45 minutos para saber si una versión nueva va bien. Ya había dos gráficas que
+se redibujan al acabar cada época:
+- `runs/<ejecución>/fold_0/graficas/curvas.png`: entrenamiento y validación del fold 0, dos líneas
+  por panel, como las figuras «BIEN / MAL» del profesor;
+- `runs/<ejecución>/graficas/curvas_folds.png`: los folds terminados, superpuestos.
+
+Faltaba comparar con la referencia. `python -m src.training.comparar cnn_v3 cnn_v10` lo hace:
+- **Qué dibuja:** cuatro paneles del fold 0, con una línea por versión en cada uno:
+  - AUC por paciente en validación y en entrenamiento;
+  - pérdida en validación y en entrenamiento.
+
+  Se guarda en la carpeta de la nueva, en `graficas/comparacion_fold0_con_cnn_v3.png`.
+- **Por qué AUC y pérdida, y no la curva ROC:** para seguir un entrenamiento importa cómo cambian
+  época a época. El sobreajuste se ve cuando la pérdida de entrenamiento baja y la de validación
+  sube, y el AUC de validación dice si ordena mejor a las pacientes. La curva ROC es de un modelo
+  ya cerrado: sirve para elegir y explicar el umbral (§5.4) y para comparar con el médico en test
+  (§6), no para seguir épocas.
+- **Qué imprime:** la época elegida de cada una y, en las pacientes de ese fold, el AUC dentro de
+  cada hospital y «¿delata el hospital?».
+- **Se puede usar mientras entrena:** el fold 0 es el primero que se entrena (~10 minutos) y su
+  historial se guarda cada época. El script no carga torch ni toca la tarjeta gráfica.
+- **No cambia el plan:** el plan sigue entrenando los 5 folds. Si en el fold 0 la nueva va claramente
+  peor durante 5–10 épocas, se puede parar y ahorrar el resto (regla de `CLAUDE.md`).
+
+**Cuidado al leerlo:**
+- Un fold tiene ~220 pacientes y su AUC baila unas ±0,04 de una ejecución a otra. En las de un solo
+  hospital hay aún menos pacientes (unas 21 de I-SPY1 por fold).
+- Solo dice algo una diferencia grande (≥ 0,05) y que se mantiene varias épocas.
+- Para decidir cuentan los 5 folds (D16, rúbrica punto 2). Por eso el plan no se cambia a «solo el
+  fold 0».
+
+> **Si te preguntan** «¿por qué no entrenaste solo un fold para ir más rápido?»: lo usamos para
+> mirar pronto, pero no para decidir. Un fold baila ±0,04, más que las diferencias que buscábamos
+> entre versiones. Las decisiones salen de los 5 folds, con media y desviación.
+
+### 4.9 Un solo fichero de configuración: `config.json` (D31)
+
+Judith pidió tener todos los parámetros en un fichero JSON, como una plantilla. Está en la raíz del
+repo, [`config.json`](../config.json), y tiene cuatro secciones:
+
+| Sección | Qué lleva | ¿Se toca? |
+|---|---|---|
+| `experimento` | qué versión, modo, pérdida, folds, cambios sobre el modo y nota | sí: es la plantilla para probar cosas |
+| `modos` | `rapido` y `completo`: pacientes, fold, batch, épocas, paciencia, learning rate, AUC de entrenamiento, semilla, procesos de carga | no, salvo `num_workers`: es el estándar con el que se comparan las versiones |
+| `evaluacion` | agregación por paciente, umbral durante el entrenamiento y especificidad mínima del umbral final | solo antes de cerrar el modelo, y con motivo (D21) |
+| `comparacion` | diferencia de AUC a partir de la cual una versión sobreajusta (0,15) | no: es el criterio fijado (D16) |
+
+Al final del fichero, `_ayuda` explica cada parámetro en una línea.
+
+**Cómo se usa para probar algo:**
+1. Editar `experimento` en `config.json`. Por ejemplo, cnn_v10 solo en el fold 0:
+   `"modelo": "cnn_v10", "folds": [0]`. Para otro learning rate, `"cambios": {"learning_rate": 0.0001}`.
+2. Comprobar qué se va a lanzar: `python -m src.training.experimento --ver`.
+3. Lanzarlo: `nohup python -m src.training.experimento > experimento.log 2>&1 &`.
+4. Seguirlo con `python -m src.training.comparar cnn_v3 cnn_v10` (§4.8).
+
+En la carpeta de la ejecución se guarda una copia, `config_usada.json`, para saber siempre qué se
+lanzó. También se puede escribir otro JSON solo con la sección `experimento` y lanzarlo con
+`--config otro.json`.
+
+**Qué no está en `config.json`, a propósito:** lo que define una versión de la red. Son las capas, el
+pooling, el dropout, el aumento de datos, el optimizador y el weight decay, y están en
+`src/models/versiones.py`. Cambiarlos es crear otra versión, con su ficha, su huella y su hipótesis
+(D14). Si estuvieran en el JSON, cambiar un número cambiaría cnn_v3 sin que nada lo registrara.
+
+**Una protección nueva en el criterio.** Con el JSON es muy fácil lanzar, por ejemplo, cnn_v3 con
+otro learning rate en los 5 folds. Esa ejecución no debe pasar por «la» cnn_v3. Por eso el criterio
+(D16) y el plan solo cuentan las validaciones cruzadas con el batch, el learning rate y la semilla
+de su modo (`es_estandar` en `src/config.py`). Las demás quedan en el histórico como pruebas. Si una
+prueba sale bien, se convierte en versión.
+
+**Qué no cambió:** los valores de los modos son los mismos que antes en `src/config.py` (un test lo
+comprueba), así que todas las ejecuciones anteriores siguen siendo comparables.
+
+> **Si te preguntan** «¿dónde están los hiperparámetros?»: los de ejecución, en `config.json`, con
+> una explicación de cada uno. Los de cada arquitectura, en `src/models/versiones.py`, porque cada
+> versión es una idea con su ficha. Y cada entrenamiento guarda la configuración que usó, así que
+> cualquier cifra se puede reproducir.
+
 ---
 
 ## 5. Cerrar el modelo
@@ -960,10 +1041,14 @@ números que salgan serán los de verdad.
      ya hecho. cnn_v5–v7 hechas el 21 de octubre; cnn_v8 se cayó por la tarjeta gráfica y se
      relanzó tras reiniciar el PC.
    - **Tercera ronda (cnn_v10, §3.10):** el mismo comando, cuando termine cnn_v8.
+   - **Para mirar pronto si va bien** (§4.8), en cuanto haya unas épocas del fold 0:
+     `python -m src.training.comparar cnn_v3 cnn_v10`.
+   - **Probar algo en un solo fold o con otros valores** (§4.9): editar la sección `experimento` de
+     `config.json` y lanzar `nohup python -m src.training.experimento > experimento.log 2>&1 &`.
    - **Mientras entrena, no lanzar nada que use la tarjeta**, y vigilar solo con
      `grep -a "Paso\|Fold\|época" plan.log | tail -3`.
    - **Si se cae con «unspecified launch failure»,** la tarjeta se ha quedado colgada: hay que
-     reiniciar el PC. Si se repite, bajar `num_workers` de 4 a 2 en `src/config.py`.
+     reiniciar el PC. Si se repite, bajar `num_workers` de 4 a 2 en `config.json` (modo `completo`).
 4. **Pasarle los resultados a Claude:** `python -m src.utils.para_claude` crea en la carpeta del
    repo un zip pequeño (`para_claude_<fecha>.zip`) que se envía por el chat.
    - Lleva el histórico, el resumen y las gráficas de cada ejecución, los informes de
