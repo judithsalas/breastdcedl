@@ -99,13 +99,86 @@ VERSIONES: dict[str, dict] = {
         "entrada": "fases+realce",
         "entrenamiento": {"aumento": "geometrico"},
     },
+    # ====================================================================== #
+    # Segunda ronda (2026-10-21, D28). Resultados de v2–v4: las tres en
+    # ~0,57–0,59; la red memoriza (sube el AUC de entrenamiento, no el de
+    # validación) y su puntuación distingue I-SPY2 del resto (AUC 0,58–0,66): en
+    # parte reconoce el hospital. Tres ideas, cada una por separado sobre cnn_v3
+    # (la candidata), y las tres juntas en cnn_v8.
+    # ====================================================================== #
+    # cnn_v5 · intensidad relativa a la propia paciente
+    # ÚNICO cambio respecto a cnn_v3: dentro de la red, las tres fases se dividen
+    # entre la intensidad media del PRE en el tejido del corte. Ataca el atajo del
+    # hospital: cada escáner tiene su escala (auditoría: realce 0,149 en I-SPY2 y
+    # ~0,11 en Duke e I-SPY1).
+    "cnn_v5": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "normalizacion": "pre",
+        "entrenamiento": {"aumento": "geometrico"},
+    },
+    # cnn_v6 · mirar dónde está el tumor
+    # ÚNICO cambio respecto a cnn_v3: el resumen final es un pooling por atención
+    # (media ponderada de las 16x16 posiciones con pesos aprendidos) en vez de la
+    # media global, que diluye un tumor pequeño entre el fondo (auditoría: el realce
+    # medio de todo el tejido solo da AUC 0,54).
+    "cnn_v6": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "atencion",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico"},
+    },
+    # cnn_v7 · regularización
+    # ÚNICO cambio respecto a cnn_v3 (en la idea; son dos piezas de la misma idea):
+    # dropout 0,3 antes de la capa final y AdamW con weight decay 0,05. Las dos
+    # herramientas estándar contra la memorización que la red aún no tenía.
+    "cnn_v7": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.3,
+        "entrenamiento": {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05},
+    },
+    # cnn_v8 · las tres ideas juntas
+    # cnn_v3 + normalización por el PRE + pooling por atención + regularización. Si
+    # cada idea ayuda por separado, juntas deberían sumar; si no, las versiones
+    # 5–7 dicen cuál sobra.
+    "cnn_v8": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "atencion",
+        "cabeza_oculta": None,
+        "dropout": 0.3,
+        "normalizacion": "pre",
+        "entrenamiento": {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05},
+    },
 }
 
 # Valores que se usan cuando una versión no los declara (las antiguas no los tienen y
 # así su huella no cambia).
 POR_DEFECTO: dict = {
     "entrada": "fases",
-    "entrenamiento": {"aumento": None},
+    "normalizacion": None,
+    # Adam sin weight decay es lo que usaron cnn_v1 a cnn_v4.
+    "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0},
 }
 
 # -------------------------------------------------------------------------- #
@@ -118,13 +191,21 @@ ORIGEN: dict[str, str | None] = {
     "cnn_v2": "cnn_v1",
     "cnn_v3": "cnn_v2",
     "cnn_v4": "cnn_v3",
+    "cnn_v5": "cnn_v3",
+    "cnn_v6": "cnn_v3",
+    "cnn_v7": "cnn_v3",
+    "cnn_v8": "cnn_v3",
 }
 
 # En qué punto está cada versión. Se justifica en su ficha.
 ESTADOS = ("por entrenar", "en prueba", "descartada", "candidata", "final")
 ESTADO: dict[str, str] = {
     "cnn_v1": "descartada",
-    "cnn_v2": "por entrenar",
-    "cnn_v3": "por entrenar",
-    "cnn_v4": "por entrenar",
+    "cnn_v2": "descartada",     # empata con cnn_v3 pero sobreajusta (diferencia 0,162 > 0,15)
+    "cnn_v3": "candidata",      # la mejor según el criterio tras la primera ronda (2026-10-21)
+    "cnn_v4": "descartada",     # el realce explícito no mejora (0,572 ± 0,044)
+    "cnn_v5": "por entrenar",
+    "cnn_v6": "por entrenar",
+    "cnn_v7": "por entrenar",
+    "cnn_v8": "por entrenar",
 }

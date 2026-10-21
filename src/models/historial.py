@@ -83,10 +83,18 @@ def elegir_mejor(historico: pd.DataFrame) -> dict | None:
     ganadora = min(empatadas.modelo,
                    key=lambda m: (sobreajusta(m), contar_parametros(crear_modelo(m)), orden.index(m)))
     fila = candidatas[candidatas.modelo == ganadora].iloc[0]
-    motivo = (f"mayor AUC medio ({coma(referencia.auc_val, 3)} ± {coma(margen, 3)}, {referencia.modelo})"
-              if ganadora == referencia.modelo else
-              f"empata con {referencia.modelo} ({coma(referencia.auc_val, 3)} ± {coma(margen, 3)}) "
-              f"y sobreajusta menos, tiene menos parámetros o es más antigua")
+    if ganadora == referencia.modelo:
+        motivo = f"mayor AUC medio ({coma(referencia.auc_val, 3)} ± {coma(margen, 3)}, {referencia.modelo})"
+    else:
+        if sobreajusta(referencia.modelo) and not sobreajusta(ganadora):
+            desempate = (f"{referencia.modelo} sobreajusta (diferencia {coma(referencia.diferencia_auc, 3)} > "
+                         f"{coma(SOBREAJUSTE, 2)}) y {ganadora} no ({coma(fila.diferencia_auc, 3)})")
+        elif contar_parametros(crear_modelo(ganadora)) < contar_parametros(crear_modelo(referencia.modelo)):
+            desempate = f"{ganadora} tiene menos parámetros"
+        else:
+            desempate = f"{ganadora} es más antigua (cambia menos cosas)"
+        motivo = (f"empata con {referencia.modelo} ({coma(referencia.auc_val, 3)} ± {coma(margen, 3)}); "
+                  f"{desempate}")
     return {"version": ganadora, "auc_val": float(fila.auc_val), "auc_val_desv": fila.auc_val_desv,
             "empatadas": sorted(empatadas.modelo, key=orden.index), "referencia": referencia.modelo,
             "motivo": motivo, "ejecucion": fila.ejecucion}

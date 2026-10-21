@@ -10,12 +10,19 @@ completa (5 folds, misma pérdida, mismo modo y huella ✓). Si se corta la luz 
 vuelve a lanzar el mismo comando y sigue por donde iba.
 
 Por qué este orden (explicado en docs/COMO_SE_HIZO.md):
+  Primera ronda (D17, hecha el 2026-10-20):
   1. cnn_v2  normal     ¿ayuda ver más contexto (4 bloques)?
   2. cnn_v3  normal     ¿ayuda el aumento de datos contra la memorización?
   3. cnn_v4  normal     ¿ayuda darle el realce hecho?
-  4. mejor   ponderada  la que gane según el criterio, con pérdida ponderada (lo pide el
-                        enunciado: comparar normal y ponderada con el modelo elegido)
-Las tres primeras se comparan con pérdida normal para que solo cambie una cosa cada vez.
+  Segunda ronda (D28, 2026-10-21), cada idea sobre cnn_v3 y las tres juntas:
+  4. cnn_v5  normal     ¿ayuda la intensidad relativa al PRE (quitar la escala del hospital)?
+  5. cnn_v6  normal     ¿ayuda el pooling por atención (mirar dónde está el tumor)?
+  6. cnn_v7  normal     ¿ayuda regularizar (dropout + weight decay)?
+  7. cnn_v8  normal     ¿suman las tres?
+  8. mejor   ponderada  la que gane según el criterio, con pérdida ponderada (lo pide el
+                        enunciado: comparar normal y ponderada con el modelo elegido). Si
+                        sigue ganando cnn_v3, ya está hecha y no se repite.
+Las versiones se comparan con pérdida normal para que solo cambie una cosa cada vez.
 """
 
 from __future__ import annotations
@@ -30,6 +37,10 @@ PLAN: list[tuple[str, str]] = [
     ("cnn_v2", "normal"),
     ("cnn_v3", "normal"),
     ("cnn_v4", "normal"),
+    ("cnn_v5", "normal"),
+    ("cnn_v6", "normal"),
+    ("cnn_v7", "normal"),
+    ("cnn_v8", "normal"),
     ("mejor", "ponderada"),
 ]
 
