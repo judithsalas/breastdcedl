@@ -347,6 +347,8 @@ va el porqué de cada pieza.
   1. capacidad (v2);
   2. regularización (v3);
   3. entrada con conocimiento del dominio (v4).
+- La segunda ronda (v5–v8, §3.9) sale de los resultados de la primera: cada versión prueba una idea
+  sobre la candidata, cnn_v3, y cnn_v8 las junta.
 
 ### 3.7 Inicialización, optimizador y demás hiperparámetros (D8, D24)
 
@@ -361,6 +363,107 @@ va el porqué de cada pieza.
 > **Si te preguntan** «¿por qué no usaste ResNet?»: el enunciado lo prohíbe. Hay que construir la
 > CNN desde cero, sin arquitecturas de catálogo ni pesos preentrenados. Por eso la red es mía,
 > pequeña y adaptada a pocos datos.
+
+### 3.8 Qué enseñó la primera ronda (cnn_v2, v3 y v4)
+
+Se entrenaron la noche del 20 de octubre: cada validación cruzada tardó unos 45 minutos. Detalle,
+fold a fold, en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
+
+| Versión | AUC validación (5 folds) | AUC entrenamiento | Diferencia | ¿Delata el hospital?* |
+|---|---|---|---|---|
+| cnn_v2 | 0,593 ± 0,032 | 0,755 | 0,162 | 0,58 |
+| cnn_v3 (aumento) | 0,576 ± 0,037 | 0,656 | 0,080 | **0,66** |
+| cnn_v4 (realce) | 0,572 ± 0,044 | 0,698 | 0,126 | 0,61 |
+
+\* AUC de la puntuación de la red para distinguir I-SPY2 del resto. 0,5 = no sabe de qué hospital
+es la paciente.
+
+**Lo que dicen, en cuatro frases:**
+1. **Las tres empatan** (las diferencias son menores que una desviación). Gana cnn_v3 por el
+   criterio: cnn_v2 empata pero sobreajusta, y cnn_v4 empata pero es más compleja.
+2. **La red apenas aprende algo que valga para pacientes nuevas.** Desde la primera época, el AUC
+   de validación se mueve entre 0,50 y 0,60 sin subir; solo sube el de entrenamiento. Es la figura
+   «MAL» del correo del profesor, en suave. El aumento de datos frena la memorización (la
+   diferencia baja de 0,16 a 0,08), pero no hace aprender más.
+3. **En parte reconoce el hospital.** Su puntuación distingue I-SPY2 (más pCR y más realce) con AUC
+   0,66, y dentro de Duke e I-SPY1 se queda en ~0,50–0,53.
+4. **No repite el subtipo** (AUC ~0,45–0,50 para HER2 y HR), y la poca señal que tiene está en
+   HER2+ y triple negativo (~0,58–0,63). Por eso, junto al médico, puede sumar (§2.5).
+
+**Una cautela sobre las cifras.** En cada fold se queda la mejor época de 13–23 medidas sobre las
+mismas pacientes de validación. Elegir el máximo de muchas medidas con ruido infla un poco el
+resultado: época a época, la validación ronda 0,53–0,58. La cifra honesta será la de test, que se
+mide una sola vez. Las comparaciones entre versiones siguen siendo justas, porque todas tienen el
+mismo sesgo.
+
+> **Si te preguntan** «¿tu red aprende biología o el hospital?»: lo medimos. La puntuación de
+> cnn_v3 distingue I-SPY2 del resto con AUC 0,66, así que en parte aprende el hospital; dentro de
+> Duke e I-SPY1 está casi al azar. Por eso la segunda ronda empieza por quitarle ese atajo (§3.9).
+> Lo comprobamos porque desde ese día cada validación cruzada lo calcula sola («¿delata el
+> hospital?»).
+
+### 3.9 Segunda ronda: cnn_v5 a cnn_v8 (D28)
+
+Judith pidió intentar acercarse a 0,70 sin sobreentrenar. Con lo de §3.8, hay tres problemas y una
+idea para cada uno, todas sobre cnn_v3. Como cada validación cruzada tarda ~45 minutos, en una
+noche caben las tres por separado y además las tres juntas.
+
+**cnn_v5 · Intensidad relativa a la propia paciente (contra el atajo del hospital).**
+- **Qué hace:** dentro de la red, divide las tres fases de cada corte entre la intensidad media del
+  PRE en su tejido. El tejido pasa a valer ~1 en PRE, y un 1,4 en EARLY significa «realza un 40 %».
+- **Por qué:** cada escáner tiene su escala, y el dataset no las armoniza (Fridman et al.). En la
+  auditoría, el realce medio es 0,149 en I-SPY2 y ~0,11 en Duke e I-SPY1. Con la intensidad
+  relativa, el brillo del escáner deja de servir de pista. Es la idea del «realce relativo» que se
+  usa en radiología.
+- **Por qué dentro de la red:** igual que el realce de cnn_v4, la app recibe las mismas 3 fases y
+  no puede haber una normalización distinta (lo que el profesor comprueba en la defensa).
+- **En otro trabajo con este mismo dataset** (THDA-ResNet, sobre HER2), solo cambiar cómo se
+  normalizaba la intensidad movía el AUC entre 0,70 y 0,74, y entre 0,60 y 0,66 en otro hospital.
+
+**cnn_v6 · Pooling por atención (contra la dilución del tumor).**
+- **El problema:** el tumor ocupa una zona pequeña del corte y realzan también el corazón y la
+  pared torácica. Las versiones anteriores terminan con la **media** de las 16×16 = 256 posiciones
+  del último mapa: cada posición pesa 1/256 y las pocas del tumor se pierden entre el fondo. La
+  auditoría lo apoya: el realce medio de todo el tejido solo da AUC 0,54.
+- **Qué hace la atención** (Ilse, Tomczak y Welling, 2018): la red calcula un **peso** para cada
+  posición y hace una **media ponderada**. Los pesos salen de una mini-red de dos capas,
+  `a_k = softmax(w · tanh(V · h_k))`, y suman 1. Si todos fueran iguales, sería la media de
+  antes: la atención es una generalización de la media global.
+- **Coste:** 4.161 parámetros más (101.970 en total).
+- **De regalo:** los pesos se pueden dibujar encima de la imagen y ver **dónde mira la red**. Si
+  mira el tumor, es un argumento fuerte en la defensa; si mira el corazón, también es un hallazgo.
+
+**cnn_v7 · Regularización (contra la memorización).**
+- **Dropout 0,3:** al entrenar, en cada paso se apaga al azar el 30 % de las 128 entradas de la
+  capa final. La red no puede apoyar la decisión en unas pocas neuronas concretas. Al evaluar no se
+  apaga nada.
+- **Weight decay con AdamW (0,05):** en cada paso los pesos se encogen un poco hacia 0. Los pesos
+  grandes son los que permiten memorizar detalles de unas pocas pacientes. AdamW (Loshchilov y
+  Hutter, 2019) aplica ese encogimiento aparte del paso de Adam, que es como funciona bien. No se
+  encogen los sesgos ni BatchNorm, que no memorizan.
+- **Por qué ahora:** la red no tenía ninguna de las dos herramientas estándar contra el
+  sobreajuste.
+
+**cnn_v8 · Las tres juntas.** Si cada idea ayuda algo, juntas deberían sumar. Rompe a propósito la
+regla de «una idea por versión»: se entrena a la vez que v5–v7, y ellas dicen qué aporta cada
+pieza.
+
+**Cómo se elegirá:** con el mismo criterio de siempre (D16). Además se mirará «¿delata el
+hospital?» y el AUC dentro de cada hospital. Si una versión baja un poco la media pero deja de
+reconocer el hospital, es más honesta, y eso se contará en el informe.
+
+**Siendo realistas:** la red encuentra poca señal en un corte 2D. Una mejora de 0,02–0,05 sería
+un buen resultado; llegar a 0,70 con la imagen sola es poco probable con estos datos. La vía
+honesta hacia ~0,70 es la comparación **CNN + médico** (§2.5): el médico solo ya da 0,69 y la CNN
+aporta información que el subtipo no tiene.
+
+> **Si te preguntan** «¿por qué no hiciste la red más grande?»: porque el problema era que
+> memorizaba, no que se quedara corta. De cnn_v1 a cnn_v2 cuadruplicamos los parámetros y el AUC de
+> validación apenas cambió (0,585 → 0,593), mientras el de entrenamiento se disparaba. Más grande
+> habría memorizado más.
+>
+> «¿Por qué atención y no otra cosa?»: el tumor es pequeño y la media global lo diluye. La atención
+> deja que la red pese más donde importa, cuesta solo 4.000 parámetros y además enseña dónde mira.
 
 ---
 
@@ -443,14 +546,21 @@ fuera por sobreajustar. Entre cnn_v3 y cnn_v4 gana cnn_v3, que tiene menos pará
 | 1 | cnn_v2, pérdida normal | ¿ayuda ver más contexto? |
 | 2 | cnn_v3, pérdida normal | ¿el aumento corrige la memorización? |
 | 3 | cnn_v4, pérdida normal | ¿ayuda darle el realce hecho? |
-| 4 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
+| 4 | cnn_v5, pérdida normal | ¿ayuda la intensidad relativa al PRE (quitar el atajo del hospital)? |
+| 5 | cnn_v6, pérdida normal | ¿ayuda el pooling por atención (no diluir el tumor)? |
+| 6 | cnn_v7, pérdida normal | ¿ayudan el dropout y el weight decay (no memorizar)? |
+| 7 | cnn_v8, pérdida normal | ¿suman las tres ideas? |
+| 8 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
+
+Los pasos 1–3 y la ponderada de cnn_v3 se hicieron la noche del 20 de octubre (§3.8). Los pasos 4–7
+se añadieron el 21 (D28, §3.9). Si al final sigue ganando cnn_v3, el paso 8 ya está hecho.
 
 - **Por qué se comparan con pérdida normal:** para que entre versiones solo cambie una cosa.
 - **Por qué la ponderada solo con la ganadora:** en R1 y R2 la ponderación movió la sensibilidad
   y no el AUC, así que entrenar la ponderada de todas no cambiaría la elección y gastaría GPU.
 - **Es reanudable:** si se corta, se lanza otra vez y sigue donde iba (mira el histórico).
-- **Duración estimada:** 1,5–2 horas por paso. No está medida todavía; la primera ejecución lo
-  dirá.
+- **Duración medida:** unos 45 minutos por paso en la RX 6700 XT (~30 s por época). La primera
+  ronda entera tardó unas 3 horas.
 
 ### 4.7 Histórico, gráficas y huella (D13, D14)
 
@@ -728,7 +838,7 @@ distinguir las clases:
 - la predicción por línea de comandos;
 - la app en un navegador: un ejemplo coincide con el pipeline y una fase que falta da error.
 
-Además hay 103 tests automáticos. Esa prueba destapó y corrigió un fallo real: el umbral quedaba
+Además hay más de 120 tests automáticos. Esa prueba destapó y corrigió un fallo real: el umbral quedaba
 pegado al borde de su intervalo (§5.4). Lo que falta es ejecutarlo con los datos reales: los
 números que salgan serán los de verdad.
 
@@ -740,9 +850,14 @@ números que salgan serán los de verdad.
    python -m src.models.historial --figuras runs/20261007-211625_cnn_v1_completo runs/20261007-213119_cnn_v1_completo_ponderada
    ```
 2. **Auditoría** (unos minutos): `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`.
+   **Hecha el 20 de octubre.**
 3. **Plan de experimentos** (una noche): `python -m src.training.plan`. Antes,
    `python -m src.training.plan --modo rapido` para comprobar en minutos que todo funciona.
    `python -m src.training.plan --ver` dice qué falta. Si se corta, se vuelve a lanzar.
+   - **Primera ronda (cnn_v2–v4) hecha el 20 de octubre** (§3.8).
+   - **Segunda ronda (cnn_v5–v8, §3.9):** se lanza con el mismo comando, una sola vez, y que siga
+     aunque se cierre VS Code: `nohup python -m src.training.plan > plan.log 2>&1 &`. Se salta lo
+     ya hecho.
 4. **Pasarle los resultados a Claude:** `python -m src.utils.para_claude` crea en la carpeta del
    repo un zip pequeño (`para_claude_<fecha>.zip`) que se envía por el chat.
    - Lleva el histórico, el resumen y las gráficas de cada ejecución, los informes de

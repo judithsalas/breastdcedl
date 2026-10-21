@@ -44,6 +44,8 @@ def etapas(nombre: str) -> list[dict]:
 
     canales_entrada = CANALES_POR_ENTRADA[v["entrada"]]
     lineas_entrada = ["PRE · EARLY · LATE"]
+    if v.get("normalizacion") == "pre":
+        lineas_entrada += ["÷ media del PRE en el tejido", "(intensidad relativa, dentro)"]
     if v["entrada"] == "fases+realce":
         lineas_entrada += ["+ EARLY−PRE, LATE−EARLY", "(calculados dentro)"]
     lista = [{"tipo": "entrada", "titulo": "Entrada", "lineas": lineas_entrada,
@@ -64,6 +66,12 @@ def etapas(nombre: str) -> list[dict]:
         n = filtros[-1]
         lista.append({"tipo": "resumen", "titulo": "Pooling global", "lineas": ["media de cada canal"],
                       "forma": f"vector {n}", "lado": 24, "canales": filtros[-1], "params": 0})
+    elif v["resumen"] == "atencion":
+        n = filtros[-1]
+        lista.append({"tipo": "resumen", "titulo": "Pooling por atención",
+                      "lineas": [f"un peso por posición ({lado}×{lado})", "media ponderada"],
+                      "forma": f"vector {n}", "lado": 24, "canales": filtros[-1],
+                      "params": sum(p.numel() for p in modelo.resumen.parameters())})
     else:
         n = filtros[-1] * lado * lado
         lista.append({"tipo": "resumen", "titulo": "Flatten", "lineas": ["todos los valores"],
@@ -124,9 +132,12 @@ def dibujar(nombre: str) -> list:
 
     fig.suptitle(f"{nombre}  ·  {total:,} parámetros entrenables".replace(",", "."),
                  fontsize=14, fontweight="bold", color=TEXTO, y=0.99)
-    aumento = receta(nombre)["aumento"]
+    como = receta(nombre)
+    aumento = como["aumento"]
     nombre_aumento = {"geometrico": "geométrico"}.get(aumento, aumento)
     nota_receta = f" Entrenada con aumento {nombre_aumento} (solo en entrenamiento)." if aumento else ""
+    if como.get("optimizador") == "adamw":
+        nota_receta += f" Optimizador AdamW, weight decay {como['weight_decay']:g}."
     fig.text(0.5, 0.015, "Los 3 canales de entrada son instantes de la DCE-MRI, no colores. "
              "Altura de cada caja según el tamaño del mapa; anchura según los canales." + nota_receta,
              ha="center", fontsize=8.5, color=SUAVE)

@@ -185,6 +185,26 @@ def evaluar(probabilidades: np.ndarray, filas: pd.DataFrame) -> dict:
     return m
 
 
+def crear_optimizador(modelo: nn.Module, lr: float, receta_version: dict) -> torch.optim.Optimizer:
+    """El optimizador que pide la receta de la versión.
+
+    - "adam": Adam sin weight decay (cnn_v1 a cnn_v4).
+    - "adamw": AdamW (Loshchilov y Hutter, 2019), que aplica el weight decay aparte del paso de
+      Adam. El weight decay empuja los pesos hacia 0 en cada paso: la red no puede apoyarse en
+      pesos muy grandes para memorizar detalles de unas pocas pacientes. Solo se aplica a los
+      pesos de convoluciones y capas lineales; no a los sesgos ni a BatchNorm, que no
+      memorizan y a los que encoger solo estorba (práctica habitual).
+    """
+    if receta_version.get("optimizador", "adam") == "adam":
+        return torch.optim.Adam(modelo.parameters(), lr=lr)
+    if receta_version["optimizador"] != "adamw":
+        raise ValueError(f"Optimizador desconocido: {receta_version['optimizador']!r}")
+    con_decay = [p for p in modelo.parameters() if p.requires_grad and p.ndim > 1]
+    sin_decay = [p for p in modelo.parameters() if p.requires_grad and p.ndim <= 1]
+    return torch.optim.AdamW([{"params": con_decay, "weight_decay": receta_version["weight_decay"]},
+                              {"params": sin_decay, "weight_decay": 0.0}], lr=lr)
+
+
 def entrenar_una_epoca(modelo, cargador, criterio, optimizador, dispositivo) -> float:
     modelo.train()
     perdida_total, n = 0.0, 0
@@ -309,7 +329,7 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     peso_positivos = uc.pos_weight(entrena) if ponderada else None
     criterio = nn.BCEWithLogitsLoss(
         pos_weight=torch.tensor(peso_positivos, device=dispositivo) if peso_positivos else None)
-    optimizador = torch.optim.Adam(modelo.parameters(), lr=cfg.learning_rate)
+    optimizador = crear_optimizador(modelo, cfg.learning_rate, como_entrenar)
 
     usa_gpu = dispositivo.type == "cuda"
     opciones = {"batch_size": cfg.batch_size, "num_workers": cfg.num_workers, "pin_memory": usa_gpu,
@@ -352,7 +372,9 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     print(f"Entrena: {resultados['datos']['pacientes_entrena']} pacientes / {len(entrena)} cortes | "
           f"Valida (fold {cfg.fold_val}): {resultados['datos']['pacientes_valida']} pacientes / "
           f"{len(valida)} cortes | AUC de entrenamiento sobre {resultados['datos']['pacientes_auc_train']} pacientes")
-    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | "
+    optim_texto = (f"AdamW, weight decay {como_entrenar['weight_decay']:g}"
+                   if como_entrenar["optimizador"] == "adamw" else "Adam")
+    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | {optim_texto} | "
           f"batch {cfg.batch_size} | lr {cfg.learning_rate} | "
           f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n")
 

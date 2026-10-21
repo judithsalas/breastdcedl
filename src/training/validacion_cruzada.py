@@ -100,6 +100,22 @@ def auc_por_cohorte(pacientes: pd.DataFrame) -> dict:
     return salida
 
 
+def senal_de_hospital(pacientes: pd.DataFrame) -> dict:
+    """¿La puntuación de la red delata el hospital? (D28)
+
+    AUC de la probabilidad para distinguir cada cohorte del resto. 0,5 = mirando la puntuación
+    no se sabe de qué hospital es la paciente; cuanto más lejos de 0,5 (por arriba o por abajo),
+    más «sabe» la red el hospital. Con cnn_v3 salió 0,66 para I-SPY2: parte de su AUC venía de
+    reconocer el hospital, que tiene más pCR, y no del tumor.
+    """
+    salida = {}
+    for cohorte in sorted(pacientes.cohorte.dropna().unique()):
+        es = pacientes.cohorte == cohorte
+        if 0 < es.sum() < len(pacientes):
+            salida[str(cohorte)] = float(roc_auc_score(es, pacientes.prob_media))
+    return salida
+
+
 def resumir(carpeta: Path, por_fold: dict[int, dict], cabecera: dict) -> dict:
     """Junta los folds terminados: tabla por fold, media ± desviación y métricas fuera de fold."""
     filas = [fila_de_fold(k, r) for k, r in sorted(por_fold.items())]
@@ -123,6 +139,7 @@ def resumir(carpeta: Path, por_fold: dict[int, dict], cabecera: dict) -> dict:
             **{k: m[k] for k in ("sensibilidad", "especificidad", "precision_pcr", "recall_pcr", "f1_pcr",
                                  "precision_no_pcr", "recall_no_pcr", "f1_no_pcr", "f1_macro", "accuracy")},
             "por_cohorte": auc_por_cohorte(pacientes),
+            "senal_de_hospital": senal_de_hospital(pacientes),
             "referencias_triviales": referencias_triviales(n_pcr, len(pacientes) - n_pcr),
         }
 
@@ -161,6 +178,9 @@ def imprimir(resumen: dict) -> None:
               f"VP {mc['VP']} FN {mc['FN']} FP {mc['FP']} VN {mc['VN']}")
         print("  por cohorte: " + " · ".join(f"{c} {v['auc']:.3f} (n={v['pacientes']})"
                                              for c, v in oof["por_cohorte"].items()))
+        if oof.get("senal_de_hospital"):
+            print("  ¿delata el hospital? (0,5 = no): " + " · ".join(
+                f"{c} {v:.3f}" for c, v in oof["senal_de_hospital"].items()))
     print("=" * 72)
 
 

@@ -54,3 +54,16 @@ def test_resumen_media_desviacion_y_fuera_de_fold(tmp_path):
     tabla = pd.read_csv(tmp_path / "resumen.csv")
     assert list(tabla.fold.astype(str)) == ["0", "1", "2", "media", "desviacion"]
     assert json.loads((tmp_path / "resumen.json").read_text(encoding="utf-8"))["folds_terminados"] == [0, 1, 2]
+
+
+def test_senal_de_hospital():
+    import pandas as pd
+
+    from src.training.validacion_cruzada import senal_de_hospital
+
+    pacientes = pd.DataFrame({"cohorte": ["spy2"] * 4 + ["duke"] * 4,
+                              "prob_media": [0.9, 0.8, 0.85, 0.7, 0.1, 0.2, 0.15, 0.3]})
+    s = senal_de_hospital(pacientes)
+    assert s["spy2"] == 1.0 and s["duke"] == 0.0          # la puntuación delata el hospital del todo
+    mezcla = pacientes.assign(prob_media=[0.1, 0.9, 0.2, 0.8, 0.1, 0.9, 0.2, 0.8])
+    assert senal_de_hospital(mezcla)["spy2"] == 0.5        # no lo delata

@@ -11,13 +11,16 @@ Qué va en cada documento: [D14](#d14--mapa-de-la-documentación-y-trazabilidad-
 
 ## Estado actual
 
-**En una frase (2026-10-20):** el código está terminado y probado; ahora toca **ejecutarlo con
-los datos reales en el PC de la uni**. Todavía no hay resultados reales de la red, salvo los de
-cnn_v1 (descartada) y los del médico sin imagen.
+**En una frase (2026-10-21):** la primera ronda de entrenamiento con datos reales está hecha
+(cnn_v2–v4: AUC ~0,57–0,59, gana cnn_v3) y esta noche se entrena la segunda (cnn_v5–v8), que
+intenta subirlo sin sobreajustar.
 
 **Qué tenemos**
-- **Las redes:** cnn_v1 (entrenada y descartada: AUC 0,585) y cnn_v2, cnn_v3 y cnn_v4 (definidas,
-  sin entrenar). Historia completa en [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
+- **Las redes:** cnn_v1, v2 y v4 descartadas; **cnn_v3 candidata** (0,576 ± 0,037, sin
+  sobreajuste). cnn_v5–v8 definidas, sin entrenar (D28). Historia completa en
+  [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
+- **Lo que enseñó la primera ronda** (R4): la red apenas generaliza, en parte reconoce el hospital
+  (su puntuación distingue I-SPY2 con AUC 0,66) y no repite el subtipo.
 - **Todo el camino, hecho en código y probado con imágenes inventadas:** revisar los datos →
   entrenar y comparar versiones → cerrar el modelo → compararlo con el médico → test una vez →
   app.
@@ -26,15 +29,16 @@ cnn_v1 (descartada) y los del médico sin imagen.
 - Las decisiones, explicadas desde cero en [`COMO_SE_HIZO.md`](COMO_SE_HIZO.md). Desde el
   2026-10-18 las toma Claude y Judith las revisa (D15).
 
-**Siguiente paso:** en el PC de la uni, poner el repo al día y lanzar el plan de experimentos
-(pasos 1 a 3).
+**Siguiente paso:** en el PC de la uni, copiar los cambios del 21 de octubre, subirlos y lanzar
+el plan de noche (segunda ronda). Después, pasar a Claude el zip de `para_claude`.
 
 **Pasos hasta la entrega** (comandos explicados en
 [`COMO_SE_HIZO.md` §9](COMO_SE_HIZO.md#9-qué-queda-y-en-qué-orden))
 1. PC de la uni: `git pull`, `pytest -q`, y R1/R2 al histórico (`python -m src.training.historico`,
    `python -m src.training.graficas runs/*`).
-2. Auditoría: `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`.
-3. Plan de experimentos, de noche: `python -m src.training.plan`.
+2. Auditoría: `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`. ✅ 2026-10-20.
+3. Plan de experimentos, de noche: `python -m src.training.plan`. ✅ Primera ronda 2026-10-20;
+   segunda ronda (cnn_v5–v8) pendiente.
 4. Pasar a Claude los resultados: `python -m src.utils.para_claude` y enviar el zip por el chat
    (D27). Con eso escribe las lecturas y decisiones de las fichas.
 5. Cierre: `python -m src.evaluation.cerrar_modelo`, después `python -m src.evaluation.modelo_clinico`
@@ -86,6 +90,9 @@ Estado de cada punto de la rúbrica:
 - (2026-10-20) **Limpieza de carpetas** (D26): en `docs/` quedan solo los tres documentos para
   leer; todo lo que generan los scripts va a `docs/resultados/`, una carpeta por paso. Fuera
   `notebooks/` (vacía) y la guía de instalación de una sola vez del PC de la uni.
+- (2026-10-21) **Primera ronda de entrenamiento con datos reales** (R4): cnn_v2–v4 empatan en
+  ~0,57–0,59; candidata cnn_v3. **Segunda ronda definida** (D28): cnn_v5 (intensidad relativa al
+  PRE), cnn_v6 (pooling por atención), cnn_v7 (dropout y weight decay) y cnn_v8 (las tres).
 - (2026-10-20) **El repositorio del proyecto es `judithsalas/breastdcedl`** (en el PC de la uni,
   `~/Escritorio/JUDITH/breastdcedl`, donde están las imágenes). `caso1_breast-cancer` deja de usarse.
   Pasar resultados a Claude sin imágenes: `python -m src.utils.para_claude` (D27).
@@ -165,12 +172,12 @@ actualiza en cada sesión.
 
 | # | Criterio | Qué pide | Estado (2026-10-14) | Fase |
 |---|---|---|---|---|
-| 1 | Datos entendidos | Tres fases y realce mirados antes de programar; desbalance (30 % pCR) y cohortes descritos | Código listo (D20): falta ejecutarlo con las imágenes | F1 |
-| 2 | Partición por paciente | Ninguna paciente en dos conjuntos; validación cruzada de 5 folds con media ± desviación | Partición hecha; validación cruzada y plan listos (D12, D17) | F2–F4 |
+| 1 | Datos entendidos | Tres fases y realce mirados antes de programar; desbalance (30 % pCR) y cohortes descritos | **Hecho** (2026-10-20): auditoría con las 1.097 pacientes en `docs/resultados/1_auditoria/` | F1 |
+| 2 | Partición por paciente | Ninguna paciente en dos conjuntos; validación cruzada de 5 folds con media ± desviación | **Hecho** para cnn_v2–v4 (R4); se repite igual con cnn_v5–v8 | F2–F4 |
 | 3 | Arquitectura propia justificada | Capas, tamaños y parámetros explicados; desde cero; las fases no son RGB | Hecho para v1–v4 (fichas en `ARQUITECTURAS.md`); inicialización justificada (D24) | F3 |
 | 4 | Entrenamiento reproducible | Hiperparámetros, semilla, criterio de parada y época elegida documentados | Hecho: se guardan en `resultados.json` y en el histórico (D13); cada versión, con su historia en `ARQUITECTURAS.md` (D14) | F2 |
-| 5 | Sobreajuste controlado y demostrado | Curvas de train y validación juntas por época; diferencia de AUC en la época elegida; sobreentrenados descartados | Herramienta lista (D12, D13); falta usarla con la red final | F3–F4 |
-| 6 | Pérdida normal frente a ponderada | Comparadas, explicando qué le pasa a la sensibilidad | Hecho para cnn_v1 (ficha de cnn_v1); repetir con el modelo final | F3–F4 |
+| 5 | Sobreajuste controlado y demostrado | Curvas de train y validación juntas por época; diferencia de AUC en la época elegida; sobreentrenados descartados | **Demostrado** con cnn_v2–v4: curvas de los 5 folds en las fichas; cnn_v2 descartada por sobreajuste (0,162 > 0,15) | F3–F4 |
+| 6 | Pérdida normal frente a ponderada | Comparadas, explicando qué le pasa a la sensibilidad | **Hecho** con cnn_v1 y con la candidata cnn_v3: el AUC no cambia (0,576 frente a 0,574) y la sensibilidad con umbral 0,5 pasa de 0,02 a 0,56 | F3–F4 |
 | 7 | Umbral y agregación justificados | Elegidos con validación y con criterio clínico explícito (qué error es más grave) | Código listo (D21): media de cortes y umbral con especificidad ≥ 0,80 | F4 |
 | 8 | Test completo, una sola vez | Matriz de confusión, AUC con IC, precision, recall y F1 de cada clase, F1 macro, comparación con «siempre no pCR» | Código listo y bloqueado a una vez (D22), con IC por bootstrap | F5 |
 | 9 | Más allá de la cifra global | Resultados por cohorte, calibración y casos fallados mirados con sus imágenes | Código listo: por cohorte, calibración y casos fallados con imágenes (D21, D22) | F4–F6 |
@@ -577,6 +584,34 @@ genera el código, junto y en orden**.
   (`ejemplos.png`) o los PNG de unas pocas pacientes de train.
 - Test: `tests/test_para_claude.py`.
 
+### D28 · Segunda ronda de arquitecturas: cnn_v5 a cnn_v8 (2026-10-21)
+Judith pidió subir el AUC hacia 0,70 sin sobreentrenar. Con los resultados de la primera ronda
+(R4) hay tres problemas, y para cada uno una versión sobre la candidata cnn_v3:
+- **cnn_v5 · intensidad relativa al PRE**, contra el atajo del hospital. Dentro de la red, las
+  tres fases se dividen entre la intensidad media del PRE en el tejido del corte
+  (`normalizar_por_pre` en `src/models/cnn.py`).
+- **cnn_v6 · pooling por atención** (Ilse et al. 2018), contra la dilución del tumor pequeño en la
+  media global. Media ponderada de las 16×16 posiciones con pesos aprendidos (`PoolingAtencion`);
+  4.161 parámetros más. Los pesos se pueden dibujar para ver dónde mira la red.
+- **cnn_v7 · regularización**, contra la memorización: dropout 0,3 en la cabeza y AdamW con weight
+  decay 0,05 (sin decay en sesgos ni BatchNorm). La receta de entrenamiento admite ahora
+  `optimizador` y `weight_decay`; v1–v4 siguen con Adam sin decay (sus huellas no cambian).
+- **cnn_v8 · las tres juntas.** Rompe a propósito «una idea por versión»: se entrena a la vez que
+  v5–v7, que dicen qué aporta cada pieza. Así basta una noche (~45 min por validación cruzada).
+- **No se crece la red:** de v1 a v2 los parámetros se multiplicaron por 4 sin mejorar la
+  validación.
+- **No se usan las coordenadas del tumor** de `patients.csv` (`sraw`, `eraw`, `scol`, `ecol`) para
+  guiar la atención. Podrían ayudar, pero el profesor pide que esas variables solo sirvan para
+  comparar. Queda como pregunta para él si v6 no mejora.
+- **Diagnóstico nuevo en cada validación cruzada:** «¿delata el hospital?», el AUC de la
+  puntuación para distinguir cada cohorte del resto (`senal_de_hospital`, en `resumen.json` y en
+  pantalla).
+- El plan (D17) añade los pasos 4–7. La ponderada se hace solo con la ganadora (paso 8; si sigue
+  siendo cnn_v3, ya está hecha).
+- El motivo del criterio de comparación dice ahora qué desempate decidió.
+- Por qué cada cosa, desde cero: `COMO_SE_HIZO.md` §3.8 y §3.9; hipótesis y «qué esperamos ver» de
+  cada versión en sus fichas (escritas antes de entrenar).
+
 ---
 
 ## Resultados
@@ -624,6 +659,31 @@ comparar, no como modelo). Solo train; test no se ha mirado.
     considera buen trabajo para la CNN, así que puede que la CNN sola no lo supere.
 - Pendiente: la comparación con la CNN y el combinado, al volver a ejecutarlo tras
   `cerrar_modelo`.
+
+### R4 · Primera ronda con datos reales: cnn_v2, v3 y v4 (2026-10-20)
+Plan D17 en el PC de la uni, 5 folds cada una, ~45 min por validación cruzada. Detalle fold a
+fold y curvas en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
+
+| Versión | AUC val (5 folds) | AUC train | Diferencia | Fuera de fold | Duke · I-SPY1 · I-SPY2 | ¿Delata I-SPY2? |
+|---|---|---|---|---|---|---|
+| cnn_v2 | 0,593 ± 0,032 | 0,755 | 0,162 | 0,595 | 0,59 · 0,49 · 0,60 | 0,58 |
+| cnn_v3 | 0,576 ± 0,037 | 0,656 | 0,080 | 0,574 | 0,51 · 0,53 · 0,58 | 0,66 |
+| cnn_v4 | 0,572 ± 0,044 | 0,698 | 0,126 | 0,547 | 0,51 · 0,54 · 0,55 | 0,61 |
+| cnn_v3 ponderada | 0,574 ± 0,030 | 0,668 | 0,094 | 0,543 | 0,50 · 0,50 · 0,54 | 0,62 |
+
+- **Gana cnn_v3** por el criterio: empata con cnn_v2, que sobreajusta (0,162 > 0,15); cnn_v4
+  empata pero tiene más parámetros.
+- **La red apenas generaliza:** el AUC de validación se mueve entre 0,50 y 0,60 desde la primera
+  época y no sube; solo sube el de entrenamiento.
+- **En parte reconoce el hospital** (columna «¿delata I-SPY2?»: 0,58–0,66). Dentro de Duke e
+  I-SPY1, ~0,50–0,54.
+- **No repite el subtipo** (AUC para HER2+ y HR+ ~0,45–0,50). Por subtipo (cnn_v3): HER2+ 0,61,
+  triple negativo 0,58, HR+/HER2− 0,50.
+- **Normal frente a ponderada (cnn_v3):** el mismo AUC; la sensibilidad con umbral 0,5 pasa de
+  0,02 a 0,56 y la especificidad de 0,99 a 0,53.
+- Las cifras por fold son la mejor época de cada fold sobre su validación, algo optimistas.
+  Época a época, la validación ronda 0,53–0,58. Ver `COMO_SE_HIZO.md` §3.8.
+- Calculado con el zip `para_claude_20261021-1210` (D27).
 
 ### R1, R2 · cnn_v1 con pérdida normal y ponderada (2026-10-07)
 Movidos el 2026-10-15 a la ficha de cnn_v1 en [`ARQUITECTURAS.md`](ARQUITECTURAS.md#cnn_v1),
