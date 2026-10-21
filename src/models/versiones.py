@@ -231,5 +231,5 @@ ESTADO: dict[str, str] = {
     "cnn_v6": "descartada",     # empata (0,591 ± 0,041) pero tiene más parámetros que cnn_v3
     "cnn_v7": "descartada",     # empata (0,588 ± 0,042); no baja la diferencia train − val
     "cnn_v8": "descartada",     # empata (0,593 ± 0,025) pero sobreajusta (0,169 > 0,15)
-    "cnn_v10": "en prueba",     # paso 8 del plan, entrenando desde el 2026-10-21
+    "cnn_v10": "descartada",    # empata (0,581 ± 0,045); delata menos el hospital y memoriza menos
 }
