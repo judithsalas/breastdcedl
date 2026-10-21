@@ -29,6 +29,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.ticker import FuncFormatter
 
 from src.evaluation.metricas import auc_por_cohorte, coma, senal_de_hospital
 from src.training.graficas import TINTA_SUAVE, _estilo, epoca_elegida, leer_historial
@@ -97,6 +98,9 @@ def dibujar(resumenes: dict[str, dict], fold: int, ruta: Path) -> Path:
     _estilo(auc_tr, "AUC por paciente · entrenamiento", "AUC")
     _estilo(per_va, "Pérdida · validación", "BCE")
     _estilo(per_tr, "Pérdida · entrenamiento", "BCE")
+    # La pérdida de entrenamiento se mueve en centésimas: con dos decimales se repetirían las etiquetas.
+    for ax in (per_va, per_tr):
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: coma(v, 3)))
     for ax in ejes.flat:
         ax.legend(frameon=False, fontsize=8.5, loc="best")
     nombres = list(resumenes)

@@ -77,13 +77,13 @@ En 5 folds se da media ± desviación. ⚠ = la versión cambió después de esa
 | [cnn_v2](#cnn_v2) | cnn_v1 | filtros: (16, 32, 64) → (16, 32, 64, 128) | 97.809 | descartada | — | — | 0,593 ± 0,032 | — | 0,162 |
 | [cnn_v3](#cnn_v3) | cnn_v2 | entrenamiento.aumento: None → geometrico | 97.809 | candidata | — | — | 0,576 ± 0,037 | 0,574 ± 0,030 | 0,080 |
 | [cnn_v4](#cnn_v4) | cnn_v3 | entrada: fases → fases+realce | 98.097 | descartada | — | — | 0,572 ± 0,044 | — | 0,126 |
-| [cnn_v5](#cnn_v5) | cnn_v3 | normalizacion: None → pre | 97.809 | por entrenar | — | — | 0,575 ± 0,035 | — | 0,104 |
-| [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | por entrenar | — | — | 0,591 ± 0,041 | — | 0,065 |
-| [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | por entrenar | — | — | 0,588 ± 0,042 | — | 0,103 |
-| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | por entrenar | — | — | 0,593 ± 0,025 | — | 0,169 |
-| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | por entrenar | — | — | 0,587 | — | 0,044 |
+| [cnn_v5](#cnn_v5) | cnn_v3 | normalizacion: None → pre | 97.809 | descartada | — | — | 0,574 ± 0,035 | — | 0,104 |
+| [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | descartada | — | — | 0,591 ± 0,041 | — | 0,065 |
+| [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | descartada | — | — | 0,588 ± 0,042 | — | 0,103 |
+| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | descartada | 0,558 | — | 0,593 ± 0,025 | — | 0,169 |
+| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | en prueba | — | — | 0,581 ± 0,045 | — | 0,047 |
 
-**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v8.
+**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v8, cnn_v10.
 <!-- auto:resumen:fin -->
 
 Las ejecuciones de cnn_v1 (R1, R2) se entrenaron antes de que existiera el histórico. Aparecen
@@ -100,11 +100,11 @@ cnn_v1 · descartada
 └── cnn_v2 · descartada
     └── cnn_v3 · candidata
         ├── cnn_v4 · descartada
-        ├── cnn_v5 · por entrenar
-        ├── cnn_v6 · por entrenar
-        ├── cnn_v7 · por entrenar
-        ├── cnn_v8 · por entrenar
-        └── cnn_v10 · por entrenar
+        ├── cnn_v5 · descartada
+        ├── cnn_v6 · descartada
+        ├── cnn_v7 · descartada
+        ├── cnn_v8 · descartada
+        └── cnn_v10 · en prueba
 ```
 <!-- auto:genealogia:fin -->
 
@@ -120,12 +120,12 @@ una está en `runs/<ejecución>/` (en la máquina donde se entrenó).
 | 2026-10-20 19:29 | `20261020-192927_cv_cnn_v3_completo` | cnn_v3 | normal | 0,1,2,3,4 | 6,8 | 0,576 ± 0,037 | 0,656 | 0,080 | 0,427 | `4bb03d5d` ✓ |
 | 2026-10-20 20:11 | `20261020-201130_cv_cnn_v4_completo` | cnn_v4 | normal | 0,1,2,3,4 | 9,4 | 0,572 ± 0,044 | 0,698 | 0,126 | 0,472 | `e7188804` ✓ |
 | 2026-10-20 21:03 | `20261020-210342_cv_cnn_v3_completo_ponderada` | cnn_v3 | ponderada | 0,1,2,3,4 | 8,2 | 0,574 ± 0,030 | 0,668 | 0,094 | 0,480 | `4bb03d5d` ✓ |
-| 2026-10-21 13:56 | `20261021-135616_cv_cnn_v5_completo` | cnn_v5 | normal | 0,1,2,3,4 | 8,8 | 0,575 ± 0,035 | 0,678 | 0,104 | 0,460 | `7d6803db` ✓ |
+| 2026-10-21 13:56 | `20261021-135616_cv_cnn_v5_completo` | cnn_v5 | normal | 0,1,2,3,4 | 8,8 | 0,574 ± 0,035 | 0,678 | 0,104 | 0,460 | `7d6803db` ✓ |
 | 2026-10-21 14:43 | `20261021-144306_cv_cnn_v6_completo` | cnn_v6 | normal | 0,1,2,3,4 | 6,0 | 0,591 ± 0,041 | 0,656 | 0,065 | 0,438 | `5f5b8fc2` ✓ |
 | 2026-10-21 15:23 | `20261021-152323_cv_cnn_v7_completo` | cnn_v7 | normal | 0,1,2,3,4 | 11,2 | 0,588 ± 0,042 | 0,691 | 0,103 | 0,450 | `07d7985c` ✓ |
 | 2026-10-21 16:16 | `20261021-161603_cv_cnn_v8_completo` | cnn_v8 | normal | 0 | 23,0 | 0,558 | 0,658 | 0,099 | 0,500 | `6e0fa692` ✓ |
 | 2026-10-21 19:22 | `20261021-192232_cv_cnn_v8_completo` | cnn_v8 | normal | 0,1,2,3,4 | 19,2 | 0,593 ± 0,025 | 0,762 | 0,169 | 0,478 | `6e0fa692` ✓ |
-| 2026-10-21 20:35 | `20261021-203548_cv_cnn_v10_completo` | cnn_v10 | normal | 0 | 10,0 | 0,587 | 0,631 | 0,044 | 0,502 | `a5610d0f` ✓ |
+| 2026-10-21 20:35 | `20261021-203548_cv_cnn_v10_completo` | cnn_v10 | normal | 0,1,2,3,4 | 9,8 | 0,581 ± 0,045 | 0,628 | 0,047 | 0,451 | `a5610d0f` ✓ |
 <!-- auto:ejecuciones:fin -->
 
 ---
@@ -505,7 +505,7 @@ la más simple, cnn_v3.
 ## cnn_v5
 
 **Intensidad relativa a la propia paciente.** Origen: **cnn_v3** · Definida el 2026-10-21 ·
-Decidida por Claude (D15, D28) · Estado: **por entrenar**.
+Decidida por Claude (D15, D28) · Estado: **descartada** (2026-10-21).
 
 ### Definición
 
@@ -540,26 +540,51 @@ ese atajo y tiene que fijarse en el tejido. Es la idea del realce relativo que s
 
 ### Ejecuciones
 
-Pendientes: paso 4 del plan (D28).
+| Ejecución | Pérdida | Tiempo |
+|---|---|---|
+| `20261021-135616_cv_cnn_v5_completo` | normal | 47 min (30 s/época) |
+
+![Curvas de los 5 folds](figuras/ejecuciones/20261021-135616_cv_cnn_v5_completo/curvas_folds.png)
 
 ### Resultados
 
-Pendientes.
+| Fold | Época elegida | AUC val | AUC train | Diferencia |
+|---|---|---|---|---|
+| 0 | 10 | 0,539 | 0,707 | 0,17 |
+| 1 | 13 | 0,557 | 0,696 | 0,14 |
+| 2 | 5 | 0,605 | 0,592 | −0,01 |
+| 3 | 10 | 0,553 | 0,739 | 0,19 |
+| 4 | 6 | 0,619 | 0,658 | 0,04 |
+| **Media** | 8,8 | **0,574 ± 0,035** | 0,678 | **0,104** |
+
+- **Fuera de fold:** AUC 0,566. Por cohorte: Duke 0,519, I-SPY1 0,418, I-SPY2 0,586.
+- **¿Delata el hospital?** Duke 0,41 · I-SPY1 0,41 · I-SPY2 0,61 (cnn_v3: 0,42 · 0,28 · 0,66).
+- **Por subtipo:** HER2+ 0,59, triple negativo 0,59, HR+/HER2− 0,51. No repite el subtipo (AUC 0,48
+  para HER2+ y 0,47 para HR+).
+- **Frente a cnn_v3 en las mismas pacientes:** −0,009 (IC 95 % de −0,046 a +0,026).
 
 ### Lectura
 
-Pendiente.
+Frente a lo que esperábamos:
+- **La señal del hospital baja poco:** I-SPY2 pasa de 0,66 a 0,61 (esperábamos 0,50–0,58). I-SPY1 se
+  acerca a 0,5 (de 0,28 a 0,41), pero sigue lejos.
+- **El AUC dentro de Duke e I-SPY1 no sube** (0,52 y 0,42): no se cumple.
+- **El AUC medio, igual** (0,574 frente a 0,576).
+- **Es el caso «si no cambia nada»:** el atajo no pasa (solo) por la escala de intensidad. La ficha
+  apuntaba a la anatomía o el encuadre, y el mosaico de la auditoría lo confirmó en parte: cada hospital
+  orienta la mama a su manera (D29, cnn_v10).
 
 ### Decisión
 
-Pendiente.
+**Descartada** (2026-10-21): no mejora y tampoco quita el atajo del hospital. Por el criterio empata
+con cnn_v3, con los mismos parámetros, y gana la más antigua.
 
 ---
 
 ## cnn_v6
 
 **Mirar dónde está el tumor.** Origen: **cnn_v3** · Definida el 2026-10-21 · Decidida por Claude
-(D15, D28) · Estado: **por entrenar**.
+(D15, D28) · Estado: **descartada** (2026-10-21).
 
 ### Definición
 
@@ -591,26 +616,52 @@ Con atención, la red puede dar más peso a donde está lo que importa.
 
 ### Ejecuciones
 
-Pendientes: paso 5 del plan (D28).
+| Ejecución | Pérdida | Tiempo |
+|---|---|---|
+| `20261021-144306_cv_cnn_v6_completo` | normal | 40 min (30 s/época) |
+
+![Curvas de los 5 folds](figuras/ejecuciones/20261021-144306_cv_cnn_v6_completo/curvas_folds.png)
 
 ### Resultados
 
-Pendientes.
+| Fold | Época elegida | AUC val | AUC train | Diferencia |
+|---|---|---|---|---|
+| 0 | 1 | 0,580 | 0,574 | −0,01 |
+| 1 | 6 | 0,540 | 0,628 | 0,09 |
+| 2 | 4 | 0,649 | 0,555 | −0,09 |
+| 3 | 13 | 0,577 | 0,803 | 0,23 |
+| 4 | 6 | 0,611 | 0,721 | 0,11 |
+| **Media** | 6,0 | **0,591 ± 0,041** | 0,656 | **0,065** |
+
+- **Fuera de fold:** AUC 0,569 (más bajo que la media de los folds: cada fold puntúa en una escala
+  algo distinta). Por cohorte: Duke 0,544, I-SPY1 0,587, I-SPY2 0,562.
+- **¿Delata el hospital?** Duke 0,45 · I-SPY1 0,32 · I-SPY2 0,61.
+- **Por subtipo:** HER2+ 0,62, triple negativo 0,56, HR+/HER2− 0,54. No repite el subtipo (0,49 y
+  0,48).
+- **Frente a cnn_v3 en las mismas pacientes:** −0,005 (IC 95 % de −0,039 a +0,027).
 
 ### Lectura
 
-Pendiente.
+Frente a lo que esperábamos:
+- **El AUC medio no sube más que la desviación** (0,591 frente a 0,576, con ±0,04): no se cumple.
+  Fuera de fold, incluso queda igual (0,569 frente a 0,574).
+- **HER2+ sube un poco** (0,61 → 0,62); triple negativo baja (0,58 → 0,56). Nada claro.
+- **Es el caso «si no cambia»:** con una sola etiqueta por paciente y ~880 pacientes, la atención no
+  encuentra el tumor por sí sola. Su puntuación sigue sin relación con el tamaño del tumor (Spearman
+  −0,10). La forma de ayudarla es decirle dónde está al entrenar: cnn_v9, pendiente del profesor
+  (D29).
 
 ### Decisión
 
-Pendiente.
+**Descartada** (2026-10-21): empata con cnn_v3 y tiene 4.161 parámetros más, así que por el criterio
+gana cnn_v3. La atención se queda como base de cnn_v9 si el profesor permite usar la caja del tumor.
 
 ---
 
 ## cnn_v7
 
 **Regularización: dropout y weight decay.** Origen: **cnn_v3** · Definida el 2026-10-21 ·
-Decidida por Claude (D15, D28) · Estado: **por entrenar**.
+Decidida por Claude (D15, D28) · Estado: **descartada** (2026-10-21).
 
 ### Definición
 
@@ -639,26 +690,52 @@ detalles de pacientes concretas. Son las dos herramientas estándar y la red no 
 
 ### Ejecuciones
 
-Pendientes: paso 6 del plan (D28).
+| Ejecución | Pérdida | Tiempo |
+|---|---|---|
+| `20261021-152323_cv_cnn_v7_completo` | normal | 53 min (30 s/época) |
+
+![Curvas de los 5 folds](figuras/ejecuciones/20261021-152323_cv_cnn_v7_completo/curvas_folds.png)
 
 ### Resultados
 
-Pendientes.
+| Fold | Época elegida | AUC val | AUC train | Diferencia |
+|---|---|---|---|---|
+| 0 | 1 | 0,563 | 0,596 | 0,03 |
+| 1 | 3 | 0,547 | 0,611 | 0,06 |
+| 2 | 17 | 0,642 | 0,721 | 0,08 |
+| 3 | 29 | 0,563 | 0,831 | 0,27 |
+| 4 | 6 | 0,626 | 0,698 | 0,07 |
+| **Media** | 11,2 | **0,588 ± 0,042** | 0,691 | **0,103** |
+
+- **Fuera de fold:** AUC 0,557. Por cohorte: Duke 0,529, I-SPY1 0,568, I-SPY2 0,551.
+- **¿Delata el hospital?** Duke 0,42 · I-SPY1 0,40 · I-SPY2 0,61.
+- **Por subtipo:** HER2+ 0,57, triple negativo 0,57, HR+/HER2− 0,55. No repite el subtipo (0,48 y
+  0,48).
+- **Frente a cnn_v3 en las mismas pacientes:** −0,017 (IC 95 % de −0,053 a +0,019).
 
 ### Lectura
 
-Pendiente.
+Frente a lo que esperábamos:
+- **La diferencia train − val no baja: sube** (0,080 → 0,103). El fold 3 llega a la época 29 con 0,83
+  en entrenamiento.
+- **La mejor época llega más tarde** (11,2 frente a 6,8): se cumple, pero lo que gana con más épocas es
+  memoria, no validación.
+- **El AUC, igual** (0,588 frente a 0,576).
+- **Conclusión:** frenar la memoria no basta. Ni el aumento de datos (cnn_v3) ni el dropout y el
+  weight decay hacen que la red encuentre más señal. El límite está en lo que la red encuentra, no en
+  cuánto memoriza.
 
 ### Decisión
 
-Pendiente.
+**Descartada** (2026-10-21): no mejora el AUC ni la diferencia train − val. Por el criterio empata con
+cnn_v3, con los mismos parámetros, y gana la más antigua.
 
 ---
 
 ## cnn_v8
 
 **Las tres ideas juntas.** Origen: **cnn_v3** · Definida el 2026-10-21 · Decidida por Claude
-(D15, D28) · Estado: **por entrenar**.
+(D15, D28) · Estado: **descartada** (2026-10-21).
 
 ### Definición
 
@@ -682,26 +759,56 @@ así que, si cada una ayuda algo, juntas deberían sumar.
 
 ### Ejecuciones
 
-Pendientes: paso 7 del plan (D28).
+| Ejecución | Pérdida | Tiempo |
+|---|---|---|
+| `20261021-161603_cv_cnn_v8_completo` | normal | 17 min: solo el fold 0; se cayó en el fold 1 porque la tarjeta gráfica se quedó colgada (R5) |
+| `20261021-192232_cv_cnn_v8_completo` | normal | 73 min (30 s/época), tras reiniciar el PC |
+
+![Curvas de los 5 folds](figuras/ejecuciones/20261021-192232_cv_cnn_v8_completo/curvas_folds.png)
 
 ### Resultados
 
-Pendientes.
+| Fold | Época elegida | AUC val | AUC train | Diferencia |
+|---|---|---|---|---|
+| 0 | 32 | 0,583 | 0,831 | 0,25 |
+| 1 | 33 | 0,571 | 0,897 | 0,33 |
+| 2 | 5 | 0,600 | 0,602 | 0,00 |
+| 3 | 13 | 0,577 | 0,762 | 0,18 |
+| 4 | 13 | 0,633 | 0,717 | 0,08 |
+| **Media** | 19,2 | **0,593 ± 0,025** | 0,762 | **0,169** |
+
+- **Fuera de fold:** AUC 0,587. Por cohorte: Duke 0,533, I-SPY1 0,473, I-SPY2 0,603.
+- **¿Delata el hospital?** Duke 0,44 · I-SPY1 0,39 · I-SPY2 0,59.
+- **Por subtipo:** HER2+ 0,62, triple negativo 0,60, HR+/HER2− 0,53. No repite el subtipo (0,51 y
+  0,47).
+- **Frente a cnn_v3 en las mismas pacientes:** +0,013 (IC 95 % de −0,029 a +0,053).
+- **El mismo fold 0, entrenado dos veces** con la misma versión y la misma semilla, dio 0,558 (época 23)
+  y 0,583 (época 32). La tarjeta no es determinista del todo: solo el azar del entrenamiento mueve el
+  AUC de un fold unas 0,025.
 
 ### Lectura
 
-Pendiente.
+Frente a lo que esperábamos:
+- **No suman:** 0,593 apenas supera a la mejor de cnn_v5–v7 (cnn_v6, 0,591) y está dentro de una
+  desviación de cnn_v3.
+- **Sobreajusta más que todas** (0,169): con la atención tiene más capacidad, y en los folds 0 y 1
+  elige épocas por encima de la 30, con 0,83–0,90 en entrenamiento. El dropout y el weight decay no lo
+  compensan.
+- **Delata algo menos el hospital** (I-SPY1 0,39, I-SPY2 0,59), pero lo sigue haciendo.
+- **Lo que confirma la segunda ronda:** ninguna pieza de arquitectura o de regularización cambia el
+  resultado. Las versiones ni siquiera coinciden entre sí al ordenar a las pacientes (Spearman
+  0,33–0,62 entre cnn_v3, v5, v6, v7 y v8): buena parte de lo que aprende cada una es ruido (R5).
 
 ### Decisión
 
-Pendiente.
+**Descartada** (2026-10-21): empata con cnn_v3 pero sobreajusta (0,169 > 0,15).
 
 ---
 
 ## cnn_v10
 
 **Quitar la pista de la orientación.** Origen: **cnn_v3** · Definida el 2026-10-21 · Decidida por
-Claude (D15, D29) · Estado: **por entrenar**.
+Claude (D15, D29) · Estado: **en prueba** (entrenando desde el 2026-10-21).
 
 cnn_v9 queda reservada para la atención guiada por la caja del tumor: solo se definirá si el
 profesor permite usar las coordenadas del tumor al entrenar (D29).
@@ -756,7 +863,8 @@ apoyarse en lo que sí cambia entre pacientes.
 
 ### Ejecuciones
 
-Pendientes: paso 8 del plan (D29).
+En curso: paso 8 del plan, `20261021-203548_cv_cnn_v10_completo` (empezó el 2026-10-21 a las
+20:35). Los resultados se escriben cuando termine los 5 folds.
 
 ### Resultados
 

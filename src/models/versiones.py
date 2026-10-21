@@ -227,9 +227,9 @@ ESTADO: dict[str, str] = {
     "cnn_v2": "descartada",     # empata con cnn_v3 pero sobreajusta (diferencia 0,162 > 0,15)
     "cnn_v3": "candidata",      # la mejor según el criterio tras la primera ronda (2026-10-21)
     "cnn_v4": "descartada",     # el realce explícito no mejora (0,572 ± 0,044)
-    "cnn_v5": "por entrenar",
-    "cnn_v6": "por entrenar",
-    "cnn_v7": "por entrenar",
-    "cnn_v8": "por entrenar",
-    "cnn_v10": "por entrenar",
+    "cnn_v5": "descartada",     # no mejora (0,574 ± 0,035) ni quita el atajo del hospital
+    "cnn_v6": "descartada",     # empata (0,591 ± 0,041) pero tiene más parámetros que cnn_v3
+    "cnn_v7": "descartada",     # empata (0,588 ± 0,042); no baja la diferencia train − val
+    "cnn_v8": "descartada",     # empata (0,593 ± 0,025) pero sobreajusta (0,169 > 0,15)
+    "cnn_v10": "en prueba",     # paso 8 del plan, entrenando desde el 2026-10-21
 }

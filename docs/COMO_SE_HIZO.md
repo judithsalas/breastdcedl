@@ -472,21 +472,33 @@ aporta información que el subtipo no tiene.
 
 ### 3.10 Por qué la segunda ronda no mejoró, y cnn_v10 (D29)
 
-**Lo que salió** (21 de octubre, cifras del registro del entrenamiento; la lectura completa irá en
-las fichas cuando llegue el zip de `para_claude`):
+**Lo que salió** (21 de octubre; detalle fold a fold en las fichas de
+[`ARQUITECTURAS.md`](ARQUITECTURAS.md)):
 
-| Versión | AUC validación (5 folds) | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 |
-|---|---|---|
-| cnn_v3 (referencia) | 0,576 ± 0,037 | 0,42 · 0,28 · 0,66 |
-| cnn_v5 (intensidad relativa) | 0,574 ± 0,035 | 0,41 · 0,41 · 0,61 |
-| cnn_v6 (atención) | 0,591 ± 0,041 | 0,45 · 0,32 · 0,61 |
-| cnn_v7 (dropout y weight decay) | 0,588 ± 0,042 | 0,42 · 0,40 · 0,61 |
+| Versión | AUC val (5 folds) | Diferencia train − val | Frente a cnn_v3, mismas pacientes | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 |
+|---|---|---|---|---|
+| cnn_v3 (referencia) | 0,576 ± 0,037 | 0,080 | — | 0,42 · 0,28 · 0,66 |
+| cnn_v5 (intensidad relativa) | 0,574 ± 0,035 | 0,104 | −0,009 (−0,046 a +0,026) | 0,41 · 0,41 · 0,61 |
+| cnn_v6 (atención) | 0,591 ± 0,041 | 0,065 | −0,005 (−0,039 a +0,027) | 0,45 · 0,32 · 0,61 |
+| cnn_v7 (dropout y weight decay) | 0,588 ± 0,042 | 0,103 | −0,017 (−0,053 a +0,019) | 0,42 · 0,40 · 0,61 |
+| cnn_v8 (las tres juntas) | 0,593 ± 0,025 | **0,169** | +0,013 (−0,029 a +0,053) | 0,44 · 0,39 · 0,59 |
 
-cnn_v8 se cayó por un fallo de la tarjeta gráfica, no del código: v5–v7 funcionaron con las mismas
-piezas (D29). Se relanza.
+**Ninguna mejora es clara:**
+- Todas están a menos de una desviación de cnn_v3.
+- Comparadas con cnn_v3 en las mismas pacientes (bootstrap pareado), todos los intervalos cruzan el 0.
+- cnn_v8 sobreajusta (0,169 > 0,15).
+- **Sigue ganando cnn_v3**, y v5–v8 quedan descartadas.
+- La primera vez, cnn_v8 se cayó por un fallo de la tarjeta gráfica, no del código: v5–v7 funcionaron
+  con las mismas piezas (D29).
 
-**Ninguna mejora es clara:** todas están a menos de una desviación de cnn_v3. Para averiguar por qué,
-se miraron otra vez las predicciones fuera de fold de cnn_v3 junto con los metadatos:
+**Dos pruebas más de que buena parte de lo que aprende la red es ruido:**
+- **Las versiones no coinciden entre sí** al ordenar a las pacientes: la correlación de Spearman entre
+  sus puntuaciones va de 0,33 a 0,62. Si todas captaran la misma señal real, coincidirían mucho más.
+- **El mismo fold 0 de cnn_v8, entrenado dos veces** con la misma semilla (la vez que se cayó y la
+  buena), dio 0,558 y 0,583. Solo el azar del entrenamiento mueve un fold unas 0,025.
+
+Para averiguar por qué no mejora, se miraron otra vez las predicciones fuera de fold de cnn_v3 junto
+con los metadatos:
 
 1. **Dentro de cada hospital, la red casi acierta por azar:** Duke 0,51, I-SPY1 0,53, I-SPY2 0,58.
 2. **Su puntuación no tiene que ver con el tamaño del tumor** (correlación de Spearman −0,05 con el
@@ -1038,9 +1050,9 @@ números que salgan serán los de verdad.
    - **Primera ronda (cnn_v2–v4) hecha el 20 de octubre** (§3.8).
    - **Segunda ronda (cnn_v5–v8, §3.9):** se lanza con el mismo comando, una sola vez, y que siga
      aunque se cierre VS Code: `nohup python -m src.training.plan > plan.log 2>&1 &`. Se salta lo
-     ya hecho. cnn_v5–v7 hechas el 21 de octubre; cnn_v8 se cayó por la tarjeta gráfica y se
-     relanzó tras reiniciar el PC.
-   - **Tercera ronda (cnn_v10, §3.10):** el mismo comando, cuando termine cnn_v8.
+     ya hecho. **Hecha el 21 de octubre** (cnn_v8, la segunda vez, tras reiniciar el PC porque la
+     tarjeta se quedó colgada).
+   - **Tercera ronda (cnn_v10, §3.10):** en curso desde el 21 de octubre a las 20:35 (paso 8).
    - **Para mirar pronto si va bien** (§4.8), en cuanto haya unas épocas del fold 0:
      `python -m src.training.comparar cnn_v3 cnn_v10`.
    - **Probar algo en un solo fold o con otros valores** (§4.9): editar la sección `experimento` de

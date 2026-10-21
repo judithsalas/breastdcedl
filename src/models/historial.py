@@ -123,10 +123,18 @@ def _huella_ok(fila: pd.Series) -> bool | None:
     return fila.huella == huella(fila.modelo)
 
 
-def _ultima(historico: pd.DataFrame, modelo: str, tipo: str, perdida: str) -> pd.Series | None:
+def _cv_completa(fila: pd.Series) -> bool:
+    """¿Es una validación cruzada con los 5 folds? Una prueba de un fold (D30, D31) no lo es."""
+    return fila.tipo == "cv" and str(fila.folds) == TODOS_LOS_FOLDS
+
+
+def _ultima(historico: pd.DataFrame, modelo: str, cinco_folds: bool, perdida: str) -> pd.Series | None:
+    """Última ejecución de una versión con esa pérdida: de 5 folds, o de menos (un entrenamiento suelto
+    o una validación cruzada a medias)."""
     if historico.empty:
         return None
-    filas = historico[(historico.modelo == modelo) & (historico.tipo == tipo) & (historico.perdida == perdida)]
+    filas = historico[(historico.modelo == modelo) & (historico.perdida == perdida)]
+    filas = filas[filas.apply(_cv_completa, axis=1) == cinco_folds] if len(filas) else filas
     return None if filas.empty else filas.iloc[-1]
 
 
@@ -139,12 +147,12 @@ def tabla_resumen(historico: pd.DataFrame) -> str:
     ]
     for nombre in VERSIONES:
         celdas = []
-        for tipo in ("simple", "cv"):
+        for cinco in (False, True):
             for perdida in ("normal", "ponderada"):
-                fila = _ultima(historico, nombre, tipo, perdida)
+                fila = _ultima(historico, nombre, cinco, perdida)
                 celdas.append("—" if fila is None else _auc(fila))
         # Diferencia train − val de la ejecución más informativa: 5 folds si la hay.
-        referencia = next((f for f in (_ultima(historico, nombre, t, p) for t in ("cv", "simple")
+        referencia = next((f for f in (_ultima(historico, nombre, c, p) for c in (True, False)
                                        for p in ("normal", "ponderada")) if f is not None), None)
         diferencia = "—" if referencia is None else _num(referencia.diferencia_auc)
         origen = ORIGEN.get(nombre)

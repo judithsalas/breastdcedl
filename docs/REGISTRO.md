@@ -11,14 +11,14 @@ Qué va en cada documento: [D14](#d14--mapa-de-la-documentación-y-trazabilidad-
 
 ## Estado actual
 
-**En una frase (2026-10-21, tarde):** la segunda ronda (cnn_v5–v7) no mejora a cnn_v3. La red
-no mira el tumor y reconoce el hospital, en parte por cómo orienta cada uno la mama. Se añade
-cnn_v10 (giros de 90°) y se pregunta al profesor por usar la caja del tumor al entrenar (D29).
+**En una frase (2026-10-21, noche):** la segunda ronda (cnn_v5–v8) no mejora a cnn_v3, que sigue
+siendo la candidata. La red no mira el tumor y reconoce el hospital, en parte por cómo orienta cada
+uno la mama. cnn_v10 (giros de 90°) se está entrenando, y se pregunta al profesor por usar la caja del
+tumor al entrenar (D29).
 
 **Qué tenemos**
-- **Las redes:** cnn_v1, v2 y v4 descartadas; **cnn_v3 candidata** (0,576 ± 0,037, sin
-  sobreajuste). cnn_v5–v7 entrenadas, sin mejora clara (R5, provisional); cnn_v8 relanzada tras
-  un fallo de la tarjeta; cnn_v10 definida (D29). Historia completa en
+- **Las redes:** cnn_v1, v2, v4, v5, v6, v7 y v8 descartadas; **cnn_v3 candidata** (0,576 ± 0,037,
+  sin sobreajuste); cnn_v10 en prueba (D29). Historia completa en
   [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
 - **Lo que enseñó la primera ronda** (R4): la red apenas generaliza, en parte reconoce el hospital
   (su puntuación distingue I-SPY2 con AUC 0,66) y no repite el subtipo.
@@ -34,11 +34,10 @@ cnn_v10 (giros de 90°) y se pregunta al profesor por usar la caja del tumor al 
 - Las decisiones, explicadas desde cero en [`COMO_SE_HIZO.md`](COMO_SE_HIZO.md). Desde el
   2026-10-18 las toma Claude y Judith las revisa (D15).
 
-**Siguiente paso:** en el PC de la uni, cuando termine cnn_v8:
-1. copiar los cambios de D29, comprobarlos y subirlos;
-2. relanzar el plan (cnn_v10);
-3. repetir la auditoría para la figura de orientación;
-4. pasar a Claude el zip de `para_claude`.
+**Siguiente paso:** en el PC de la uni, cuando termine cnn_v10 (paso 8 del plan):
+1. copiar los cambios de R5 y D32, comprobarlos y subirlos;
+2. repetir la auditoría para la figura de orientación;
+3. pasar a Claude el zip de `para_claude`. Con cnn_v10 se decide si se cierra el modelo con cnn_v3.
 
 Además, Judith pregunta al profesor si se puede usar la caja del tumor solo al entrenar (duda 7).
 
@@ -48,8 +47,7 @@ Además, Judith pregunta al profesor si se puede usar la caja del tumor solo al 
    `python -m src.training.graficas runs/*`).
 2. Auditoría: `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`. ✅ 2026-10-20.
 3. Plan de experimentos, de noche: `python -m src.training.plan`. ✅ Primera ronda 2026-10-20;
-   segunda ronda 2026-10-21 (cnn_v5–v7 hechas; cnn_v8 relanzada); tercera ronda (cnn_v10)
-   pendiente.
+   segunda ronda 2026-10-21 (cnn_v5–v8, R5); tercera ronda (cnn_v10) en curso.
 4. Pasar a Claude los resultados: `python -m src.utils.para_claude` y enviar el zip por el chat
    (D27). Con eso escribe las lecturas y decisiones de las fichas.
 5. Cierre: `python -m src.evaluation.cerrar_modelo`, después `python -m src.evaluation.modelo_clinico`
@@ -107,7 +105,7 @@ Estado de cada punto de la rúbrica:
 - (2026-10-20) **El repositorio del proyecto es `judithsalas/breastdcedl`** (en el PC de la uni,
   `~/Escritorio/JUDITH/breastdcedl`, donde están las imágenes). `caso1_breast-cancer` deja de usarse.
   Pasar resultados a Claude sin imágenes: `python -m src.utils.para_claude` (D27).
-- (2026-10-21) **Segunda ronda entrenada** (cnn_v5–v7, R5): ninguna mejora clara. cnn_v8 se cayó
+- (2026-10-21) **Segunda ronda entrenada** (cnn_v5–v8, R5): ninguna mejora clara; sigue cnn_v3. cnn_v8 se cayó
   porque la tarjeta gráfica se quedó colgada; hubo que reiniciar el PC con el botón. **Tercera
   ronda definida** (D29): cnn_v10 (giros de 90°), figura de orientación en la auditoría y cnn_v9
   reservada a la espera del profesor. **Comparar el fold 0 con la referencia** mientras entrena
@@ -189,10 +187,10 @@ actualiza en cada sesión.
 | # | Criterio | Qué pide | Estado (2026-10-14) | Fase |
 |---|---|---|---|---|
 | 1 | Datos entendidos | Tres fases y realce mirados antes de programar; desbalance (30 % pCR) y cohortes descritos | **Hecho** (2026-10-20): auditoría con las 1.097 pacientes en `docs/resultados/1_auditoria/` | F1 |
-| 2 | Partición por paciente | Ninguna paciente en dos conjuntos; validación cruzada de 5 folds con media ± desviación | **Hecho** para cnn_v2–v4 (R4); se repite igual con cnn_v5–v8 | F2–F4 |
+| 2 | Partición por paciente | Ninguna paciente en dos conjuntos; validación cruzada de 5 folds con media ± desviación | **Hecho** para cnn_v2–v8 (R4, R5), con comparación pareada en las mismas pacientes | F2–F4 |
 | 3 | Arquitectura propia justificada | Capas, tamaños y parámetros explicados; desde cero; las fases no son RGB | Hecho para v1–v4 (fichas en `ARQUITECTURAS.md`); inicialización justificada (D24) | F3 |
 | 4 | Entrenamiento reproducible | Hiperparámetros, semilla, criterio de parada y época elegida documentados | Hecho: se guardan en `resultados.json` y en el histórico (D13); cada versión, con su historia en `ARQUITECTURAS.md` (D14) | F2 |
-| 5 | Sobreajuste controlado y demostrado | Curvas de train y validación juntas por época; diferencia de AUC en la época elegida; sobreentrenados descartados | **Demostrado** con cnn_v2–v4: curvas de los 5 folds en las fichas; cnn_v2 descartada por sobreajuste (0,162 > 0,15) | F3–F4 |
+| 5 | Sobreajuste controlado y demostrado | Curvas de train y validación juntas por época; diferencia de AUC en la época elegida; sobreentrenados descartados | **Demostrado** con cnn_v2–v8: curvas de los 5 folds en las fichas; cnn_v2 (0,162) y cnn_v8 (0,169) descartadas por sobreajuste; comparador del fold 0 con pérdida y AUC (D30) | F3–F4 |
 | 6 | Pérdida normal frente a ponderada | Comparadas, explicando qué le pasa a la sensibilidad | **Hecho** con cnn_v1 y con la candidata cnn_v3: el AUC no cambia (0,576 frente a 0,574) y la sensibilidad con umbral 0,5 pasa de 0,02 a 0,56 | F3–F4 |
 | 7 | Umbral y agregación justificados | Elegidos con validación y con criterio clínico explícito (qué error es más grave) | Código listo (D21): media de cortes y umbral con especificidad ≥ 0,80 | F4 |
 | 8 | Test completo, una sola vez | Matriz de confusión, AUC con IC, precision, recall y F1 de cada clase, F1 macro, comparación con «siempre no pCR» | Código listo y bloqueado a una vez (D22), con IC por bootstrap | F5 |
@@ -715,6 +713,16 @@ Judith pidió tener los parámetros en un JSON, como plantilla.
   histórico guarda el learning rate cambiado y el comparador la encuentra.
 - Por qué, desde cero: `COMO_SE_HIZO.md` §4.9.
 
+### D32 · Dos correcciones de las tablas automáticas (2026-10-21)
+Salieron al meter los resultados de la segunda ronda.
+- **Las pruebas de un fold salían en la columna «5 folds»** de la tabla de resumen de
+  `ARQUITECTURAS.md`. Pasaba con cnn_v10, que llevaba solo el fold 0 terminado. Ahora la columna «5
+  folds» solo recoge validaciones cruzadas con los 5 folds, y lo demás va a «1 fold» (`_cv_completa`
+  en `historial.py`).
+- **El histórico guardaba 4 cifras** y la tabla volvía a redondear: el 0,57449 de cnn_v5 salía 0,575.
+  Ahora guarda 6 (`historico.py`). No cambia ninguna decisión.
+- En el comparador (D30), el eje de la pérdida pasa a 3 decimales: con 2 se repetían las etiquetas.
+
 ---
 
 ## Resultados
@@ -788,18 +796,29 @@ fold y curvas en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
   Época a época, la validación ronda 0,53–0,58. Ver `COMO_SE_HIZO.md` §3.8.
 - Calculado con el zip `para_claude_20261021-1210` (D27).
 
-### R5 · Segunda ronda: cnn_v5, v6 y v7, y por qué no mejoran (2026-10-21, provisional)
-Cifras copiadas de `plan.log` en el PC de la uni. Se completan (diferencia train − val, fuera de
-fold, por cohorte y por subtipo, curvas) cuando llegue el zip de `para_claude`.
+### R5 · Segunda ronda: cnn_v5 a cnn_v8, y por qué no mejoran (2026-10-21)
+Calculado con el zip `para_claude_20261021-2051` (D27). Detalle fold a fold, curvas, lectura y
+decisión en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
 
-| Versión | AUC val (5 folds) | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 |
-|---|---|---|
-| cnn_v3 (referencia, R4) | 0,576 ± 0,037 | 0,42 · 0,28 · 0,66 |
-| cnn_v5 | 0,574 ± 0,035 | 0,41 · 0,41 · 0,61 |
-| cnn_v6 | 0,591 ± 0,041 | 0,45 · 0,32 · 0,61 |
-| cnn_v7 | 0,588 ± 0,042 | 0,42 · 0,40 · 0,61 |
+| Versión | AUC val (5 folds) | AUC train | Diferencia | Fuera de fold | Duke · I-SPY1 · I-SPY2 | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 | Frente a cnn_v3 (pareado) |
+|---|---|---|---|---|---|---|---|
+| cnn_v3 (R4) | 0,576 ± 0,037 | 0,656 | 0,080 | 0,574 | 0,51 · 0,53 · 0,58 | 0,42 · 0,28 · 0,66 | — |
+| cnn_v5 | 0,574 ± 0,035 | 0,678 | 0,104 | 0,566 | 0,52 · 0,42 · 0,59 | 0,41 · 0,41 · 0,61 | −0,009 (−0,046 a +0,026) |
+| cnn_v6 | 0,591 ± 0,041 | 0,656 | 0,065 | 0,569 | 0,54 · 0,59 · 0,56 | 0,45 · 0,32 · 0,61 | −0,005 (−0,039 a +0,027) |
+| cnn_v7 | 0,588 ± 0,042 | 0,691 | 0,103 | 0,557 | 0,53 · 0,57 · 0,55 | 0,42 · 0,40 · 0,61 | −0,017 (−0,053 a +0,019) |
+| cnn_v8 | 0,593 ± 0,025 | 0,762 | **0,169** | 0,587 | 0,53 · 0,47 · 0,60 | 0,44 · 0,39 · 0,59 | +0,013 (−0,029 a +0,053) |
 
-- **Ninguna mejora clara:** todas a menos de una desviación de cnn_v3.
+- **Ninguna mejora clara:** todas a menos de una desviación de cnn_v3, y todos los intervalos
+  pareados cruzan el 0. **Sigue ganando cnn_v3**; v5–v8, descartadas.
+  - cnn_v8 empata, pero sobreajusta (0,169 > 0,15).
+  - cnn_v6 empata, pero tiene más parámetros.
+  - cnn_v5 y cnn_v7 empatan con los mismos parámetros, y gana la más antigua.
+- **Ninguna repite el subtipo** (AUC 0,47–0,51 para HER2+ y HR+). Por subtipo, HER2+ 0,57–0,62,
+  triple negativo 0,56–0,60, HR+/HER2− 0,51–0,55.
+- **Las versiones no coinciden entre sí:** Spearman de 0,33 a 0,62 entre las puntuaciones fuera de fold
+  de cnn_v3, v5, v6, v7 y v8. Buena parte de lo que aprende cada una es ruido.
+- **Ruido del propio entrenamiento:** el fold 0 de cnn_v8, entrenado dos veces con la misma semilla
+  (antes y después de la caída), dio 0,558 y 0,583.
 - **cnn_v8 se cayó** con `CUDA error: unspecified launch failure`: la tarjeta se quedó colgada.
   - Quedaron procesos en estado D que no se podían matar, y `rocm-smi` no leía la tarjeta.
   - Se arregló reiniciando el PC con el botón: la cuenta `aulas` no puede reiniciar con `sudo`.
