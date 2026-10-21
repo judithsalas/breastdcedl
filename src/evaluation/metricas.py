@@ -18,6 +18,7 @@ negativo (VPN).
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import matplotlib
 
@@ -25,6 +26,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 def _division(a: float, b: float) -> float:
@@ -212,3 +216,36 @@ def tabla_calibracion(y: np.ndarray, p: np.ndarray, grupos: int = 10) -> list[di
     datos["grupo"] = pd.qcut(datos.p.rank(method="first"), q=min(grupos, len(datos)), labels=False)
     return [{"prob_media": float(g.p.mean()), "proporcion_real": float(g.y.mean()), "pacientes": len(g)}
             for _, g in datos.groupby("grupo")]
+
+
+def auc_por_cohorte(pacientes: pd.DataFrame) -> dict:
+    """AUC por paciente dentro de cada cohorte (NaN si en una cohorte solo hay una clase).
+
+    `pacientes` necesita las columnas cohorte, pCR y prob_media (como predicciones_val_pacientes.csv).
+    """
+    from sklearn.metrics import roc_auc_score
+
+    salida = {}
+    for cohorte, grupo in pacientes.groupby("cohorte"):
+        auc = (float(roc_auc_score(grupo.pCR, grupo.prob_media)) if grupo.pCR.nunique() == 2
+               else float("nan"))
+        salida[str(cohorte)] = {"pacientes": len(grupo), "pcr": int(grupo.pCR.sum()), "auc": auc}
+    return salida
+
+
+def senal_de_hospital(pacientes: pd.DataFrame) -> dict:
+    """¿La puntuación de la red delata el hospital? (D28)
+
+    AUC de la probabilidad para distinguir cada cohorte del resto. 0,5 = mirando la puntuación
+    no se sabe de qué hospital es la paciente; cuanto más lejos de 0,5 (por arriba o por abajo),
+    más «sabe» la red el hospital. Con cnn_v3 salió 0,66 para I-SPY2 y 0,28 para I-SPY1; si la
+    puntuación solo reflejara la pCR, saldría 0,49–0,51 (R5).
+    """
+    from sklearn.metrics import roc_auc_score
+
+    salida = {}
+    for cohorte in sorted(pacientes.cohorte.dropna().unique()):
+        es = pacientes.cohorte == cohorte
+        if 0 < es.sum() < len(pacientes):
+            salida[str(cohorte)] = float(roc_auc_score(es, pacientes.prob_media))
+    return salida

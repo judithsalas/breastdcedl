@@ -1,26 +1,35 @@
-"""Configuración de los experimentos: modos `rapido` y `completo`.
+"""Configuración de los experimentos, leída de `config.json` en la raíz del repo (D31).
 
-El modo indica QUÉ TIPO DE EJECUCIÓN es, no en qué ordenador estamos
-(el dispositivo se detecta solo, ver `src/utils/dispositivo.py`):
+`config.json` es el único sitio con los parámetros de ejecución:
+- `modos`: los dos tipos de ejecución. El modo indica QUÉ TIPO DE EJECUCIÓN es, no en qué
+  ordenador estamos (el dispositivo se detecta solo, ver `src/utils/dispositivo.py`):
+  - `rapido`: comprobar que el código funciona de principio a fin con pocos datos y pocas
+    épocas. Sus métricas NO cuentan para nada.
+  - `completo`: entrenamiento real. Sus métricas son las que se comparan y van al informe. El
+    batch es fijo para que los entrenamientos sean comparables entre sí.
+- `evaluacion` y `comparacion`: agregación por paciente, umbrales y límite de sobreajuste.
+- `experimento`: la plantilla de lo que lanza `python -m src.training.experimento`.
 
-- `rapido`:   comprobar que el código funciona de principio a fin con pocos
-              datos y pocas épocas. Sus métricas NO cuentan para nada.
-- `completo`: entrenamiento real. Sus métricas son las que se comparan y van
-              al informe. El batch es fijo para que los entrenamientos sean
-              comparables entre sí.
-
-Los valores son de partida y se ajustarán al medir tiempos reales; cada cambio
-se registra en docs/REGISTRO.md.
+Lo que define una versión de la red (capas, aumento, optimizador, weight decay) NO está en
+config.json, sino en `src/models/versiones.py`: cambiarlo es crear otra versión.
 
 Uso:
     from src.config import obtener_config
-    cfg = obtener_config("rapido")                 # valores del modo
-    cfg = obtener_config("completo", batch_size=32)  # sobrescribir alguno
+    cfg = obtener_config("rapido")                   # valores del modo
+    cfg = obtener_config("completo", batch_size=64)  # sobrescribir alguno
 """
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+import json
+import math
+from dataclasses import asdict, dataclass, fields, replace
+from pathlib import Path
+
+RUTA_CONFIG = Path(__file__).resolve().parents[1] / "config.json"
+# Los mismos que METODOS_AGREGACION de utils_caso (un test lo comprueba). No se importa utils_caso
+# aquí para que leer la configuración no cargue torch.
+AGREGACIONES = ("mean", "max", "median", "voto")
 
 
 @dataclass(frozen=True)
@@ -47,32 +56,32 @@ class Config:
         return asdict(self)
 
 
-MODOS: dict[str, Config] = {
-    "rapido": Config(
-        modo="rapido",
-        n_pacientes=40,
-        fold_val=0,
-        batch_size=16,
-        epocas_max=2,
-        paciencia=2,
-        learning_rate=1e-3,
-        pacientes_auc_train=0,
-        semilla=42,
-        num_workers=0,
-    ),
-    "completo": Config(
-        modo="completo",
-        n_pacientes=None,
-        fold_val=0,
-        batch_size=32,
-        epocas_max=60,
-        paciencia=10,
-        learning_rate=1e-3,
-        pacientes_auc_train=220,
-        semilla=42,
-        num_workers=4,
-    ),
-}
+CAMPOS_MODO = tuple(f.name for f in fields(Config) if f.name != "modo")
+
+
+def leer_config(ruta: Path | str = RUTA_CONFIG) -> dict:
+    """Lee config.json y comprueba que no falta ni sobra nada, con un mensaje claro si algo está mal."""
+    ruta = Path(ruta)
+    try:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{ruta.name} no es un JSON válido (línea {error.lineno}): {error.msg}") from None
+    for seccion in ("modos", "evaluacion", "comparacion"):
+        if seccion not in datos:
+            raise ValueError(f"A {ruta.name} le falta la sección {seccion!r}")
+    for modo, valores in datos["modos"].items():
+        faltan, sobran = set(CAMPOS_MODO) - set(valores), set(valores) - set(CAMPOS_MODO)
+        if faltan or sobran:
+            raise ValueError(f"Modo {modo!r} de {ruta.name}: faltan {sorted(faltan)}, sobran {sorted(sobran)}")
+    if datos["evaluacion"].get("agregacion") not in AGREGACIONES:
+        raise ValueError(f"evaluacion.agregacion debe ser una de {AGREGACIONES}")
+    return datos
+
+
+CONFIG = leer_config()
+MODOS: dict[str, Config] = {nombre: Config(modo=nombre, **valores) for nombre, valores in CONFIG["modos"].items()}
+EVALUACION: dict = CONFIG["evaluacion"]
+COMPARACION: dict = CONFIG["comparacion"]
 
 
 def obtener_config(modo: str, **cambios) -> Config:
@@ -83,3 +92,18 @@ def obtener_config(modo: str, **cambios) -> Config:
     if desconocidos:
         raise ValueError(f"Parámetros desconocidos: {sorted(desconocidos)}")
     return replace(MODOS[modo], **{k: v for k, v in cambios.items() if v is not None})
+
+
+def es_estandar(modo: str, batch: float | None, lr: float | None, semilla: float | None) -> bool:
+    """¿Una ejecución usó el batch, el learning rate y la semilla de su modo? Solo esas cuentan para
+    comparar versiones (D31): una prueba con otro learning rate no debe pasar por la versión."""
+    if modo not in MODOS:
+        return False
+    estandar = MODOS[modo]
+    for valor, referencia in ((batch, estandar.batch_size), (lr, estandar.learning_rate),
+                              (semilla, estandar.semilla)):
+        if valor is None or math.isnan(float(valor)):       # ejecuciones antiguas sin ese dato
+            continue
+        if not math.isclose(float(valor), float(referencia), rel_tol=1e-9):
+            return False
+    return True

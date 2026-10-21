@@ -50,7 +50,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from src.config import Config, obtener_config
+from src.config import EVALUACION, Config, obtener_config
 from src.data.aumento import crear_aumento
 from src.data.caso import RAIZ_DATOS, RAIZ_REPO, uc
 from src.evaluation.metricas import metricas_por_clase
@@ -63,8 +63,10 @@ from src.utils.dispositivo import describir_dispositivo, elegir_dispositivo
 from src.utils.semilla import fijar_semilla
 
 CARPETA_RUNS = RAIZ_REPO / "runs"
-METODO_AGREGACION = "mean"   # provisional: se elige en F4 con validación interna
-UMBRAL = 0.5                 # provisional: se elige en F4 con validación interna
+# De config.json (D31). Sirven para las métricas de cada época; el umbral y la agregación
+# definitivos se eligen al cerrar el modelo, con validación (D21).
+METODO_AGREGACION = EVALUACION["agregacion"]
+UMBRAL = EVALUACION["umbral_entrenamiento"]
 
 
 # --------------------------------------------------------------------------- #

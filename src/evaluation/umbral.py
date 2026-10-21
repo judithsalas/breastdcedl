@@ -25,9 +25,10 @@ from __future__ import annotations
 
 import numpy as np
 
+from src.config import EVALUACION
 from src.evaluation.metricas import coma, metricas_con_umbral
 
-ESPECIFICIDAD_MINIMA = 0.80
+ESPECIFICIDAD_MINIMA = EVALUACION["especificidad_minima"]     # config.json (D21, D31)
 
 
 def candidatos(p: np.ndarray) -> np.ndarray:

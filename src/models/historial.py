@@ -27,6 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.config import COMPARACION, es_estandar
 from src.data.caso import RAIZ_REPO
 from src.evaluation.metricas import coma
 from src.models.construir import cambios, contar_parametros, crear_modelo, huella
@@ -46,17 +47,21 @@ def leer_historico(ruta: Path = HISTORICO, modo: str = "completo") -> pd.DataFra
 
 
 TODOS_LOS_FOLDS = "0,1,2,3,4"
-SOBREAJUSTE = 0.15   # diferencia de AUC train − val a partir de la cual se considera que sobreajusta
+# Diferencia de AUC train − val a partir de la cual se considera que sobreajusta (config.json, D16).
+SOBREAJUSTE = COMPARACION["sobreajuste_maximo"]
 
 
 def validaciones_validas(historico: pd.DataFrame, perdida: str = "normal") -> pd.DataFrame:
-    """Última validación cruzada de 5 folds de cada versión, con huella ✓ y la pérdida pedida."""
+    """Última validación cruzada de 5 folds de cada versión, con huella ✓, la pérdida pedida y el
+    batch, el learning rate y la semilla estándar de su modo (config.json, D31)."""
     if historico.empty:
         return historico
     filas = historico[(historico.tipo == "cv") & (historico.perdida == perdida)
                       & (historico.folds.astype(str) == TODOS_LOS_FOLDS)
                       & historico.modelo.isin(list(VERSIONES))]
     filas = filas[filas.apply(lambda f: _huella_ok(f) is True, axis=1)] if len(filas) else filas
+    filas = filas[filas.apply(lambda f: es_estandar(f.modo, f.get("batch"), f.get("lr"), f.get("semilla")),
+                              axis=1)] if len(filas) else filas
     return filas.groupby("modelo").tail(1)
 
 
