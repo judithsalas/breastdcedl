@@ -56,10 +56,11 @@ def test_entrada_con_realce():
 def test_receta_y_arquitectura():
     from src.models.construir import arquitectura, receta
     # Las antiguas: sin aumento y con Adam sin weight decay (lo que usaron al entrenarse)
-    assert receta("cnn_v1") == {"aumento": None, "optimizador": "adam", "weight_decay": 0.0}
-    assert receta("cnn_v3") == {"aumento": "geometrico", "optimizador": "adam", "weight_decay": 0.0}
-    assert receta("cnn_v7") == {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05}
-    assert receta("cnn_v10") == {"aumento": "geometrico+giros90", "optimizador": "adam", "weight_decay": 0.0}
+    assert receta("cnn_v1") == {"aumento": None, "optimizador": "adam", "weight_decay": 0.0, "recorte": None}
+    assert receta("cnn_v3") == {"aumento": "geometrico", "optimizador": "adam", "weight_decay": 0.0, "recorte": None}
+    assert receta("cnn_v7") == {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05, "recorte": None}
+    assert receta("cnn_v10") == {"aumento": "geometrico+giros90", "optimizador": "adam", "weight_decay": 0.0, "recorte": None}
+    assert receta("cnn_v11")["recorte"] == "caja"
     assert "entrenamiento" not in arquitectura("cnn_v3")            # la red no recibe la receta
 
 
@@ -76,6 +77,7 @@ def test_huellas_de_las_versiones_ya_entrenadas_no_cambian():
     assert huella("cnn_v6") == "5f5b8fc2"
     assert huella("cnn_v7") == "07d7985c"
     assert huella("cnn_v8") == "6e0fa692"
+    assert huella("cnn_v10") == "a5610d0f"      # tercera ronda
 
 
 # --------------------------------------------------------------------------- #

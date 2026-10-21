@@ -1,0 +1,150 @@
+{
+  "fecha": "2026-10-21T21:51:46+02:00",
+  "version": "cnn_v3",
+  "eleccion": {
+    "version": "cnn_v3",
+    "motivo_version": "empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080)",
+    "perdida": "normal",
+    "auc_normal": 0.576064,
+    "auc_normal_desv": 0.0365159,
+    "auc_ponderada": 0.574394,
+    "motivo_perdida": "la ponderada no supera a la normal en más de una desviación: se queda la normal"
+  },
+  "validacion_cruzada": "20261020-192927_cv_cnn_v3_completo",
+  "definicion": {
+    "filtros": [
+      16,
+      32,
+      64,
+      128
+    ],
+    "kernel": 3,
+    "convs_por_bloque": 1,
+    "pooling": "max",
+    "batchnorm": true,
+    "resumen": "global",
+    "cabeza_oculta": null,
+    "dropout": 0.0,
+    "entrenamiento": {
+      "aumento": "geometrico"
+    }
+  },
+  "arquitectura": {
+    "filtros": [
+      16,
+      32,
+      64,
+      128
+    ],
+    "kernel": 3,
+    "convs_por_bloque": 1,
+    "pooling": "max",
+    "batchnorm": true,
+    "resumen": "global",
+    "cabeza_oculta": null,
+    "dropout": 0.0
+  },
+  "receta": {
+    "aumento": "geometrico",
+    "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+  },
+  "entrada": "3 PNG en gris de 8 bits (PRE, EARLY, LATE), 256×256, divididos entre 255 → [0, 1]",
+  "conjunto": "media de los logits de los 5 modelos (uno por fold)",
+  "calibracion": {
+    "a": 0.14651471821111062,
+    "b": -0.7078405158222709,
+    "metodo": "Platt (regresión logística sobre el logit de cada corte)"
+  },
+  "agregacion": "media de las probabilidades de los cortes de una paciente",
+  "umbral": 0.3042334608328854,
+  "criterio_umbral": "máxima sensibilidad con especificidad ≥ 0,80",
+  "pesos": [
+    {
+      "fichero": "fold_0.pt",
+      "sha256": "7b9ecf9d88b01e5a603aafbc399181b3b040a3267046bc72659dc76f3a2388b3",
+      "epoca": 1,
+      "auc_val_fold": 0.5660282258064516
+    },
+    {
+      "fichero": "fold_1.pt",
+      "sha256": "70a4916e0d2432b6d14239ef4acdb6cc52acb4360b115fad4cc4bc6b45823073",
+      "epoca": 6,
+      "auc_val_fold": 0.5370865009245942
+    },
+    {
+      "fichero": "fold_2.pt",
+      "sha256": "5b18599b70cbd0cc34f90ec598e5899af18c9087c92cbc2fb1b43540d8427933",
+      "epoca": 5,
+      "auc_val_fold": 0.6354353089798926
+    },
+    {
+      "fichero": "fold_3.pt",
+      "sha256": "2bbf7bdb6131bd8308206a0a9dcb3dd1eea8c97d50f84d8dc55d625097febfac",
+      "epoca": 16,
+      "auc_val_fold": 0.5626666666666666
+    },
+    {
+      "fichero": "fold_4.pt",
+      "sha256": "2a1ac74dae0b4681a0c941a0f5a6392911bcccda67ee69bd9504adf28a949d53",
+      "epoca": 6,
+      "auc_val_fold": 0.5791041709471954
+    }
+  ],
+  "entrenamiento": {
+    "perdida": "normal",
+    "config": {
+      "modo": "completo",
+      "n_pacientes": null,
+      "fold_val": 0,
+      "batch_size": 32,
+      "epocas_max": 60,
+      "paciencia": 10,
+      "learning_rate": 0.001,
+      "pacientes_auc_train": 220,
+      "semilla": 42,
+      "num_workers": 4
+    },
+    "parametros": 97809,
+    "maquina": {
+      "dispositivo": "cuda",
+      "sistema": "Linux 7.0.0-34-generic",
+      "maquina": "pc0503",
+      "python": "3.12.14",
+      "torch": "2.14.0+rocm7.14",
+      "backend": "rocm 7.14.60850",
+      "gpu": "AMD Radeon RX 6700 XT",
+      "vram_gb": 12.0
+    }
+  },
+  "metricas_internas": {
+    "auc_val_media": 0.5760641746649601,
+    "auc_val_desviacion": 0.03651590649122348,
+    "auc_train_media": 0.6559038204207661,
+    "diferencia_media": 0.07983964575580602,
+    "fuera_de_fold": {
+      "auc": {
+        "auc": 0.5740532959326788,
+        "ic95": [
+          0.5354402916323427,
+          0.6136358148214098
+        ]
+      },
+      "sensibilidad": 0.30434782608695654,
+      "especificidad": 0.8025806451612904,
+      "precision_pcr": 0.3904382470119522,
+      "precision_no_pcr": 0.735224586288416,
+      "f1_pcr": 0.34205933682373474,
+      "f1_no_pcr": 0.7674275138803208,
+      "f1_macro": 0.5547434253520278,
+      "accuracy": 0.6563354603463992,
+      "matriz_confusion": {
+        "VP": 98,
+        "VN": 622,
+        "FP": 153,
+        "FN": 224
+      }
+    },
+    "brier_calibrado": 0.20678862423968972
+  },
+  "huella_modelo": "b193afa060fd"
+}

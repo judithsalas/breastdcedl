@@ -53,6 +53,7 @@ from torch.utils.data import DataLoader
 from src.config import EVALUACION, Config, obtener_config
 from src.data.aumento import crear_aumento
 from src.data.caso import RAIZ_DATOS, RAIZ_REPO, uc
+from src.data.recorte import crear_dataset
 from src.evaluation.metricas import metricas_por_clase
 from src.models.construir import contar_parametros, crear_modelo, receta
 from src.models.historial import actualizar_documento
@@ -336,10 +337,11 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     usa_gpu = dispositivo.type == "cuda"
     opciones = {"batch_size": cfg.batch_size, "num_workers": cfg.num_workers, "pin_memory": usa_gpu,
                 "persistent_workers": cfg.num_workers > 0}
-    cargador_tr = DataLoader(uc.BreastDCEDataset(entrena, transform=aumento), shuffle=True,
+    recorte = como_entrenar["recorte"]                  # None = el corte entero; "caja" = alrededor del tumor (D33)
+    cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), shuffle=True,
                              generator=torch.Generator().manual_seed(cfg.semilla), **opciones)
-    cargador_va = DataLoader(uc.BreastDCEDataset(valida), shuffle=False, **opciones)
-    cargador_tr_eval = DataLoader(uc.BreastDCEDataset(muestra_tr), shuffle=False, **opciones)
+    cargador_va = DataLoader(crear_dataset(valida, recorte), shuffle=False, **opciones)
+    cargador_tr_eval = DataLoader(crear_dataset(muestra_tr, recorte), shuffle=False, **opciones)
 
     if carpeta is None:
         sufijo = "_ponderada" if ponderada else ""
@@ -376,7 +378,8 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
           f"{len(valida)} cortes | AUC de entrenamiento sobre {resultados['datos']['pacientes_auc_train']} pacientes")
     optim_texto = (f"AdamW, weight decay {como_entrenar['weight_decay']:g}"
                    if como_entrenar["optimizador"] == "adamw" else "Adam")
-    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | {optim_texto} | "
+    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | "
+          f"recorte {como_entrenar['recorte'] or 'no'} | {optim_texto} | "
           f"batch {cfg.batch_size} | lr {cfg.learning_rate} | "
           f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n")
 

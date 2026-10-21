@@ -14,7 +14,8 @@ Qué va en cada documento: [D14](#d14--mapa-de-la-documentación-y-trazabilidad-
 **En una frase (2026-10-21, noche):** el plan de experimentos está terminado y **cnn_v3 es la
 ganadora** (0,576 ± 0,037). Ninguna de cnn_v4 a cnn_v10 la mejora. La red no mira el tumor, y cnn_v10
 demostró que en parte reconocía el hospital por la orientación de la mama. Siguiente: cerrar el modelo
-con cnn_v3, sin esperar a la respuesta del profesor sobre la caja del tumor (D29).
+con cnn_v3, sin esperar a la respuesta del profesor sobre la caja del tumor (D29). Antes, por
+propuesta de Judith, cnn_v11 mide cuánto se gana mirando solo el tumor (D33).
 
 **Qué tenemos**
 - **Las redes:** de cnn_v1 a cnn_v10, todas descartadas menos **cnn_v3, candidata** (0,576 ± 0,037,
@@ -34,7 +35,8 @@ con cnn_v3, sin esperar a la respuesta del profesor sobre la caja del tumor (D29
 - Las decisiones, explicadas desde cero en [`COMO_SE_HIZO.md`](COMO_SE_HIZO.md). Desde el
   2026-10-18 las toma Claude y Judith las revisa (D15).
 
-**Siguiente paso:** en el PC de la uni, cerrar el modelo con cnn_v3
+**Siguiente paso:** en el PC de la uni, comprobar las cajas (`python -m src.data.recorte`) y entrenar
+cnn_v11 (`python -m src.training.plan`, paso 9). Después, cerrar el modelo con cnn_v3
 (`python -m src.evaluation.cerrar_modelo`), compararlo con el médico
 (`python -m src.evaluation.modelo_clinico`) y preparar los ejemplos de la app. Si el profesor permite
 la caja del tumor y cnn_v9 gana, se vuelve a cerrar; el test sigue sin tocarse.
@@ -110,8 +112,9 @@ Estado de cada punto de la rúbrica:
   ronda definida** (D29): cnn_v10 (giros de 90°), figura de orientación en la auditoría y cnn_v9
   reservada a la espera del profesor. **Comparar el fold 0 con la referencia** mientras entrena
   (D30). **Parámetros en `config.json`** y pruebas de un fold con `src.training.experimento` (D31).
-- (2026-10-21) **cnn_v10 entrenada** (R6): delata menos el hospital, pero empata. **Plan terminado: gana
-  cnn_v3.**
+- (2026-10-21) **cnn_v10 entrenada** (R6): delata menos el hospital, pero empata. Gana cnn_v3.
+- (2026-10-21) **cnn_v11 definida** (D33): recorte de 128×128 alrededor del tumor, con su caja, para
+  medir cuánto se gana mirando solo el tumor. No desplegable.
 
 ---
 
@@ -725,6 +728,29 @@ Salieron al meter los resultados de la segunda ronda.
   Ahora guarda 6 (`historico.py`). No cambia ninguna decisión.
 - En el comparador (D30), el eje de la pérdida pasa a 3 decimales: con 2 se repetían las etiquetas.
 
+### D33 · cnn_v11: recorte alrededor del tumor para medir el techo (2026-10-21)
+Judith propone centrarse en la zona del tumor (un compañero obtiene más AUC). Encaja con R5: la red no
+encuentra el tumor, y los trabajos de pCR que funcionan usan una región alrededor del tumor.
+- **cnn_v11 = cnn_v3 + recorte de 128×128 centrado en la caja del tumor** (`src/data/recorte.py`,
+  receta `"recorte": "caja"`):
+  - la caja de `patients.csv` se pasa a píxeles del PNG con 256 / `n_xy`;
+  - se recorta sin cambiar la escala, para conservar el tamaño del tumor;
+  - las tres fases se recortan con la misma ventana, y el aumento va después;
+  - mismas capas y parámetros que cnn_v3; cada época tarda unas 4 veces menos.
+- **No desplegable:** la app y la validación privada no tienen la caja. El criterio no elige versiones
+  con recorte por caja (`desplegable`) y `cerrar_modelo` se niega a cerrarlas. Mide cuánto se gana
+  mirando solo el tumor.
+- **Comprobación previa** (`python -m src.data.recorte`): realce dentro de la caja frente al resto del
+  tejido, con la caja tal cual y traspuesta, en 150 pacientes, más una figura con 12 ejemplos
+  (`docs/resultados/1_auditoria/cajas.png`). No se entrena si la caja tal cual no cae sobre la zona que
+  realza.
+- **Plan:** paso 9 (cnn_v11); la ponderada de la ganadora pasa a ser el paso 10.
+- **Si mejora claramente** (más de 0,61), se pregunta al profesor por dos formas de recortar sin la caja:
+  cnn_v9, o que el usuario marque el tumor en la app (duda 7). **Si no,** se cierra con cnn_v3.
+- La receta lleva una clave nueva, `recorte` (por defecto, `None`): las huellas de las versiones
+  anteriores no cambian.
+- Por qué, desde cero: `COMO_SE_HIZO.md` §3.11; hipótesis en la ficha de cnn_v11.
+
 ---
 
 ## Resultados
@@ -959,4 +985,6 @@ Treatment Response Prediction", <https://arxiv.org/abs/2506.12190>.
 7. **¿Se puede usar la caja del tumor (`sraw`, `eraw`, `scol`, `ecol`) solo al entrenar?**
    (2026-10-21, D29). El correo dice que las variables de `patients.csv` no entran en la CNN. La
    caja no entraría al predecir: solo guiaría la atención durante el entrenamiento (cnn_v9). Judith
-   se lo pregunta al profesor. Mientras no conteste, cnn_v9 no se define.
+   se lo pregunta al profesor. Mientras no conteste, cnn_v9 no se define. Si cnn_v11 (D33) muestra que
+   mirar solo el tumor mejora claramente, se añade otra pregunta: ¿puede la app pedir al usuario que
+   marque el tumor con un clic y recortar alrededor?

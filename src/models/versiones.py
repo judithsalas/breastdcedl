@@ -192,6 +192,24 @@ VERSIONES: dict[str, dict] = {
         "dropout": 0.0,
         "entrenamiento": {"aumento": "geometrico+giros90"},
     },
+    # ====================================================================== #
+    # Cuarta ronda (2026-10-21, Claude, D33). Judith propone centrarse en el tumor.
+    # ====================================================================== #
+    # cnn_v11 · recorte alrededor del tumor
+    # ÚNICO cambio respecto a cnn_v3: la red ve un cuadrado de 128×128 centrado en la caja
+    # del tumor (patients.csv), sin cambiar la escala, en vez del corte entero de 256×256.
+    # NO es desplegable: la app no tiene la caja. Mide cuánto se gana mirando solo el tumor.
+    "cnn_v11": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico", "recorte": "caja"},
+    },
 }
 
 # Valores que se usan cuando una versión no los declara (las antiguas no los tienen y
@@ -200,7 +218,7 @@ POR_DEFECTO: dict = {
     "entrada": "fases",
     "normalizacion": None,
     # Adam sin weight decay es lo que usaron cnn_v1 a cnn_v4.
-    "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0},
+    "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0, "recorte": None},
 }
 
 # -------------------------------------------------------------------------- #
@@ -218,6 +236,7 @@ ORIGEN: dict[str, str | None] = {
     "cnn_v7": "cnn_v3",
     "cnn_v8": "cnn_v3",
     "cnn_v10": "cnn_v3",
+    "cnn_v11": "cnn_v3",
 }
 
 # En qué punto está cada versión. Se justifica en su ficha.
@@ -232,4 +251,5 @@ ESTADO: dict[str, str] = {
     "cnn_v7": "descartada",     # empata (0,588 ± 0,042); no baja la diferencia train − val
     "cnn_v8": "descartada",     # empata (0,593 ± 0,025) pero sobreajusta (0,169 > 0,15)
     "cnn_v10": "descartada",    # empata (0,581 ± 0,045); delata menos el hospital y memoriza menos
+    "cnn_v11": "por entrenar",  # solo para medir; no desplegable (necesita la caja)
 }

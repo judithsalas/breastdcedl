@@ -71,7 +71,9 @@ Fuentes de verdad, por orden:
 5. Trabajo individual.
 
 Las variables de `patients.csv` no entran en la CNN ni en la app (correo del profesor): solo en el
-modelo clínico de comparación (D25, `src/evaluation/modelo_clinico.py`).
+modelo clínico de comparación (D25, `src/evaluation/modelo_clinico.py`). La caja del tumor se usa en
+cnn_v11 (D33) solo para medir cuánto se gana mirando el tumor: esas versiones no son desplegables
+(`desplegable` en `historial.py`) y no pueden ser el modelo final.
 
 Recordatorios técnicos: los 3 canales son instantes temporales, no RGB (nada de normalización
 ImageNet ni ColorJitter); aumentos geométricos al tensor completo; `shuffle=False` al evaluar;

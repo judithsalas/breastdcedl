@@ -581,6 +581,47 @@ Nuestro aumento ya volteaba izquierda-derecha, así que «izquierda o derecha» 
 > que no puede entrar en la CNN, y la app y la validación privada no la tendrían. Lo que planteamos
 > es usarla solo al entrenar, para guiar la atención, y se lo preguntamos al profesor antes.
 
+### 3.11 Mirar solo el tumor: cnn_v11 (D33)
+
+**De dónde sale.** Judith propuso centrarse en la zona del tumor, y un compañero suyo obtiene más AUC.
+Encaja con todo lo anterior: la red no encuentra el tumor (§3.10), y casi todos los trabajos de pCR que
+funcionan le dan a la red una región alrededor del tumor en vez de la imagen entera.
+
+**Qué hace cnn_v11:**
+- Es cnn_v3, pero ve un cuadrado de 128×128 centrado en la caja del tumor de `patients.csv`, en lugar
+  del corte entero de 256×256.
+- Se recorta sin ampliar, para no perder el tamaño del tumor.
+- Las tres fases se recortan con la misma ventana. El aumento de datos va después del recorte.
+- Código: `src/data/recorte.py` y la receta `"recorte": "caja"` en `versiones.py`.
+
+**El problema: no se puede desplegar.** En la app y en la validación privada del profesor solo llegan
+las tres imágenes del corte, sin caja. Por eso:
+- cnn_v11 **mide el techo**: cuánto se gana si la red solo mira el tumor;
+- el criterio de comparación no la puede elegir como modelo final, y `cerrar_modelo` se niega a
+  cerrarla (`desplegable` en `historial.py`).
+
+**Qué haremos con el resultado:**
+- **Si mejora claramente** (más de 0,61), habrá que conseguir el recorte sin la caja. Hay dos caminos, y
+  los dos hay que preguntárselos al profesor:
+  1. que la red aprenda a encontrar el tumor usando la caja solo al entrenar (cnn_v9);
+  2. que en la app el usuario marque el tumor con un clic y se recorte alrededor. Es como trabajan muchas
+     herramientas de radiología: el radiólogo señala la lesión y el programa la analiza.
+- **Si no mejora,** sabremos que el límite está en la información que tiene un corte de antes del
+  tratamiento, no en dónde mira la red. Se cierra con cnn_v3.
+
+**Antes de entrenar, una comprobación** (`python -m src.data.recorte`):
+- La caja viene en píxeles del volumen original (de 128 a 512 de lado) y hay que pasarla al PNG de 256.
+  Si la conversión estuviera mal, o las filas y las columnas vinieran cambiadas, recortaríamos fuera del
+  tumor.
+- El script mide, en 150 pacientes, si el realce dentro de la caja es mayor que en el resto del tejido.
+  Lo mide con la caja tal cual y traspuesta.
+- Dibuja 12 ejemplos en `docs/resultados/1_auditoria/cajas.png`.
+
+> **Si te preguntan** «¿por qué no recortasteis alrededor del tumor desde el principio?»: porque la caja
+> viene de `patients.csv`, que no puede entrar en la CNN ni en la app, y la app no la tendría. Lo
+> probamos igualmente para medir cuánto se ganaría (cnn_v11) y, con ese dato, decidir si merece la pena
+> buscar una forma de localizar el tumor sin la caja.
+
 ---
 
 ## 4. Entrenar y comparar
@@ -667,11 +708,12 @@ fuera por sobreajustar. Entre cnn_v3 y cnn_v4 gana cnn_v3, que tiene menos pará
 | 6 | cnn_v7, pérdida normal | ¿ayudan el dropout y el weight decay (no memorizar)? |
 | 7 | cnn_v8, pérdida normal | ¿suman las tres ideas? |
 | 8 | cnn_v10, pérdida normal | ¿ayuda quitar la pista de la orientación (giros de 90°)? |
-| 9 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
+| 9 | cnn_v11, pérdida normal | ¿cuánto se gana mirando solo el tumor (recorte con la caja)? Solo para medir (§3.11) |
+| 10 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
 
 Los pasos 1–3 y la ponderada de cnn_v3 se hicieron la noche del 20 de octubre (§3.8). Los pasos 4–7
 se añadieron el 21 (D28, §3.9) y el paso 8 ese mismo día por la tarde (D29, §3.10). Si al final
-sigue ganando cnn_v3, el paso 9 ya está hecho.
+sigue ganando cnn_v3, el paso 10 ya está hecho. El paso 9 se añadió el 21 por la noche (D33).
 
 - **Por qué se comparan con pérdida normal:** para que entre versiones solo cambie una cosa.
 - **Por qué la ponderada solo con la ganadora:** en R1 y R2 la ponderación movió la sensibilidad
@@ -1058,7 +1100,9 @@ números que salgan serán los de verdad.
      aunque se cierre VS Code: `nohup python -m src.training.plan > plan.log 2>&1 &`. Se salta lo
      ya hecho. **Hecha el 21 de octubre** (cnn_v8, la segunda vez, tras reiniciar el PC porque la
      tarjeta se quedó colgada).
-   - **Tercera ronda (cnn_v10, §3.10):** hecha el 21 de octubre. **Gana cnn_v3**; el plan está terminado.
+   - **Tercera ronda (cnn_v10, §3.10):** hecha el 21 de octubre. Gana cnn_v3.
+   - **Cuarta ronda (cnn_v11, §3.11):** primero `python -m src.data.recorte` (comprobar las cajas), y
+     si sale «OK», el plan de siempre.
    - **Para mirar pronto si va bien** (§4.8), en cuanto haya unas épocas del fold 0:
      `python -m src.training.comparar cnn_v3 cnn_v10`.
    - **Probar algo en un solo fold o con otros valores** (§4.9): editar la sección `experimento` de

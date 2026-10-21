@@ -82,6 +82,7 @@ En 5 folds se da media ± desviación. ⚠ = la versión cambió después de esa
 | [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | descartada | — | — | 0,588 ± 0,042 | — | 0,103 |
 | [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | descartada | 0,558 | — | 0,593 ± 0,025 | — | 0,169 |
 | [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | descartada | — | — | 0,581 ± 0,045 | — | 0,047 |
+| [cnn_v11](#cnn_v11) | cnn_v3 | entrenamiento.recorte: None → caja | 97.809 | por entrenar | — | — | — | — | — |
 
 **Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v8, cnn_v10.
 <!-- auto:resumen:fin -->
@@ -104,7 +105,8 @@ cnn_v1 · descartada
         ├── cnn_v6 · descartada
         ├── cnn_v7 · descartada
         ├── cnn_v8 · descartada
-        └── cnn_v10 · descartada
+        ├── cnn_v10 · descartada
+        └── cnn_v11 · por entrenar
 ```
 <!-- auto:genealogia:fin -->
 
@@ -911,6 +913,69 @@ Frente a lo que esperábamos:
 **Descartada** (2026-10-21) por el criterio fijado antes de entrenar: empata con cnn_v3, tiene los
 mismos parámetros y gana la más antigua. Va al informe como prueba del sesgo entre hospitales y de
 cómo se corrige en parte (rúbrica, punto 9).
+
+---
+
+## cnn_v11
+
+**Mirar solo el tumor (recorte con su caja).** Origen: **cnn_v3** · Definida el 2026-10-21 ·
+Propuesta por Judith, implementada por Claude (D15, D33) · Estado: **por entrenar**.
+
+**No es desplegable.** La app y la validación privada del profesor no tienen la caja del tumor, así que
+cnn_v11 no puede ser el modelo final: el criterio no la elige y `cerrar_modelo` se niega a cerrarla.
+Sirve para medir **cuánto se gana centrándose en el tumor**.
+
+### Definición
+
+- **Único cambio respecto a cnn_v3:** en vez del corte entero (256×256), la red ve un cuadrado de
+  **128×128 píxeles centrado en la caja del tumor** (`sraw`, `eraw`, `scol`, `ecol` de
+  `patients.csv`, pasadas a píxeles del PNG con 256 / `n_xy`).
+- **No cambia la escala:** se recorta, no se amplía, porque el tamaño del tumor también es información
+  (R5). 128 px cubren la caja del ~90 % de los tumores; en los más grandes queda fuera el borde.
+- Las tres fases se recortan con la misma ventana, y el aumento se aplica después del recorte.
+- Mismas capas que cnn_v3: **97.809 parámetros**, con un mapa final de 8×8 en vez de 16×16. Diagrama:
+  [`figuras/cnn_v11.svg`](figuras/cnn_v11.svg). Cada época tarda unas 4 veces menos.
+- **Antes de entrenar,** `python -m src.data.recorte` comprueba que las cajas caen sobre el tumor: el
+  realce dentro de la caja tiene que ser claramente mayor que en el resto del tejido. Dibuja algunas
+  en `docs/resultados/1_auditoria/cajas.png`.
+
+### Hipótesis
+
+La red no encuentra el tumor por sí sola (R5): ocupa un 3–8 % del corte, y el corazón y la pared
+torácica realzan tanto o más. Casi todos los trabajos de pCR con buenos resultados le dan a la red una
+región centrada en el tumor, con algo de tejido alrededor (Braman et al. 2017 y 2020). Si la red solo
+ve el tumor y su entorno, no puede distraerse con el resto ni usar pistas del hospital que están fuera
+del tumor.
+
+### Qué esperamos ver (antes de entrenar)
+
+- **Si la hipótesis es cierta:**
+  - el AUC medio supera claramente al de cnn_v3, por encima de 0,61 (0,576 + una desviación);
+  - el AUC sube dentro de cada hospital;
+  - la puntuación se relaciona con el tamaño del tumor y con el subtipo (HER2+ y triple negativo).
+
+  Entonces merece la pena conseguir el recorte sin la caja: que la red aprenda a localizar el tumor
+  (cnn_v9) o que en la app el usuario marque el tumor. Las dos cosas hay que preguntárselas al profesor
+  (duda 7).
+- **Si no mejora:** el problema no era dónde mira la red, sino la poca información que tiene un corte de
+  antes del tratamiento para predecir la pCR, como en la bibliografía (solo imagen: ~0,55–0,65). Se
+  cierra con cnn_v3 y lo honesto es contarlo, junto con la comparación CNN + médico.
+
+### Ejecuciones
+
+Pendientes: paso 9 del plan (D33).
+
+### Resultados
+
+Pendientes.
+
+### Lectura
+
+Pendiente.
+
+### Decisión
+
+Pendiente.
 
 ---
 
