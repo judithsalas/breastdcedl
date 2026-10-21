@@ -19,7 +19,9 @@ Por qué este orden (explicado en docs/COMO_SE_HIZO.md):
   5. cnn_v6  normal     ¿ayuda el pooling por atención (mirar dónde está el tumor)?
   6. cnn_v7  normal     ¿ayuda regularizar (dropout + weight decay)?
   7. cnn_v8  normal     ¿suman las tres?
-  8. mejor   ponderada  la que gane según el criterio, con pérdida ponderada (lo pide el
+  Tercera ronda (D29, 2026-10-21):
+  8. cnn_v10 normal     ¿ayuda quitar la pista de la orientación (giros de 90°)?
+  9. mejor   ponderada  la que gane según el criterio, con pérdida ponderada (lo pide el
                         enunciado: comparar normal y ponderada con el modelo elegido). Si
                         sigue ganando cnn_v3, ya está hecha y no se repite.
 Las versiones se comparan con pérdida normal para que solo cambie una cosa cada vez.
@@ -41,6 +43,7 @@ PLAN: list[tuple[str, str]] = [
     ("cnn_v6", "normal"),
     ("cnn_v7", "normal"),
     ("cnn_v8", "normal"),
+    ("cnn_v10", "normal"),
     ("mejor", "ponderada"),
 ]
 

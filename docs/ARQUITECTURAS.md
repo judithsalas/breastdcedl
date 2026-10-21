@@ -77,12 +77,13 @@ En 5 folds se da media ± desviación. ⚠ = la versión cambió después de esa
 | [cnn_v2](#cnn_v2) | cnn_v1 | filtros: (16, 32, 64) → (16, 32, 64, 128) | 97.809 | descartada | — | — | 0,593 ± 0,032 | — | 0,162 |
 | [cnn_v3](#cnn_v3) | cnn_v2 | entrenamiento.aumento: None → geometrico | 97.809 | candidata | — | — | 0,576 ± 0,037 | 0,574 ± 0,030 | 0,080 |
 | [cnn_v4](#cnn_v4) | cnn_v3 | entrada: fases → fases+realce | 98.097 | descartada | — | — | 0,572 ± 0,044 | — | 0,126 |
-| [cnn_v5](#cnn_v5) | cnn_v3 | normalizacion: None → pre | 97.809 | por entrenar | — | — | — | — | — |
-| [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | por entrenar | — | — | — | — | — |
-| [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | por entrenar | — | — | — | — | — |
-| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | por entrenar | — | — | — | — | — |
+| [cnn_v5](#cnn_v5) | cnn_v3 | normalizacion: None → pre | 97.809 | por entrenar | — | — | 0,575 ± 0,035 | — | 0,104 |
+| [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | por entrenar | — | — | 0,591 ± 0,041 | — | 0,065 |
+| [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | por entrenar | — | — | 0,588 ± 0,042 | — | 0,103 |
+| [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | por entrenar | — | — | 0,558 | — | 0,099 |
+| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | por entrenar | — | — | — | — | — |
 
-**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4.
+**Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7.
 <!-- auto:resumen:fin -->
 
 Las ejecuciones de cnn_v1 (R1, R2) se entrenaron antes de que existiera el histórico. Aparecen
@@ -102,7 +103,8 @@ cnn_v1 · descartada
         ├── cnn_v5 · por entrenar
         ├── cnn_v6 · por entrenar
         ├── cnn_v7 · por entrenar
-        └── cnn_v8 · por entrenar
+        ├── cnn_v8 · por entrenar
+        └── cnn_v10 · por entrenar
 ```
 <!-- auto:genealogia:fin -->
 
@@ -118,6 +120,10 @@ una está en `runs/<ejecución>/` (en la máquina donde se entrenó).
 | 2026-10-20 19:29 | `20261020-192927_cv_cnn_v3_completo` | cnn_v3 | normal | 0,1,2,3,4 | 6,8 | 0,576 ± 0,037 | 0,656 | 0,080 | 0,427 | `4bb03d5d` ✓ |
 | 2026-10-20 20:11 | `20261020-201130_cv_cnn_v4_completo` | cnn_v4 | normal | 0,1,2,3,4 | 9,4 | 0,572 ± 0,044 | 0,698 | 0,126 | 0,472 | `e7188804` ✓ |
 | 2026-10-20 21:03 | `20261020-210342_cv_cnn_v3_completo_ponderada` | cnn_v3 | ponderada | 0,1,2,3,4 | 8,2 | 0,574 ± 0,030 | 0,668 | 0,094 | 0,480 | `4bb03d5d` ✓ |
+| 2026-10-21 13:56 | `20261021-135616_cv_cnn_v5_completo` | cnn_v5 | normal | 0,1,2,3,4 | 8,8 | 0,575 ± 0,035 | 0,678 | 0,104 | 0,460 | `7d6803db` ✓ |
+| 2026-10-21 14:43 | `20261021-144306_cv_cnn_v6_completo` | cnn_v6 | normal | 0,1,2,3,4 | 6,0 | 0,591 ± 0,041 | 0,656 | 0,065 | 0,438 | `5f5b8fc2` ✓ |
+| 2026-10-21 15:23 | `20261021-152323_cv_cnn_v7_completo` | cnn_v7 | normal | 0,1,2,3,4 | 11,2 | 0,588 ± 0,042 | 0,691 | 0,103 | 0,450 | `07d7985c` ✓ |
+| 2026-10-21 16:16 | `20261021-161603_cv_cnn_v8_completo` | cnn_v8 | normal | 0 | 23,0 | 0,558 | 0,658 | 0,099 | 0,500 | `6e0fa692` ✓ |
 <!-- auto:ejecuciones:fin -->
 
 ---
@@ -675,6 +681,80 @@ así que, si cada una ayuda algo, juntas deberían sumar.
 ### Ejecuciones
 
 Pendientes: paso 7 del plan (D28).
+
+### Resultados
+
+Pendientes.
+
+### Lectura
+
+Pendiente.
+
+### Decisión
+
+Pendiente.
+
+---
+
+## cnn_v10
+
+**Quitar la pista de la orientación.** Origen: **cnn_v3** · Definida el 2026-10-21 · Decidida por
+Claude (D15, D29) · Estado: **por entrenar**.
+
+cnn_v9 queda reservada para la atención guiada por la caja del tumor: solo se definirá si el
+profesor permite usar las coordenadas del tumor al entrenar (D29).
+
+### Definición
+
+- **Único cambio respecto a cnn_v3:** el aumento pasa de `geometrico` a `geometrico+giros90`.
+  - Antes del aumento de cnn_v3, cada corte se gira 0°, 90°, 180° o 270° al azar, igual en las tres
+    fases.
+  - Con el volteo horizontal que ya había, salen las 8 orientaciones posibles del cuadrado con la
+    misma probabilidad.
+- Solo en entrenamiento: validación, test y app ven la imagen tal cual.
+- La red es idéntica a la de cnn_v3: **97.809 parámetros**. Diagrama:
+  [`figuras/cnn_v10.svg`](figuras/cnn_v10.svg).
+- **Deja de valer la regla de cnn_v3 de no voltear en vertical.** Suponía que la pared torácica
+  está siempre en el mismo lado, y en este dataset no es así (figura de la hipótesis).
+
+### Hipótesis
+
+**Cada hospital orienta la mama a su manera.** Se ve en el mosaico de la auditoría
+([`orientacion.png`](resultados/1_auditoria/orientacion.png), 10 pacientes al azar por cohorte):
+- en **I-SPY1**, la mama apunta **hacia abajo** en las 10;
+- en **I-SPY2 y Duke**, apunta a la izquierda o a la derecha;
+- en Duke y en alguna de I-SPY2 se ven el corazón y los pulmones (otro plano de corte).
+
+**La red de cnn_v3 lo aprovecha.** Su puntuación distingue I-SPY1 del resto con AUC **0,28**, es
+decir, le da puntuaciones más bajas que al resto. Si la puntuación solo reflejara la pCR (I-SPY1 tiene
+un 25 % frente al 29 % global), saldría 0,50 ± 0,03. La orientación no dice nada del tumor, solo del
+hospital.
+
+**cnn_v5 encaja con esto.** Normalizar la intensidad apenas bajó la señal del hospital (I-SPY2:
+0,66 → 0,61). Su ficha preveía que, en ese caso, el atajo podría ser «la anatomía o el encuadre de
+cada centro». El mosaico dice que, al menos en parte, es el encuadre.
+
+**Qué debería pasar.** Si la orientación deja de servir de pista, la red no puede usarla y tiene que
+apoyarse en lo que sí cambia entre pacientes.
+
+### Qué esperamos ver (antes de entrenar)
+
+- **Si la hipótesis es cierta:**
+  - «¿delata el hospital?» para I-SPY1 sube de 0,28 hacia 0,45–0,50;
+  - el AUC dentro de Duke e I-SPY1 no baja;
+  - el AUC medio se mantiene o sube.
+- **Si el AUC medio baja un poco pero deja de reconocer I-SPY1:** parte del AUC de cnn_v3 venía de
+  reconocer el hospital (I-SPY1 tiene menos pCR que la media). Es la versión más honesta y se
+  cuenta en el informe (rúbrica, punto 9).
+  - Por el criterio (D16), si empata con cnn_v3, sigue ganando cnn_v3: tienen los mismos
+    parámetros y cnn_v3 es más antigua.
+  - El criterio está fijado desde el 2026-10-18 y no se cambia después de ver resultados.
+- **Si sigue reconociendo I-SPY1:** la red lo distingue por otra cosa, como el plano de corte o la
+  anatomía que se ve. Eso no se quita girando, solo guiando la atención al tumor (cnn_v9).
+
+### Ejecuciones
+
+Pendientes: paso 8 del plan (D29).
 
 ### Resultados
 

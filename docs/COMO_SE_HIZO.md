@@ -122,6 +122,8 @@ calibración) ─► probabilidad del corte ─► media de los ~10 cortes de la
    superarlos.
 7. **Ejemplos:** una paciente con pCR y otra sin pCR de cada cohorte, con sus tres fases y el
    mapa de realce.
+8. **Orientación** (añadida el 21 de octubre, D29): el corte central de 10 pacientes al azar por
+   cohorte. Sirvió para ver que cada hospital orienta la mama a su manera (§3.10).
 
 Todo lo que mezcla imagen y etiqueta usa **solo train**. De test solo se cuenta cuántas pacientes
 hay.
@@ -324,6 +326,8 @@ va el porqué de cada pieza.
   3. **Solo en entrenamiento.** Validación, test y app ven la imagen tal cual.
 - **Por qué no hay volteo vertical:** pondría la pared torácica donde no puede estar. El volteo
   horizontal sí es realista: una mama izquierda volteada parece una derecha.
+  - **Corregido el 21 de octubre (D29, §3.10):** en este dataset la pared torácica no está siempre
+    en el mismo lado. Cada hospital orienta la mama a su manera, y cnn_v10 gira también 90°.
 - **Por qué se define antes de ver cnn_v2:** para entrenar todo de una vez por la noche (§4.6).
   Además, cualquier resultado de cnn_v2 hace útil a cnn_v3.
 
@@ -349,6 +353,7 @@ va el porqué de cada pieza.
   3. entrada con conocimiento del dominio (v4).
 - La segunda ronda (v5–v8, §3.9) sale de los resultados de la primera: cada versión prueba una idea
   sobre la candidata, cnn_v3, y cnn_v8 las junta.
+- La tercera (cnn_v10, §3.10) sale de mirar por qué la segunda no mejoró.
 
 ### 3.7 Inicialización, optimizador y demás hiperparámetros (D8, D24)
 
@@ -465,6 +470,98 @@ aporta información que el subtipo no tiene.
 > «¿Por qué atención y no otra cosa?»: el tumor es pequeño y la media global lo diluye. La atención
 > deja que la red pese más donde importa, cuesta solo 4.000 parámetros y además enseña dónde mira.
 
+### 3.10 Por qué la segunda ronda no mejoró, y cnn_v10 (D29)
+
+**Lo que salió** (21 de octubre, cifras del registro del entrenamiento; la lectura completa irá en
+las fichas cuando llegue el zip de `para_claude`):
+
+| Versión | AUC validación (5 folds) | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 |
+|---|---|---|
+| cnn_v3 (referencia) | 0,576 ± 0,037 | 0,42 · 0,28 · 0,66 |
+| cnn_v5 (intensidad relativa) | 0,574 ± 0,035 | 0,41 · 0,41 · 0,61 |
+| cnn_v6 (atención) | 0,591 ± 0,041 | 0,45 · 0,32 · 0,61 |
+| cnn_v7 (dropout y weight decay) | 0,588 ± 0,042 | 0,42 · 0,40 · 0,61 |
+
+cnn_v8 se cayó por un fallo de la tarjeta gráfica, no del código: v5–v7 funcionaron con las mismas
+piezas (D29). Se relanza.
+
+**Ninguna mejora es clara:** todas están a menos de una desviación de cnn_v3. Para averiguar por qué,
+se miraron otra vez las predicciones fuera de fold de cnn_v3 junto con los metadatos:
+
+1. **Dentro de cada hospital, la red casi acierta por azar:** Duke 0,51, I-SPY1 0,53, I-SPY2 0,58.
+2. **Su puntuación no tiene que ver con el tamaño del tumor** (correlación de Spearman −0,05 con el
+   tamaño de su caja). Y eso que el tamaño de la caja, él solo, da AUC 0,59 en I-SPY2. Una red que
+   mirase el tumor aprendería al menos su tamaño. Tampoco capta el subtipo (§3.8).
+3. **Memoriza en vez de aprender.** La mejor época de cada fold fue la 1, 6, 5, 16 y 6. Después,
+   el AUC de entrenamiento sube hasta 0,71–0,87 y el de validación no se mueve.
+4. **El tumor es pequeño:** su caja ocupa de mediana un 7–8 % de la imagen en I-SPY y un 3 % en Duke.
+   Con una etiqueta por paciente y unas 880 pacientes de entrenamiento, la red no descubre sola qué
+   parte de la imagen importa. La atención de cnn_v6 tenía que encontrar el tumor sin ninguna pista.
+5. **Sí reconoce el hospital, y no solo porque cambie la pCR entre hospitales.**
+   - Si la puntuación solo reflejara la pCR, «¿delata el hospital?» saldría 0,49–0,51 ± 0,02–0,03.
+     cnn_v3 da 0,66 para I-SPY2 y 0,28 para I-SPY1.
+   - Pero eso aporta poco al AUC global: 0,574 en total frente a 0,560 de media dentro de cada
+     hospital.
+   - Es un síntoma, no la causa principal.
+
+**Por qué normalizar la intensidad (cnn_v5) no quitó el atajo.** Al mirar 10 pacientes al azar de
+cada hospital ([`orientacion.png`](resultados/1_auditoria/orientacion.png), nueva figura de la
+auditoría), se ve que **cada hospital orienta la mama a su manera**:
+- en I-SPY1 apunta hacia abajo (las 10);
+- en I-SPY2 y Duke, a la izquierda o a la derecha;
+- en Duke y en alguna de I-SPY2 se ven el corazón y los pulmones.
+
+Nuestro aumento ya volteaba izquierda-derecha, así que «izquierda o derecha» no da pista, pero
+«hacia abajo» delata I-SPY1. Eso explica su 0,28.
+
+**cnn_v10 · cnn_v3 + giros de 90°.**
+- **Qué hace:** al entrenar, cada corte se gira además 0°, 90°, 180° o 270° al azar, igual en las tres
+  fases (`geometrico+giros90` en `src/data/aumento.py`). Con el volteo, salen las 8 orientaciones
+  del cuadrado con la misma probabilidad, así que la orientación deja de servir de pista.
+- **No cambia nada fuera del entrenamiento:** ni la red, ni la app, ni la validación, ni el test.
+  No necesita permiso del profesor.
+- **Siendo realistas:**
+  - quita un atajo, pero no le enseña a la red dónde está el tumor;
+  - puede que el AUC no suba, porque el atajo «ayudaba» (I-SPY1 tiene menos pCR que la media);
+  - aun así, una red que no reconoce el hospital es más honesta y se puede defender mejor
+    (rúbrica, punto 9).
+- **Si empata con cnn_v3, por el criterio gana cnn_v3** (mismos parámetros, más antigua). El criterio
+  está fijado desde el 18 de octubre y no se cambia después de ver resultados. Que deje de reconocer
+  el hospital se contará en el informe igualmente.
+
+**cnn_v9 (reservada) · atención guiada por la caja del tumor.** Es la idea que ataca el problema 4:
+- **Al entrenar:** una pérdida extra castiga que la atención (la de cnn_v6) se vaya fuera de la caja
+  del tumor, ampliada un poco porque el tejido de alrededor también informa (Braman et al. 2017).
+- **Al predecir:** la red no necesita la caja, así que la app y la validación privada no cambian.
+- **En la bibliografía:** guiar así la atención es una técnica conocida contra los atajos (Ross et
+  al. 2017, «Right for the right reasons»; Li et al. 2018, GAIN).
+- **Por qué está pendiente:** la caja sale de `patients.csv`, y el profesor dijo que esas variables
+  no entran en la CNN. Por eso se le pregunta antes (D29).
+- **Antes de entrenarla:** comprobar que la caja cae sobre el tumor en los PNG. Las coordenadas
+  están en el tamaño original de cada resonancia (de 128 a 512 píxeles), no en 256.
+
+**Lo que no se hace, y por qué** (preguntas de Judith del 21 de octubre):
+- **Quitar el fondo negro:** vale 0 y la red aprende enseguida a no hacerle caso. Recortar al borde
+  de la mama sí agrandaría el tumor, pero cada imagen quedaría a una escala distinta y se perdería
+  el tamaño real. No es prioritario.
+- **Ajustar brillo o contraste:**
+  - El brillo de cada hospital ya se quitó en cnn_v5, y no mejoró.
+  - Ecualizar o subir el contraste de cada imagen la cambia de forma distinta en cada paciente y
+    rompe la comparación entre fases, que es la señal (§2.2).
+- **Las imágenes no son en color.** Son PNG en gris (la auditoría lo comprueba en las 10.945). El
+  rojo y azul de las figuras es el mapa de realce pintado para verlo mejor; la red no ve esos
+  colores.
+
+> **Si te preguntan** «¿tu red reconoce el hospital?»: sí, y lo medimos. Lo más claro es I-SPY1:
+> la red lo distingue con AUC 0,28 (0,5 sería no distinguirlo), porque allí la mama se orienta
+> hacia abajo y en los otros hospitales hacia los lados. Por eso cnn_v10 entrena con giros de 90°,
+> para que la orientación deje de servir de pista. Y lo comprobamos con la medida «¿delata el
+> hospital?» antes y después.
+>
+> «¿Por qué no recortaste alrededor del tumor?»: porque la caja del tumor viene de `patients.csv`,
+> que no puede entrar en la CNN, y la app y la validación privada no la tendrían. Lo que planteamos
+> es usarla solo al entrenar, para guiar la atención, y se lo preguntamos al profesor antes.
+
 ---
 
 ## 4. Entrenar y comparar
@@ -550,10 +647,12 @@ fuera por sobreajustar. Entre cnn_v3 y cnn_v4 gana cnn_v3, que tiene menos pará
 | 5 | cnn_v6, pérdida normal | ¿ayuda el pooling por atención (no diluir el tumor)? |
 | 6 | cnn_v7, pérdida normal | ¿ayudan el dropout y el weight decay (no memorizar)? |
 | 7 | cnn_v8, pérdida normal | ¿suman las tres ideas? |
-| 8 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
+| 8 | cnn_v10, pérdida normal | ¿ayuda quitar la pista de la orientación (giros de 90°)? |
+| 9 | la ganadora, pérdida ponderada | el enunciado pide comparar normal y ponderada con el modelo elegido |
 
 Los pasos 1–3 y la ponderada de cnn_v3 se hicieron la noche del 20 de octubre (§3.8). Los pasos 4–7
-se añadieron el 21 (D28, §3.9). Si al final sigue ganando cnn_v3, el paso 8 ya está hecho.
+se añadieron el 21 (D28, §3.9) y el paso 8 ese mismo día por la tarde (D29, §3.10). Si al final
+sigue ganando cnn_v3, el paso 9 ya está hecho.
 
 - **Por qué se comparan con pérdida normal:** para que entre versiones solo cambie una cosa.
 - **Por qué la ponderada solo con la ganadora:** en R1 y R2 la ponderación movió la sensibilidad
@@ -850,14 +949,21 @@ números que salgan serán los de verdad.
    python -m src.models.historial --figuras runs/20261007-211625_cnn_v1_completo runs/20261007-213119_cnn_v1_completo_ponderada
    ```
 2. **Auditoría** (unos minutos): `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`.
-   **Hecha el 20 de octubre.**
+   **Hecha el 20 de octubre.** Hay que repetirla una vez para la figura nueva de orientación
+   (`orientacion.png`, D29), cuando no esté entrenando nada.
 3. **Plan de experimentos** (una noche): `python -m src.training.plan`. Antes,
    `python -m src.training.plan --modo rapido` para comprobar en minutos que todo funciona.
    `python -m src.training.plan --ver` dice qué falta. Si se corta, se vuelve a lanzar.
    - **Primera ronda (cnn_v2–v4) hecha el 20 de octubre** (§3.8).
    - **Segunda ronda (cnn_v5–v8, §3.9):** se lanza con el mismo comando, una sola vez, y que siga
      aunque se cierre VS Code: `nohup python -m src.training.plan > plan.log 2>&1 &`. Se salta lo
-     ya hecho.
+     ya hecho. cnn_v5–v7 hechas el 21 de octubre; cnn_v8 se cayó por la tarjeta gráfica y se
+     relanzó tras reiniciar el PC.
+   - **Tercera ronda (cnn_v10, §3.10):** el mismo comando, cuando termine cnn_v8.
+   - **Mientras entrena, no lanzar nada que use la tarjeta**, y vigilar solo con
+     `grep -a "Paso\|Fold\|época" plan.log | tail -3`.
+   - **Si se cae con «unspecified launch failure»,** la tarjeta se ha quedado colgada: hay que
+     reiniciar el PC. Si se repite, bajar `num_workers` de 4 a 2 en `src/config.py`.
 4. **Pasarle los resultados a Claude:** `python -m src.utils.para_claude` crea en la carpeta del
    repo un zip pequeño (`para_claude_<fecha>.zip`) que se envía por el chat.
    - Lleva el histórico, el resumen y las gráficas de cada ejecución, los informes de

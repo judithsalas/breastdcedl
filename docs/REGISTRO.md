@@ -11,16 +11,21 @@ Qué va en cada documento: [D14](#d14--mapa-de-la-documentación-y-trazabilidad-
 
 ## Estado actual
 
-**En una frase (2026-10-21):** la primera ronda de entrenamiento con datos reales está hecha
-(cnn_v2–v4: AUC ~0,57–0,59, gana cnn_v3) y esta noche se entrena la segunda (cnn_v5–v8), que
-intenta subirlo sin sobreajustar.
+**En una frase (2026-10-21, tarde):** la segunda ronda (cnn_v5–v7) no mejora a cnn_v3. La red
+no mira el tumor y reconoce el hospital, en parte por cómo orienta cada uno la mama. Se añade
+cnn_v10 (giros de 90°) y se pregunta al profesor por usar la caja del tumor al entrenar (D29).
 
 **Qué tenemos**
 - **Las redes:** cnn_v1, v2 y v4 descartadas; **cnn_v3 candidata** (0,576 ± 0,037, sin
-  sobreajuste). cnn_v5–v8 definidas, sin entrenar (D28). Historia completa en
+  sobreajuste). cnn_v5–v7 entrenadas, sin mejora clara (R5, provisional); cnn_v8 relanzada tras
+  un fallo de la tarjeta; cnn_v10 definida (D29). Historia completa en
   [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
 - **Lo que enseñó la primera ronda** (R4): la red apenas generaliza, en parte reconoce el hospital
   (su puntuación distingue I-SPY2 con AUC 0,66) y no repite el subtipo.
+- **Lo que enseñó la segunda** (R5):
+  - dentro de cada hospital, la red casi acierta por azar (0,51–0,58);
+  - su puntuación no tiene que ver con el tamaño del tumor;
+  - reconoce I-SPY1 por la orientación de la mama.
 - **Todo el camino, hecho en código y probado con imágenes inventadas:** revisar los datos →
   entrenar y comparar versiones → cerrar el modelo → compararlo con el médico → test una vez →
   app.
@@ -29,8 +34,13 @@ intenta subirlo sin sobreajustar.
 - Las decisiones, explicadas desde cero en [`COMO_SE_HIZO.md`](COMO_SE_HIZO.md). Desde el
   2026-10-18 las toma Claude y Judith las revisa (D15).
 
-**Siguiente paso:** en el PC de la uni, copiar los cambios del 21 de octubre, subirlos y lanzar
-el plan de noche (segunda ronda). Después, pasar a Claude el zip de `para_claude`.
+**Siguiente paso:** en el PC de la uni, cuando termine cnn_v8:
+1. copiar los cambios de D29, comprobarlos y subirlos;
+2. relanzar el plan (cnn_v10);
+3. repetir la auditoría para la figura de orientación;
+4. pasar a Claude el zip de `para_claude`.
+
+Además, Judith pregunta al profesor si se puede usar la caja del tumor solo al entrenar (duda 7).
 
 **Pasos hasta la entrega** (comandos explicados en
 [`COMO_SE_HIZO.md` §9](COMO_SE_HIZO.md#9-qué-queda-y-en-qué-orden))
@@ -38,7 +48,8 @@ el plan de noche (segunda ronda). Después, pasar a Claude el zip de `para_claud
    `python -m src.training.graficas runs/*`).
 2. Auditoría: `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`. ✅ 2026-10-20.
 3. Plan de experimentos, de noche: `python -m src.training.plan`. ✅ Primera ronda 2026-10-20;
-   segunda ronda (cnn_v5–v8) pendiente.
+   segunda ronda 2026-10-21 (cnn_v5–v7 hechas; cnn_v8 relanzada); tercera ronda (cnn_v10)
+   pendiente.
 4. Pasar a Claude los resultados: `python -m src.utils.para_claude` y enviar el zip por el chat
    (D27). Con eso escribe las lecturas y decisiones de las fichas.
 5. Cierre: `python -m src.evaluation.cerrar_modelo`, después `python -m src.evaluation.modelo_clinico`
@@ -96,6 +107,10 @@ Estado de cada punto de la rúbrica:
 - (2026-10-20) **El repositorio del proyecto es `judithsalas/breastdcedl`** (en el PC de la uni,
   `~/Escritorio/JUDITH/breastdcedl`, donde están las imágenes). `caso1_breast-cancer` deja de usarse.
   Pasar resultados a Claude sin imágenes: `python -m src.utils.para_claude` (D27).
+- (2026-10-21) **Segunda ronda entrenada** (cnn_v5–v7, R5): ninguna mejora clara. cnn_v8 se cayó
+  porque la tarjeta gráfica se quedó colgada; hubo que reiniciar el PC con el botón. **Tercera
+  ronda definida** (D29): cnn_v10 (giros de 90°), figura de orientación en la auditoría y cnn_v9
+  reservada a la espera del profesor.
 
 ---
 
@@ -180,7 +195,7 @@ actualiza en cada sesión.
 | 6 | Pérdida normal frente a ponderada | Comparadas, explicando qué le pasa a la sensibilidad | **Hecho** con cnn_v1 y con la candidata cnn_v3: el AUC no cambia (0,576 frente a 0,574) y la sensibilidad con umbral 0,5 pasa de 0,02 a 0,56 | F3–F4 |
 | 7 | Umbral y agregación justificados | Elegidos con validación y con criterio clínico explícito (qué error es más grave) | Código listo (D21): media de cortes y umbral con especificidad ≥ 0,80 | F4 |
 | 8 | Test completo, una sola vez | Matriz de confusión, AUC con IC, precision, recall y F1 de cada clase, F1 macro, comparación con «siempre no pCR» | Código listo y bloqueado a una vez (D22), con IC por bootstrap | F5 |
-| 9 | Más allá de la cifra global | Resultados por cohorte, calibración y casos fallados mirados con sus imágenes | Código listo: por cohorte, calibración y casos fallados con imágenes (D21, D22) | F4–F6 |
+| 9 | Más allá de la cifra global | Resultados por cohorte, calibración y casos fallados mirados con sus imágenes | Código listo: por cohorte, calibración y casos fallados con imágenes (D21, D22). Sesgo por hospital medido en cada validación cruzada y explicado en parte por la orientación de la mama (R5, D29) | F4–F6 |
 | 10 | Comparación y honestidad | Bibliografía, limitaciones y una app que reproduce exactamente el pipeline | Bibliografía recogida; app hecha con el mismo código que el pipeline (D23); comparación con un médico sin imagen y con CNN + médico, en train y en la evaluación única de test (D25, R3) | F4–F7 |
 
 ---
@@ -612,6 +627,47 @@ Judith pidió subir el AUC hacia 0,70 sin sobreentrenar. Con los resultados de l
 - Por qué cada cosa, desde cero: `COMO_SE_HIZO.md` §3.8 y §3.9; hipótesis y «qué esperamos ver» de
   cada versión en sus fichas (escritas antes de entrenar).
 
+### D29 · Tercera ronda: quitar la pista de la orientación (cnn_v10) y preguntar por la caja del tumor (2026-10-21)
+cnn_v5–v7 no mejoran a cnn_v3 (R5). Al buscar por qué, con las predicciones fuera de fold de cnn_v3
+y los metadatos (R5), el freno principal es que **la red no mira el tumor**:
+- dentro de cada hospital acierta casi por azar;
+- su puntuación no tiene que ver con el tamaño del tumor;
+- y el tumor ocupa un 3–8 % de la imagen.
+
+Además reconoce el hospital, y el mosaico de 10 pacientes por cohorte enseña una de las pistas:
+**cada hospital orienta la mama a su manera** (I-SPY1 hacia abajo; I-SPY2 y Duke, a los lados).
+
+Se decide:
+- **cnn_v10 = cnn_v3 + giros de 90° al azar al entrenar** (`geometrico+giros90` en
+  `src/data/aumento.py`). Con el volteo horizontal, las 8 orientaciones salen con la misma
+  probabilidad y la orientación deja de servir de pista. Una idea, sobre la candidata. No cambia la
+  red ni la app. Paso 8 del plan; la ponderada pasa a ser el paso 9.
+- **La auditoría dibuja la orientación** (`orientacion.png`, `figura_orientacion`): es evidencia del
+  sesgo entre hospitales para el informe (rúbrica, punto 9). Con semilla 0 salen las mismas 30
+  pacientes que en el mosaico que se miró.
+- **Deja de valer «no voltear en vertical»** (D18) para cnn_v10: la pared torácica no está siempre
+  en el mismo lado. cnn_v3 no cambia (su huella es la misma).
+- **cnn_v9 queda reservada** para la atención guiada por la caja del tumor:
+  - al entrenar, una pérdida extra que castiga la atención fuera de la caja (`sraw`, `eraw`, `scol`,
+    `ecol`);
+  - al predecir no hace falta la caja.
+
+  Es la única idea que ataca el freno principal, pero la caja sale de `patients.csv`, que no entra en
+  la CNN (correo del profesor). Judith se lo pregunta antes (duda 7). Si dice que sí, antes de
+  entrenar hay que comprobar sobre unos PNG que la caja cae en el tumor: las coordenadas están en el
+  tamaño original de cada resonancia (`n_xy` de 128 a 512), no en 256.
+- **Lo que no se hace:**
+  - **Quitar el fondo o recortar a la mama:** el fondo vale 0 y no estorba; recortar cambia la escala
+    de cada imagen.
+  - **Ajustar brillo o contraste:** el brillo de cada hospital ya se probó en cnn_v5; el contraste
+    por imagen rompe la comparación entre fases.
+  - **Cambiar el criterio de comparación (D16)** después de ver resultados: si cnn_v10 empata con
+    cnn_v3, sigue ganando cnn_v3.
+- **Tests:** las huellas de cnn_v5–v8 quedan fijadas (ya se entrenaron con esas definiciones), y hay
+  tests nuevos para los giros y para la figura.
+- Por qué cada cosa, desde cero: `COMO_SE_HIZO.md` §3.10; hipótesis y «qué esperamos ver» en la ficha
+  de cnn_v10.
+
 ---
 
 ## Resultados
@@ -684,6 +740,47 @@ fold y curvas en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
 - Las cifras por fold son la mejor época de cada fold sobre su validación, algo optimistas.
   Época a época, la validación ronda 0,53–0,58. Ver `COMO_SE_HIZO.md` §3.8.
 - Calculado con el zip `para_claude_20261021-1210` (D27).
+
+### R5 · Segunda ronda: cnn_v5, v6 y v7, y por qué no mejoran (2026-10-21, provisional)
+Cifras copiadas de `plan.log` en el PC de la uni. Se completan (diferencia train − val, fuera de
+fold, por cohorte y por subtipo, curvas) cuando llegue el zip de `para_claude`.
+
+| Versión | AUC val (5 folds) | ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 |
+|---|---|---|
+| cnn_v3 (referencia, R4) | 0,576 ± 0,037 | 0,42 · 0,28 · 0,66 |
+| cnn_v5 | 0,574 ± 0,035 | 0,41 · 0,41 · 0,61 |
+| cnn_v6 | 0,591 ± 0,041 | 0,45 · 0,32 · 0,61 |
+| cnn_v7 | 0,588 ± 0,042 | 0,42 · 0,40 · 0,61 |
+
+- **Ninguna mejora clara:** todas a menos de una desviación de cnn_v3.
+- **cnn_v8 se cayó** con `CUDA error: unspecified launch failure`: la tarjeta se quedó colgada.
+  - Quedaron procesos en estado D que no se podían matar, y `rocm-smi` no leía la tarjeta.
+  - Se arregló reiniciando el PC con el botón: la cuenta `aulas` no puede reiniciar con `sudo`.
+  - No es del código: v5–v7 usan las mismas piezas.
+  - Causas probables: la RX 6700 XT no tiene soporte oficial en ROCm (va con
+    `HSA_OVERRIDE_GFX_VERSION`), el PC estaba sin memoria y llevaba 14 días sin reiniciar.
+- **Análisis de por qué no mejoran**, con las predicciones fuera de fold de cnn_v3 (R4) y los
+  metadatos (solo train):
+  - **AUC dentro de cada hospital:** Duke 0,505, I-SPY1 0,527, I-SPY2 0,579. La media ponderada
+    (0,560) queda 0,014 por debajo del global (0,574): reconocer el hospital aporta poco al AUC.
+  - **¿Delata el hospital por algo más que la pCR?** Se simuló una puntuación con el mismo AUC que
+    solo dependiera de la pCR: daría 0,49 ± 0,02 (Duke), 0,50 ± 0,03 (I-SPY1) y 0,51 ± 0,02
+    (I-SPY2). cnn_v3 da 0,42, 0,28 y 0,66, así que sí reconoce el hospital, sobre todo I-SPY1.
+  - **Tamaño del tumor:**
+    - la puntuación casi no tiene relación con el tamaño de la caja del tumor (Spearman −0,03 con el
+      área en mm²);
+    - en cambio, el tamaño solo da AUC 0,51 en Duke, 0,56 en I-SPY1 y 0,59 en I-SPY2;
+    - la caja ocupa de mediana un 3,3 % de la imagen en Duke, 7,2 % en I-SPY1 y 7,9 % en I-SPY2.
+  - **Épocas:** la mejor época de cnn_v3 por fold fue la 1, 6, 5, 16 y 6. El AUC de entrenamiento
+    llega a 0,71–0,87; el de validación en la última época queda en 0,46–0,61.
+  - **Orientación** (mosaico de 10 pacientes por cohorte, D29): en I-SPY1 la mama apunta hacia abajo
+    en las 10; en I-SPY2 y Duke, a la izquierda o a la derecha. En Duke y alguna de I-SPY2 se ven el
+    corazón y los pulmones.
+- **Lectura:**
+  - El freno principal es que la red no encuentra el tumor.
+  - Reconocer el hospital es un síntoma, y en parte se explica por la orientación.
+  - Normalizar la intensidad (cnn_v5) no podía quitar eso.
+- **Siguientes pasos:** cnn_v10, y cnn_v9 si el profesor deja usar la caja (D29).
 
 ### R1, R2 · cnn_v1 con pérdida normal y ponderada (2026-10-07)
 Movidos el 2026-10-15 a la ficha de cnn_v1 en [`ARQUITECTURAS.md`](ARQUITECTURAS.md#cnn_v1),
@@ -770,3 +867,7 @@ Treatment Response Prediction", <https://arxiv.org/abs/2506.12190>.
    es 99/42/35. No cambia nada práctico: 0,72 es la referencia en una población equivalente. El
    correo dice "mismo test que el vuestro, 177 pacientes"; si sale en la defensa, conviene
    mencionar la discrepancia.
+7. **¿Se puede usar la caja del tumor (`sraw`, `eraw`, `scol`, `ecol`) solo al entrenar?**
+   (2026-10-21, D29). El correo dice que las variables de `patients.csv` no entran en la CNN. La
+   caja no entraría al predecir: solo guiaría la atención durante el entrenamiento (cnn_v9). Judith
+   se lo pregunta al profesor. Mientras no conteste, cnn_v9 no se define.

@@ -22,6 +22,8 @@ Qué comprueba y por qué:
    clases, hay señal en la imagen; su AUC es otra referencia para la CNN.
 7. Ejemplos: un corte de una paciente con pCR y otra sin pCR de cada cohorte, con las tres fases
    y el mapa de realce (la guía pide mirarlas antes de programar).
+8. Orientación: el corte central de 10 pacientes al azar por cohorte. Cada hospital orienta la
+   mama a su manera, y eso es una pista del hospital que la red puede usar (D29).
 
 Solo se usan etiquetas de TRAIN para cualquier cosa que mezcle imagen y clase. De test solo se
 cuentan pacientes y cortes (describir su composición no es ajustar nada).
@@ -285,6 +287,42 @@ def figura_ejemplos(samples_tr: pd.DataFrame, pac: pd.DataFrame, ruta: Path, sem
     return ruta
 
 
+def figura_orientacion(samples_tr: pd.DataFrame, pac: pd.DataFrame, ruta: Path, por_cohorte: int = 10,
+                       semilla: int = 0, raiz: Path = RAIZ_DATOS) -> Path | None:
+    """EARLY del corte central de `por_cohorte` pacientes al azar de cada cohorte, en una fila por cohorte.
+
+    Sirve para ver cómo orienta la mama cada hospital. En la revisión del 2026-10-21 (D29), en
+    I-SPY1 apunta hacia abajo y en I-SPY2 y Duke a la izquierda o a la derecha: la orientación
+    delata el hospital y no dice nada del tumor. Con semilla 0 salen las mismas pacientes que
+    en el mosaico de esa revisión.
+    """
+    cortes = samples_tr[samples_tr.patient_id.isin(pac.index)]
+    cortes = cortes.assign(cohorte=cortes.patient_id.map(pac.dataset))
+    cohortes = [c for c in ("spy1", "spy2", "duke") if c in set(cortes.cohorte)]
+    if not cohortes:
+        return None
+    rng = np.random.default_rng(semilla)
+    fig, ejes = plt.subplots(len(cohortes), por_cohorte, figsize=(2 * por_cohorte, 2.2 * len(cohortes)),
+                             squeeze=False)
+    for fila_ejes, cohorte in zip(ejes, cohortes):
+        pacientes = cortes[cortes.cohorte == cohorte].patient_id.unique()
+        elegidas = rng.choice(pacientes, min(por_cohorte, len(pacientes)), replace=False)
+        for ax, pid in zip(fila_ejes, elegidas):
+            suyos = cortes[cortes.patient_id == pid].sort_values("slice_index")
+            ax.imshow(uc.cargar_imagen(suyos.iloc[len(suyos) // 2], raiz)[1], cmap="gray", vmin=0, vmax=1)
+            ax.set_title(pid[-10:], fontsize=7, color=TINTA_SUAVE)
+        for ax in fila_ejes:
+            ax.set_xticks([])
+            ax.set_yticks([])
+        fila_ejes[0].set_ylabel(NOMBRE_COHORTE[cohorte], fontsize=11, color=TINTA)
+    fig.suptitle(f"Orientación por cohorte: EARLY del corte central de {por_cohorte} pacientes al azar",
+                 fontsize=11, color=TINTA, x=0.01, ha="left")
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=100, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return ruta
+
+
 # --------------------------------------------------------------------------- #
 # Informe
 # --------------------------------------------------------------------------- #
@@ -366,7 +404,12 @@ def informe(datos: dict) -> str:
             celdas = [("—" if v.get(c) is None else coma(v[c], 3)) for c in ["todas", *img["por_cohorte"]]]
             lineas.append(f"| {nombre} | " + " | ".join(celdas) + " |")
         lineas += ["", "![Intensidades por cohorte](intensidades.png)", "",
-                   "![Ejemplos por cohorte y clase](ejemplos.png)"]
+                   "![Ejemplos por cohorte y clase](ejemplos.png)", "",
+                   "**Orientación por cohorte.** Cada hospital orienta la mama a su manera. En la revisión del",
+                   "2026-10-21, en I-SPY1 apunta hacia abajo en las 10 pacientes; en I-SPY2 y Duke, a la izquierda",
+                   "o a la derecha, y en Duke y algunas de I-SPY2 se ven el corazón y los pulmones (otro plano de",
+                   "corte). La orientación no dice nada del tumor, pero sí del hospital (D29).", "",
+                   "![Orientación por cohorte](orientacion.png)"]
     lineas += ["", "## Cómo leer esto", "",
                "- Si las cohortes difieren mucho en intensidad o realce, la red puede aprender a reconocer el",
                "  hospital. Por eso se miran los resultados por cohorte (rúbrica, punto 9) y se compara con la",
@@ -407,6 +450,7 @@ def main() -> None:
             datos["imagenes"], pac = resumen_imagenes(cortes, tr)
             figura_intensidades(pac, CARPETA / "intensidades.png")
             figura_ejemplos(samples_tr, pac, CARPETA / "ejemplos.png")
+            figura_orientacion(samples_tr, pac, CARPETA / "orientacion.png")
 
     (CARPETA / "auditoria.json").write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
     SALIDA_MD.write_text(informe(datos), encoding="utf-8")

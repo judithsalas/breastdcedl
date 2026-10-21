@@ -59,6 +59,7 @@ def test_receta_y_arquitectura():
     assert receta("cnn_v1") == {"aumento": None, "optimizador": "adam", "weight_decay": 0.0}
     assert receta("cnn_v3") == {"aumento": "geometrico", "optimizador": "adam", "weight_decay": 0.0}
     assert receta("cnn_v7") == {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05}
+    assert receta("cnn_v10") == {"aumento": "geometrico+giros90", "optimizador": "adam", "weight_decay": 0.0}
     assert "entrenamiento" not in arquitectura("cnn_v3")            # la red no recibe la receta
 
 
@@ -70,6 +71,11 @@ def test_huellas_de_las_versiones_ya_entrenadas_no_cambian():
     assert huella("cnn_v2") == "cc7de9db"
     assert huella("cnn_v3") == "4bb03d5d"
     assert huella("cnn_v4") == "e7188804"
+    # Segunda ronda (plan del 2026-10-21)
+    assert huella("cnn_v5") == "7d6803db"
+    assert huella("cnn_v6") == "5f5b8fc2"
+    assert huella("cnn_v7") == "07d7985c"
+    assert huella("cnn_v8") == "6e0fa692"
 
 
 # --------------------------------------------------------------------------- #

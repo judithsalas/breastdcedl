@@ -44,6 +44,25 @@ def test_medir_cortes_con_png_sinteticos(tmp_path):
     assert cortes.loc[cortes.pCR == 1, "realce"].mean() > cortes.loc[cortes.pCR == 0, "realce"].mean()
 
 
+def test_figura_orientacion_con_png_sinteticos(tmp_path):
+    filas, cohortes = [], {}
+    for p, cohorte in enumerate(("spy1", "spy1", "spy2", "spy2", "duke", "duke")):
+        for z in (10, 11, 12):
+            base = f"dataset/train/P{p}/P{p}_z{z:03d}"
+            for fase in ("PRE", "EARLY", "LATE"):
+                ruta = tmp_path / f"{base}_{fase}.png"
+                ruta.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(np.full((256, 256), 60 * (p % 3) + 30, np.uint8), mode="L").save(ruta)
+            filas.append({"sample_id": f"P{p}_z{z:03d}", "patient_id": f"P{p}", "slice_index": z, "pCR": p % 2,
+                          "path_pre": f"{base}_PRE.png", "path_early": f"{base}_EARLY.png",
+                          "path_late": f"{base}_LATE.png"})
+        cohortes[f"P{p}"] = cohorte
+    pac = pd.DataFrame({"dataset": cohortes})
+    ruta = auditoria.figura_orientacion(pd.DataFrame(filas), pac, tmp_path / "orientacion.png", por_cohorte=2,
+                                        raiz=tmp_path)
+    assert ruta.exists() and ruta.stat().st_size > 0
+
+
 def test_informe_sin_imagenes(metadatos):
     datos = {"fecha": "hoy", "recuentos": auditoria.recuentos(*metadatos), "problemas": [], "muestra": False,
              "referencias_sin_imagen": auditoria.referencias_sin_imagen(*metadatos)}

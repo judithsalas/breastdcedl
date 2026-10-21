@@ -170,6 +170,28 @@ VERSIONES: dict[str, dict] = {
         "normalizacion": "pre",
         "entrenamiento": {"aumento": "geometrico", "optimizador": "adamw", "weight_decay": 0.05},
     },
+    # ====================================================================== #
+    # Tercera ronda (2026-10-21, Claude, D29). v5–v7 no mejoran a cnn_v3: la red no
+    # mira el tumor (dentro de cada hospital, AUC 0,51–0,58) y reconoce el hospital.
+    # cnn_v9 queda reservada para la atención guiada por la caja del tumor, que
+    # depende de que el profesor permita usar sraw/eraw/scol/ecol al entrenar.
+    # ====================================================================== #
+    # cnn_v10 · quitar la pista de la orientación
+    # ÚNICO cambio respecto a cnn_v3: el aumento añade giros de 0°, 90°, 180° o 270°
+    # al azar. Cada hospital orienta la mama a su manera (en I-SPY1 apunta hacia
+    # abajo; en I-SPY2 y Duke, a los lados) y la puntuación de cnn_v3 reconoce I-SPY1
+    # con AUC 0,28 (0,5 = no lo reconoce). La red es idéntica a cnn_v3.
+    "cnn_v10": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico+giros90"},
+    },
 }
 
 # Valores que se usan cuando una versión no los declara (las antiguas no los tienen y
@@ -195,6 +217,7 @@ ORIGEN: dict[str, str | None] = {
     "cnn_v6": "cnn_v3",
     "cnn_v7": "cnn_v3",
     "cnn_v8": "cnn_v3",
+    "cnn_v10": "cnn_v3",
 }
 
 # En qué punto está cada versión. Se justifica en su ficha.
@@ -208,4 +231,5 @@ ESTADO: dict[str, str] = {
     "cnn_v6": "por entrenar",
     "cnn_v7": "por entrenar",
     "cnn_v8": "por entrenar",
+    "cnn_v10": "por entrenar",
 }
