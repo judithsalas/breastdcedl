@@ -1,6 +1,6 @@
 # Auditoría de los datos
 
-Generado automáticamente por `python -m src.data.auditoria` el 2026-10-20 14:17. No se edita a mano:
+Generado automáticamente por `python -m src.data.auditoria` el 2026-10-21 21:37. No se edita a mano:
 se vuelve a generar. La explicación de por qué se mira cada cosa está en el código y en
 [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).
 
@@ -84,6 +84,13 @@ indicadores sin entrenar nada (0,5 = ninguna señal; por debajo de 0,5, la relac
 ![Intensidades por cohorte](intensidades.png)
 
 ![Ejemplos por cohorte y clase](ejemplos.png)
+
+**Orientación por cohorte.** Cada hospital orienta la mama a su manera. En la revisión del
+2026-10-21, en I-SPY1 apunta hacia abajo en las 10 pacientes; en I-SPY2 y Duke, a la izquierda
+o a la derecha, y en Duke y algunas de I-SPY2 se ven el corazón y los pulmones (otro plano de
+corte). La orientación no dice nada del tumor, pero sí del hospital (D29).
+
+![Orientación por cohorte](orientacion.png)
 
 ## Cómo leer esto
 
