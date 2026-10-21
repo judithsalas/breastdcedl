@@ -81,7 +81,7 @@ En 5 folds se da media ± desviación. ⚠ = la versión cambió después de esa
 | [cnn_v6](#cnn_v6) | cnn_v3 | resumen: global → atencion | 101.970 | descartada | — | — | 0,591 ± 0,041 | — | 0,065 |
 | [cnn_v7](#cnn_v7) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05 | 97.809 | descartada | — | — | 0,588 ± 0,042 | — | 0,103 |
 | [cnn_v8](#cnn_v8) | cnn_v3 | dropout: 0.0 → 0.3; entrenamiento.optimizador: adam → adamw; entrenamiento.weight_decay: 0.0 → 0.05; normalizacion: None → pre; resumen: global → atencion | 101.970 | descartada | 0,558 | — | 0,593 ± 0,025 | — | 0,169 |
-| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | en prueba | — | — | 0,581 ± 0,045 | — | 0,047 |
+| [cnn_v10](#cnn_v10) | cnn_v3 | entrenamiento.aumento: geometrico → geometrico+giros90 | 97.809 | descartada | — | — | 0,581 ± 0,045 | — | 0,047 |
 
 **Según el criterio de comparación:** la mejor es **cnn_v3**: empata con cnn_v2 (0,593 ± 0,032); cnn_v2 sobreajusta (diferencia 0,162 > 0,15) y cnn_v3 no (0,080). Empatadas: cnn_v2, cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v8, cnn_v10.
 <!-- auto:resumen:fin -->
@@ -104,7 +104,7 @@ cnn_v1 · descartada
         ├── cnn_v6 · descartada
         ├── cnn_v7 · descartada
         ├── cnn_v8 · descartada
-        └── cnn_v10 · en prueba
+        └── cnn_v10 · descartada
 ```
 <!-- auto:genealogia:fin -->
 
@@ -808,7 +808,7 @@ Frente a lo que esperábamos:
 ## cnn_v10
 
 **Quitar la pista de la orientación.** Origen: **cnn_v3** · Definida el 2026-10-21 · Decidida por
-Claude (D15, D29) · Estado: **en prueba** (entrenando desde el 2026-10-21).
+Claude (D15, D29) · Estado: **descartada** (2026-10-21).
 
 cnn_v9 queda reservada para la atención guiada por la caja del tumor: solo se definirá si el
 profesor permite usar las coordenadas del tumor al entrenar (D29).
@@ -863,20 +863,54 @@ apoyarse en lo que sí cambia entre pacientes.
 
 ### Ejecuciones
 
-En curso: paso 8 del plan, `20261021-203548_cv_cnn_v10_completo` (empezó el 2026-10-21 a las
-20:35). Los resultados se escriben cuando termine los 5 folds.
+| Ejecución | Pérdida | Tiempo |
+|---|---|---|
+| `20261021-203548_cv_cnn_v10_completo` | normal | 49 min (30 s/época) |
+
+![Curvas de los 5 folds](figuras/ejecuciones/20261021-203548_cv_cnn_v10_completo/curvas_folds.png)
+
+![Fold 0 frente a cnn_v3](figuras/ejecuciones/20261021-203548_cv_cnn_v10_completo/comparacion_fold0_con_cnn_v3.png)
 
 ### Resultados
 
-Pendientes.
+| Fold | Época elegida | AUC val | AUC train | Diferencia |
+|---|---|---|---|---|
+| 0 | 10 | 0,587 | 0,631 | 0,04 |
+| 1 | 4 | 0,545 | 0,597 | 0,05 |
+| 2 | 15 | 0,632 | 0,633 | 0,00 |
+| 3 | 14 | 0,526 | 0,663 | 0,14 |
+| 4 | 6 | 0,616 | 0,618 | 0,00 |
+| **Media** | 9,8 | **0,581 ± 0,045** | 0,628 | **0,047** |
+
+- **Fuera de fold:** AUC 0,552. Por cohorte: Duke 0,570, I-SPY1 0,641, I-SPY2 0,528.
+- **¿Delata el hospital?** Duke 0,43 · I-SPY1 **0,42** · I-SPY2 0,59 (cnn_v3: 0,42 · **0,28** · 0,66).
+- **Por subtipo:** HER2+ 0,61, triple negativo 0,54, HR+/HER2− 0,50. No repite el subtipo (0,48 y
+  0,47).
+- **Frente a cnn_v3 en las mismas pacientes:** −0,022 (IC 95 % de −0,066 a +0,020). Coinciden poco al
+  ordenar a las pacientes (Spearman 0,38).
 
 ### Lectura
 
-Pendiente.
+Frente a lo que esperábamos:
+- **Reconoce mucho menos I-SPY1** (0,28 → 0,42, cerca de 0,5): se cumple. La orientación era una de
+  las pistas del hospital, y los giros se la quitan. Lo que queda (I-SPY2 0,59) viene de otras
+  diferencias, como el plano de corte o el tamaño de los tumores.
+- **El AUC dentro de Duke e I-SPY1 sube** (0,51 → 0,57 y 0,53 → 0,64): se cumple. Con 104 pacientes,
+  lo de I-SPY1 tiene mucho margen de error (unas ±0,11).
+- **El AUC medio, igual** (0,581 frente a 0,576), pero **dentro de I-SPY2 baja** (0,58 → 0,53), y como
+  I-SPY2 es el 71 % de las pacientes, el AUC fuera de fold baja (0,574 → 0,552). Es el caso que
+  preveíamos: parte del AUC de cnn_v3 venía de reconocer el hospital.
+- **Es la versión que menos memoriza** (diferencia 0,047, frente a 0,080 de cnn_v3): con las 8
+  orientaciones le cuesta más aprenderse las imágenes. En las curvas, el AUC de entrenamiento se queda
+  en 0,60–0,70 y no se dispara como en cnn_v8.
+- **No encuentra más tumor:** su puntuación sigue sin relación con el tamaño (Spearman −0,05). Quitar
+  un atajo no le enseña dónde mirar.
 
 ### Decisión
 
-Pendiente.
+**Descartada** (2026-10-21) por el criterio fijado antes de entrenar: empata con cnn_v3, tiene los
+mismos parámetros y gana la más antigua. Va al informe como prueba del sesgo entre hospitales y de
+cómo se corrige en parte (rúbrica, punto 9).
 
 ---
 

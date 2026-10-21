@@ -540,6 +540,13 @@ Nuestro aumento ya volteaba izquierda-derecha, así que «izquierda o derecha» 
 - **Si empata con cnn_v3, por el criterio gana cnn_v3** (mismos parámetros, más antigua). El criterio
   está fijado desde el 18 de octubre y no se cambia después de ver resultados. Que deje de reconocer
   el hospital se contará en el informe igualmente.
+- **Resultado** (21 de octubre, ficha de cnn_v10):
+  - AUC 0,581 ± 0,045, empatada con cnn_v3; la diferencia train − val es la más baja de todas (0,047).
+  - **Reconoce mucho menos I-SPY1** (0,28 → 0,42) y mejora dentro de Duke (0,57) y de I-SPY1 (0,64).
+  - Pero baja dentro de I-SPY2 (0,58 → 0,53), y el AUC fuera de fold cae a 0,552.
+  - Conclusión: la orientación era una pista del hospital, y parte del AUC de cnn_v3 salía de ahí.
+    Quitarla hace la red más honesta, pero no le enseña dónde está el tumor.
+  - Por el criterio, **sigue ganando cnn_v3**.
 
 **cnn_v9 (reservada) · atención guiada por la caja del tumor.** Es la idea que ataca el problema 4:
 - **Al entrenar:** una pérdida extra castiga que la atención (la de cnn_v6) se vaya fuera de la caja
@@ -1042,8 +1049,7 @@ números que salgan serán los de verdad.
    python -m src.models.historial --figuras runs/20261007-211625_cnn_v1_completo runs/20261007-213119_cnn_v1_completo_ponderada
    ```
 2. **Auditoría** (unos minutos): `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`.
-   **Hecha el 20 de octubre.** Hay que repetirla una vez para la figura nueva de orientación
-   (`orientacion.png`, D29), cuando no esté entrenando nada.
+   **Hecha el 20 de octubre y repetida el 21** para la figura de orientación (`orientacion.png`, D29).
 3. **Plan de experimentos** (una noche): `python -m src.training.plan`. Antes,
    `python -m src.training.plan --modo rapido` para comprobar en minutos que todo funciona.
    `python -m src.training.plan --ver` dice qué falta. Si se corta, se vuelve a lanzar.
@@ -1052,7 +1058,7 @@ números que salgan serán los de verdad.
      aunque se cierre VS Code: `nohup python -m src.training.plan > plan.log 2>&1 &`. Se salta lo
      ya hecho. **Hecha el 21 de octubre** (cnn_v8, la segunda vez, tras reiniciar el PC porque la
      tarjeta se quedó colgada).
-   - **Tercera ronda (cnn_v10, §3.10):** en curso desde el 21 de octubre a las 20:35 (paso 8).
+   - **Tercera ronda (cnn_v10, §3.10):** hecha el 21 de octubre. **Gana cnn_v3**; el plan está terminado.
    - **Para mirar pronto si va bien** (§4.8), en cuanto haya unas épocas del fold 0:
      `python -m src.training.comparar cnn_v3 cnn_v10`.
    - **Probar algo en un solo fold o con otros valores** (§4.9): editar la sección `experimento` de

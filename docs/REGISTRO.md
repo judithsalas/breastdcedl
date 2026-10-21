@@ -11,14 +11,14 @@ Qué va en cada documento: [D14](#d14--mapa-de-la-documentación-y-trazabilidad-
 
 ## Estado actual
 
-**En una frase (2026-10-21, noche):** la segunda ronda (cnn_v5–v8) no mejora a cnn_v3, que sigue
-siendo la candidata. La red no mira el tumor y reconoce el hospital, en parte por cómo orienta cada
-uno la mama. cnn_v10 (giros de 90°) se está entrenando, y se pregunta al profesor por usar la caja del
-tumor al entrenar (D29).
+**En una frase (2026-10-21, noche):** el plan de experimentos está terminado y **cnn_v3 es la
+ganadora** (0,576 ± 0,037). Ninguna de cnn_v4 a cnn_v10 la mejora. La red no mira el tumor, y cnn_v10
+demostró que en parte reconocía el hospital por la orientación de la mama. Siguiente: cerrar el modelo
+con cnn_v3, sin esperar a la respuesta del profesor sobre la caja del tumor (D29).
 
 **Qué tenemos**
-- **Las redes:** cnn_v1, v2, v4, v5, v6, v7 y v8 descartadas; **cnn_v3 candidata** (0,576 ± 0,037,
-  sin sobreajuste); cnn_v10 en prueba (D29). Historia completa en
+- **Las redes:** de cnn_v1 a cnn_v10, todas descartadas menos **cnn_v3, candidata** (0,576 ± 0,037,
+  sin sobreajuste). cnn_v9 está reservada a la espera del profesor (D29). Historia completa en
   [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
 - **Lo que enseñó la primera ronda** (R4): la red apenas generaliza, en parte reconoce el hospital
   (su puntuación distingue I-SPY2 con AUC 0,66) y no repite el subtipo.
@@ -34,10 +34,10 @@ tumor al entrenar (D29).
 - Las decisiones, explicadas desde cero en [`COMO_SE_HIZO.md`](COMO_SE_HIZO.md). Desde el
   2026-10-18 las toma Claude y Judith las revisa (D15).
 
-**Siguiente paso:** en el PC de la uni, cuando termine cnn_v10 (paso 8 del plan):
-1. copiar los cambios de R5 y D32, comprobarlos y subirlos;
-2. repetir la auditoría para la figura de orientación;
-3. pasar a Claude el zip de `para_claude`. Con cnn_v10 se decide si se cierra el modelo con cnn_v3.
+**Siguiente paso:** en el PC de la uni, cerrar el modelo con cnn_v3
+(`python -m src.evaluation.cerrar_modelo`), compararlo con el médico
+(`python -m src.evaluation.modelo_clinico`) y preparar los ejemplos de la app. Si el profesor permite
+la caja del tumor y cnn_v9 gana, se vuelve a cerrar; el test sigue sin tocarse.
 
 Además, Judith pregunta al profesor si se puede usar la caja del tumor solo al entrenar (duda 7).
 
@@ -47,7 +47,7 @@ Además, Judith pregunta al profesor si se puede usar la caja del tumor solo al 
    `python -m src.training.graficas runs/*`).
 2. Auditoría: `python -m src.data.auditoria` → `docs/resultados/1_auditoria/`. ✅ 2026-10-20.
 3. Plan de experimentos, de noche: `python -m src.training.plan`. ✅ Primera ronda 2026-10-20;
-   segunda ronda 2026-10-21 (cnn_v5–v8, R5); tercera ronda (cnn_v10) en curso.
+   segunda ronda 2026-10-21 (cnn_v5–v8, R5); tercera ronda 2026-10-21 (cnn_v10, R6). Gana cnn_v3.
 4. Pasar a Claude los resultados: `python -m src.utils.para_claude` y enviar el zip por el chat
    (D27). Con eso escribe las lecturas y decisiones de las fichas.
 5. Cierre: `python -m src.evaluation.cerrar_modelo`, después `python -m src.evaluation.modelo_clinico`
@@ -110,6 +110,8 @@ Estado de cada punto de la rúbrica:
   ronda definida** (D29): cnn_v10 (giros de 90°), figura de orientación en la auditoría y cnn_v9
   reservada a la espera del profesor. **Comparar el fold 0 con la referencia** mientras entrena
   (D30). **Parámetros en `config.json`** y pruebas de un fold con `src.training.experimento` (D31).
+- (2026-10-21) **cnn_v10 entrenada** (R6): delata menos el hospital, pero empata. **Plan terminado: gana
+  cnn_v3.**
 
 ---
 
@@ -194,7 +196,7 @@ actualiza en cada sesión.
 | 6 | Pérdida normal frente a ponderada | Comparadas, explicando qué le pasa a la sensibilidad | **Hecho** con cnn_v1 y con la candidata cnn_v3: el AUC no cambia (0,576 frente a 0,574) y la sensibilidad con umbral 0,5 pasa de 0,02 a 0,56 | F3–F4 |
 | 7 | Umbral y agregación justificados | Elegidos con validación y con criterio clínico explícito (qué error es más grave) | Código listo (D21): media de cortes y umbral con especificidad ≥ 0,80 | F4 |
 | 8 | Test completo, una sola vez | Matriz de confusión, AUC con IC, precision, recall y F1 de cada clase, F1 macro, comparación con «siempre no pCR» | Código listo y bloqueado a una vez (D22), con IC por bootstrap | F5 |
-| 9 | Más allá de la cifra global | Resultados por cohorte, calibración y casos fallados mirados con sus imágenes | Código listo: por cohorte, calibración y casos fallados con imágenes (D21, D22). Sesgo por hospital medido en cada validación cruzada y explicado en parte por la orientación de la mama (R5, D29) | F4–F6 |
+| 9 | Más allá de la cifra global | Resultados por cohorte, calibración y casos fallados mirados con sus imágenes | Código listo: por cohorte, calibración y casos fallados con imágenes (D21, D22). Sesgo por hospital medido en cada validación cruzada; parte se explica por la orientación de la mama, y cnn_v10 lo corrige en parte (R5, R6, D29) | F4–F6 |
 | 10 | Comparación y honestidad | Bibliografía, limitaciones y una app que reproduce exactamente el pipeline | Bibliografía recogida; app hecha con el mismo código que el pipeline (D23); comparación con un médico sin imagen y con CNN + médico, en train y en la evaluación única de test (D25, R3) | F4–F7 |
 
 ---
@@ -847,6 +849,27 @@ decisión en las fichas de [`ARQUITECTURAS.md`](ARQUITECTURAS.md).
   - Reconocer el hospital es un síntoma, y en parte se explica por la orientación.
   - Normalizar la intensidad (cnn_v5) no podía quitar eso.
 - **Siguientes pasos:** cnn_v10, y cnn_v9 si el profesor deja usar la caja (D29).
+
+### R6 · Tercera ronda: cnn_v10, giros de 90° (2026-10-21)
+Calculado con el zip `para_claude_20261021-2138` (D27). Detalle en la ficha de cnn_v10.
+
+| | cnn_v3 | cnn_v10 |
+|---|---|---|
+| AUC val (5 folds) | 0,576 ± 0,037 | 0,581 ± 0,045 |
+| Diferencia train − val | 0,080 | **0,047** |
+| Fuera de fold | 0,574 | 0,552 |
+| Dentro de Duke · I-SPY1 · I-SPY2 | 0,51 · 0,53 · 0,58 | 0,57 · 0,64 · 0,53 |
+| ¿Delata el hospital? Duke · I-SPY1 · I-SPY2 | 0,42 · **0,28** · 0,66 | 0,43 · **0,42** · 0,59 |
+
+- **Frente a cnn_v3 en las mismas pacientes:** −0,022 (IC 95 % de −0,066 a +0,020).
+- **La orientación era una pista del hospital:** con los giros, I-SPY1 pasa de 0,28 a 0,42. Además, es la
+  versión que menos memoriza.
+- **Pero no sube el AUC:** mejora dentro de Duke e I-SPY1 y baja dentro de I-SPY2 (el 71 % de las
+  pacientes). Parte del AUC de cnn_v3 venía de reconocer el hospital.
+- **Decisión:** descartada por el criterio (empata con los mismos parámetros; gana la más antigua).
+  **Gana cnn_v3** y el plan está terminado.
+- **Figura de orientación** de la auditoría regenerada en `docs/resultados/1_auditoria/orientacion.png`:
+  confirma el mosaico (I-SPY1 hacia abajo; I-SPY2 y Duke a los lados).
 
 ### R1, R2 · cnn_v1 con pérdida normal y ponderada (2026-10-07)
 Movidos el 2026-10-15 a la ficha de cnn_v1 en [`ARQUITECTURAS.md`](ARQUITECTURAS.md#cnn_v1),
