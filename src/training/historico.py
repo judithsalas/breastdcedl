@@ -160,7 +160,8 @@ def actualizar(raiz: Path = CARPETA_RUNS) -> Path:
     for columna in ("parametros", "epocas_entrenadas", "batch", "semilla"):   # enteros, aunque haya vacíos
         tabla[columna] = pd.to_numeric(tabla[columna], errors="coerce").round().astype("Int64")
     raiz.mkdir(parents=True, exist_ok=True)
-    tabla.sort_values("ejecucion").to_csv(ruta, index=False, float_format="%.4g")
+    # 6 cifras: con 4, un AUC de 0,57449 se guardaba como 0,5745 y la tabla lo redondeaba a 0,575.
+    tabla.sort_values("ejecucion").to_csv(ruta, index=False, float_format="%.6g")
     return ruta
 
 
