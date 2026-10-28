@@ -383,3 +383,24 @@ ESTADO: dict[str, str] = {
     "cnn_v17": "por entrenar",
     "cnn_v18": "por entrenar",
 }
+
+# Nombre corto de cada versión, para figuras y la app: qué la distingue, en pocas palabras.
+NOMBRES: dict[str, str] = {
+    "cnn_v1": "primera red (3 bloques)",
+    "cnn_v2": "4 bloques",
+    "cnn_v3": "aumento geométrico",
+    "cnn_v4": "con el realce dado",
+    "cnn_v5": "intensidad relativa al PRE",
+    "cnn_v6": "pooling por atención",
+    "cnn_v7": "dropout y weight decay",
+    "cnn_v8": "v5 + v6 + v7 juntas",
+    "cnn_v10": "giros de 90°",
+    "cnn_v11": "recorte con la caja del tumor",
+    "cnn_v12": "dos convoluciones por bloque",
+    "cnn_v13": "media + máximo",
+    "cnn_v14": "aumento de escáner",
+    "cnn_v15": "2 cortes por paciente y época",
+    "cnn_v16": "learning rate que baja",
+    "cnn_v17": "trabaja a 128×128",
+    "cnn_v18": "mapas cinéticos",
+}

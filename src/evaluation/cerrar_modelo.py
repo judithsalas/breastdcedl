@@ -434,6 +434,8 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
     if diferencia is not None:
         lineas += ["", ("Comprobación: cada modelo recargado desde `models/final/` reproduce las predicciones "
                         f"del entrenamiento con una diferencia máxima de {diferencia:.1e}.")]
+    if len(manifiesto["miembros"]) > 1:
+        lineas += ["", "![Las redes del conjunto y lo que da cada una](conjunto.png)"]
     lineas += ["", "![Cierre del modelo](cierre.png)", ""]
     return "\n".join(lineas)
 
@@ -449,6 +451,12 @@ def cerrar(carpetas: Path | list[Path], eleccion: dict, destino: Path = CARPETA_
     manifiesto = exportar(carpetas, eleccion, analisis, destino)
     diferencia = comprobar_exportacion(destino, carpetas) if comprobar else None
     figuras(analisis, carpeta_figuras)
+    if len(carpetas) > 1:                    # D36: una figura con todas las redes del conjunto
+        from src.training.graficas import auc_medico, figura_conjunto
+        mi = manifiesto["metricas_internas"]
+        figura_conjunto(manifiesto["miembros"], carpetas, (mi["auc_val_media"], mi["auc_val_desviacion"]),
+                        carpeta_figuras / "conjunto.png", medico=auc_medico(manifiesto),
+                        pie=f"huella del modelo {manifiesto['huella_modelo']}")
     informe_md.parent.mkdir(parents=True, exist_ok=True)
     informe_md.write_text(informe(eleccion, analisis, manifiesto, diferencia), encoding="utf-8")
     (carpeta_figuras / "cierre.json").write_text(json.dumps(

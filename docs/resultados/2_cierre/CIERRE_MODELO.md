@@ -92,4 +92,6 @@ Con el umbral elegido, fuera de fold: VP 85, FN 237, FP 145, VN 630.
 
 Comprobación: cada modelo recargado desde `models/final/` reproduce las predicciones del entrenamiento con una diferencia máxima de 3.0e-07.
 
+![Las redes del conjunto y lo que da cada una](conjunto.png)
+
 ![Cierre del modelo](cierre.png)

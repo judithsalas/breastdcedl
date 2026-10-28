@@ -15,6 +15,9 @@ Ejecución normal:
     graficas/matriz_confusion.png      matriz de confusión por paciente de la época elegida
 Validación cruzada:
     graficas/curvas_folds.png          media de los folds ± 1 desviación, y la época elegida de cada uno
+Modelo final (D36), con `python -m src.training.graficas --conjunto` (y solo al cerrar el modelo):
+    docs/resultados/2_cierre/conjunto.png   cómo aprendió cada red del conjunto y el AUC de cada una
+                                            frente al del conjunto (y al del médico, si ya está hecho)
     graficas/matriz_confusion_oof.png  matriz fuera de fold (todas las pacientes de train)
 
 Las gráficas que vayan al informe se copian a docs/figuras/ (runs/ no se versiona).
@@ -193,6 +196,150 @@ def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str
     return ruta
 
 
+GRIS_MIEMBRO = "#8d8b85"       # las redes sueltas, en gris: el color lo lleva el conjunto
+RAIZ = Path(__file__).resolve().parents[2]
+CARPETA_FINAL = RAIZ / "models" / "final"
+CLINICO_JSON = RAIZ / "models" / "clinico" / "modelo_clinico.json"
+FIGURA_CONJUNTO = RAIZ / "docs" / "resultados" / "2_cierre" / "conjunto.png"
+
+
+def _historiales_cv(carpeta: Path) -> list[tuple[pd.DataFrame, int]]:
+    salida = []
+    for sub in sorted(carpeta.glob("fold_*")):
+        h = leer_historial(sub)
+        if h is not None and not h.empty:
+            salida.append((h, epoca_elegida(h)))
+    return salida
+
+
+def figura_conjunto(miembros: list[dict], carpetas: list[Path], auc_conjunto: tuple[float, float], ruta: Path,
+                    medico: float | None = None, pie: str = "") -> Path:
+    """Una figura con todo el modelo final (D36), pensada para el informe y las diapositivas.
+
+    Izquierda, una pequeña gráfica por red: cómo aprendió (AUC por paciente, media de los 5 folds ±
+    1 desviación, entrenamiento y validación). Derecha, el AUC de validación de cada red sola y el
+    del conjunto, con el azar y, si se pasa, el modelo del médico como referencias.
+    """
+    from matplotlib.gridspec import GridSpec
+
+    from src.models.versiones import NOMBRES
+
+    n = len(miembros)
+    columnas = 3
+    filas = int(np.ceil(n / columnas))
+    fig = plt.figure(figsize=(17, 5.2 + 3.0 * filas))
+    fig.patch.set_facecolor(FONDO)
+    rejilla = GridSpec(filas, columnas + 1, figure=fig, width_ratios=[1, 1, 1, 1.45], wspace=0.3, hspace=0.55,
+                       left=0.045, right=0.985, bottom=0.08, top=0.76)
+
+    for i, (m, carpeta) in enumerate(zip(miembros, carpetas, strict=True)):
+        ax = fig.add_subplot(rejilla[i // columnas, i % columnas])
+        historiales = _historiales_cv(carpeta)
+        ultima = max((e for _, e in historiales), default=1)
+        for columna, color, nombre in (("auc_tr", COLOR_TR, "entrenamiento"), ("auc", COLOR_VA, "validación")):
+            media = _media_por_epoca(historiales, columna) if historiales else None
+            if media is None:
+                continue
+            x, mu, s = media
+            ax.fill_between(x, mu - s, mu + s, color=color, alpha=SOMBRA, lw=0, zorder=2)
+            ax.plot(x, mu, color=color, lw=2, solid_capstyle="round", zorder=3, label=nombre if i == 0 else None)
+            ultima = max(ultima, int(x[-1]))
+        ax.scatter([e for _, e in historiales], [float(h.loc[h.epoca == e, "auc"].iloc[0]) for h, e in historiales],
+                   s=40, color=COLOR_VA, edgecolor=FONDO, linewidth=1.8, zorder=5,
+                   label="época elegida de cada fold" if i == 0 else None)
+        ax.axhline(0.5, color=REFERENCIA, lw=1, zorder=1)
+        ax.set_ylim(0.4, 1.0)
+        ax.set_xlim(0.5, ultima + 0.5)
+        _estilo(ax, "", "AUC" if i % columnas == 0 else "")
+        ax.set_title(f"{m['version']} · {NOMBRES.get(m['version'], '')}", pad=21, loc="left", fontsize=11.5,
+                     fontweight="bold", color=TINTA)
+        ax.text(0.0, 1.015, f"validación {coma(m['auc_val_media'], 3)} ± {coma(m['auc_val_desviacion'], 3)} · "
+                f"diferencia {coma(m['diferencia_media'], 3)}", transform=ax.transAxes, fontsize=8.8,
+                color=TINTA_SUAVE, va="bottom")
+        if i // columnas < filas - 1:
+            ax.set_xlabel("")
+
+    # Resumen: AUC de validación de cada red sola y del conjunto (media de 5 folds ± 1 desviación).
+    ax = fig.add_subplot(rejilla[:, columnas])
+    etiquetas = [m["version"] for m in miembros] + ["conjunto"]
+    medias = [m["auc_val_media"] for m in miembros] + [auc_conjunto[0]]
+    desv = [m["auc_val_desviacion"] for m in miembros] + [auc_conjunto[1]]
+    posiciones = list(range(n)) + [n + 0.8]
+    for y, mu, s, k in zip(posiciones, medias, desv, range(n + 1), strict=True):
+        es_conjunto = k == n
+        color = COLOR_VA if es_conjunto else GRIS_MIEMBRO
+        ax.plot([mu - s, mu + s], [y, y], color=color, lw=3 if es_conjunto else 2, solid_capstyle="round", zorder=3)
+        ax.scatter([mu], [y], s=150 if es_conjunto else 70, color=color, edgecolor=FONDO, linewidth=2, zorder=4)
+        ax.annotate(coma(mu, 3), (mu + s, y), xytext=(8, 0), textcoords="offset points", va="center",
+                    fontsize=11 if es_conjunto else 9.5, color=TINTA, fontweight="bold" if es_conjunto else "normal")
+    ax.axvline(0.5, color=REFERENCIA, lw=1, zorder=1)
+    ax.annotate("azar", (0.5, 1.0), xycoords=("data", "axes fraction"), xytext=(4, -4), textcoords="offset points",
+                va="top", fontsize=8.5, color=TINTA_SUAVE)
+    if medico is not None:
+        ax.axvline(medico, color=REFERENCIA, lw=1.2, zorder=1)
+        ax.annotate(f"médico sin imagen\n(edad, menopausia,\nHR, HER2): {coma(medico, 3)}", (medico, 1.0),
+                    xycoords=("data", "axes fraction"), xytext=(-5, -4), textcoords="offset points", va="top",
+                    ha="right", fontsize=8.5, color=TINTA_SUAVE)
+    ax.set_xlim(0.45, 0.76)
+    ax.set_ylim(n + 1.5, -0.8)
+    _estilo(ax, "AUC de validación por paciente", "")
+    ax.set_title("AUC de validación por paciente", pad=21, loc="left", fontsize=12, fontweight="bold", color=TINTA)
+    ax.text(0.0, 1.015, "cada red sola (gris) y el conjunto (naranja)", transform=ax.transAxes, fontsize=8.8,
+            color=TINTA_SUAVE, va="bottom")
+    ax.set_xlabel("media de los 5 folds ± 1 desviación", color=TINTA_SUAVE, fontsize=10)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: coma(v, 2)))
+    ax.set_yticks(posiciones)                   # después de _estilo, que pone números en el eje y
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(etiquetas))
+    ultima_etiqueta = ax.get_yticklabels()[-1]
+    ultima_etiqueta.set_fontweight("bold")
+    ultima_etiqueta.set_color(TINTA)
+    ax.grid(False, axis="y")
+    ax.tick_params(axis="y", labelsize=10, colors=TINTA_SUAVE)
+
+    fig.text(0.012, 0.975, f"Modelo final: conjunto de {n} CNN propias, entrenadas desde cero", ha="left",
+             va="top", fontsize=17, fontweight="bold", color=TINTA)
+    fig.text(0.012, 0.915, (f"AUC de validación por paciente: cada red sola entre {coma(min(medias[:-1]), 3)} y "
+                            f"{coma(max(medias[:-1]), 3)}; el conjunto (media de sus logits), "
+                            f"{coma(auc_conjunto[0], 3)} ± {coma(auc_conjunto[1], 3)}"),
+             ha="left", va="top", fontsize=12, color=TINTA)
+    fig.text(0.012, 0.873, ("Izquierda: cómo aprendió cada red (media de los 5 folds ± 1 desviación). "
+                            "Derecha: lo que da cada una y lo que da el conjunto, con las mismas pacientes, "
+                            "fuera de fold."), ha="left", va="top", fontsize=9.5, color=TINTA_SUAVE)
+    manejadores, nombres = fig.axes[0].get_legend_handles_labels()
+    fig.legend(manejadores, nombres, loc="upper left", bbox_to_anchor=(0.006, 0.845), ncol=3, frameon=False,
+               fontsize=10, labelcolor=TINTA, handlelength=1.8, columnspacing=1.8)
+    if pie:
+        fig.text(0.995, 0.008, pie, ha="right", va="bottom", fontsize=7.5, color=REFERENCIA)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ruta, dpi=200, bbox_inches="tight", facecolor=FONDO)
+    plt.close(fig)
+    return ruta
+
+
+def auc_medico(manifiesto: dict, ruta: Path = CLINICO_JSON) -> float | None:
+    """AUC del modelo del médico (D25), si se hizo con ESTE modelo final; si no, None."""
+    if not ruta.exists():
+        return None
+    clinico = json.loads(ruta.read_text(encoding="utf-8"))
+    if clinico.get("huella_cnn") != manifiesto.get("huella_modelo"):
+        return None
+    return clinico.get("validacion", {}).get("medico", {}).get("auc_val")
+
+
+def figura_del_modelo_final(carpeta_final: Path = CARPETA_FINAL, carpeta_runs: Path = RAIZ / "runs",
+                            ruta: Path = FIGURA_CONJUNTO) -> Path | None:
+    """La figura del conjunto a partir de models/final/manifiesto.json (y el médico, si ya está hecho)."""
+    manifiesto = _leer_json(carpeta_final / "manifiesto.json")
+    miembros = manifiesto.get("miembros") or []
+    if len(miembros) < 2:
+        return None
+    mi = manifiesto["metricas_internas"]
+    return figura_conjunto(miembros, [carpeta_runs / m["validacion_cruzada"] for m in miembros],
+                           (mi["auc_val_media"], mi["auc_val_desviacion"]), ruta, medico=auc_medico(manifiesto),
+                           pie=f"huella del modelo {manifiesto['huella_modelo']}")
+
+
 def _matriz_de_epoca(resultados: dict, historial: pd.DataFrame, elegida: int) -> dict | None:
     """Matriz de la época elegida: de resultados.json o, en ejecuciones antiguas, del historial."""
     if resultados.get("mejor_epoca", {}).get("matriz_confusion"):
@@ -260,7 +407,11 @@ def dibujar_graficas(carpeta: Path | str) -> list[Path]:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        sys.exit("Uso: python -m src.training.graficas runs/<carpeta> [más carpetas]")
+        sys.exit("Uso: python -m src.training.graficas runs/<carpeta> [más carpetas]  |  --conjunto")
+    if sys.argv[1] == "--conjunto":
+        ruta = figura_del_modelo_final()
+        print(f"Guardado {ruta}" if ruta else "El modelo final no es un conjunto: no hay figura del conjunto.")
+        return
     for nombre in sys.argv[1:]:
         carpeta = Path(nombre)
         if not carpeta.is_dir():
