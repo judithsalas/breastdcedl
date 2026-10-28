@@ -40,6 +40,7 @@ import csv
 import json
 import math
 import time
+from dataclasses import replace
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -50,9 +51,10 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from src.config import EVALUACION, Config, obtener_config
+from src.config import EVALUACION, MODOS, Config, obtener_config
 from src.data.aumento import crear_aumento
 from src.data.caso import RAIZ_DATOS, RAIZ_REPO, uc
+from src.data.muestreo import MuestreoPorPaciente
 from src.data.recorte import crear_dataset
 from src.evaluation.metricas import metricas_por_clase
 from src.models.construir import contar_parametros, crear_modelo, receta
@@ -208,6 +210,24 @@ def crear_optimizador(modelo: nn.Module, lr: float, receta_version: dict) -> tor
                               {"params": sin_decay, "weight_decay": 0.0}], lr=lr)
 
 
+PROGRAMADORES = (None, "meseta")
+
+
+def crear_programador(optimizador: torch.optim.Optimizer, nombre: str | None):
+    """El programador del learning rate que pide la receta (D34).
+
+    - None: el learning rate no cambia en todo el entrenamiento (cnn_v1 a cnn_v15).
+    - "meseta": ReduceLROnPlateau sobre el AUC por paciente en validación: si en 3 épocas no
+      mejora, el learning rate se reduce a la mitad. La parada temprana espera 10 épocas, así que
+      da tiempo a probar 2–3 pasos más pequeños antes de parar.
+    """
+    if nombre is None:
+        return None
+    if nombre == "meseta":
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizador, mode="max", factor=0.5, patience=3)
+    raise ValueError(f"Programador desconocido: {nombre!r}. Opciones: {PROGRAMADORES}")
+
+
 def entrenar_una_epoca(modelo, cargador, criterio, optimizador, dispositivo) -> float:
     modelo.train()
     perdida_total, n = 0.0, 0
@@ -230,7 +250,7 @@ def entrenar_una_epoca(modelo, cargador, criterio, optimizador, dispositivo) -> 
 
 def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimizador,
                     dispositivo, cfg: Config, carpeta: Path, resultados: dict,
-                    eval_train: tuple[DataLoader, pd.DataFrame] | None = None) -> dict:
+                    eval_train: tuple[DataLoader, pd.DataFrame] | None = None, programador=None) -> dict:
     """Bucle de épocas con parada temprana por AUC por paciente en validación.
 
     `eval_train` = (cargador con shuffle=False, filas) de la muestra de entrenamiento
@@ -252,6 +272,9 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
         segundos = time.perf_counter() - t0
 
         auc = m["auc"]
+        lr_epoca = optimizador.param_groups[0]["lr"]          # el de esta época, antes de que el programador lo baje
+        if programador is not None and not math.isnan(auc):
+            programador.step(auc)
         mejora = not math.isnan(auc) and auc > mejor_auc
         if mejora:
             mejor_auc, sin_mejora = auc, 0
@@ -274,7 +297,8 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
                 "auc_tr": auc_tr, "auc": auc, "diferencia_auc": auc_tr - auc,
                 "sensibilidad": m["sensibilidad"], "especificidad": m["especificidad"],
                 "accuracy": m["accuracy"], "f1_pcr": m["f1_pcr"], "f1_no_pcr": m["f1_no_pcr"],
-                "f1_macro": m["f1_macro"], **m["matriz_confusion"], "segundos": segundos, "mejor": mejora}
+                "f1_macro": m["f1_macro"], **m["matriz_confusion"], "segundos": segundos, "mejor": mejora,
+                "lr": lr_epoca}
         resultados["epocas"].append(fila)
         print(f"época {epoca:>3}/{cfg.epocas_max} | pérdida tr {perdida_tr:.4f} va {perdida_va:.4f} | "
               f"AUC tr {auc_tr:.3f} va {auc:.3f} | sens {m['sensibilidad']:.2f} "
@@ -328,6 +352,11 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
 
     modelo = crear_modelo(nombre_modelo).to(dispositivo)
     como_entrenar = receta(nombre_modelo)
+    if como_entrenar["learning_rate"] is not None:       # la versión fija su propio learning rate (D34)
+        if cfg.learning_rate != MODOS[cfg.modo].learning_rate:
+            raise SystemExit(f"{nombre_modelo} fija su learning rate ({como_entrenar['learning_rate']}); "
+                             "no se puede cambiar desde la configuración.")
+        cfg = replace(cfg, learning_rate=como_entrenar["learning_rate"])
     aumento = crear_aumento(como_entrenar["aumento"])   # solo para el cargador de entrenamiento
     peso_positivos = uc.pos_weight(entrena) if ponderada else None
     criterio = nn.BCEWithLogitsLoss(
@@ -338,8 +367,13 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     opciones = {"batch_size": cfg.batch_size, "num_workers": cfg.num_workers, "pin_memory": usa_gpu,
                 "persistent_workers": cfg.num_workers > 0}
     recorte = como_entrenar["recorte"]                  # None = el corte entero; "caja" = alrededor del tumor (D33)
-    cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), shuffle=True,
-                             generator=torch.Generator().manual_seed(cfg.semilla), **opciones)
+    if como_entrenar["cortes_por_paciente"]:             # muestreo equilibrado por paciente (D34)
+        muestreo = MuestreoPorPaciente(entrena, como_entrenar["cortes_por_paciente"], cfg.semilla)
+        cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), sampler=muestreo, **opciones)
+    else:
+        cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), shuffle=True,
+                                 generator=torch.Generator().manual_seed(cfg.semilla), **opciones)
+    programador = crear_programador(optimizador, como_entrenar["programador"])
     cargador_va = DataLoader(crear_dataset(valida, recorte), shuffle=False, **opciones)
     cargador_tr_eval = DataLoader(crear_dataset(muestra_tr, recorte), shuffle=False, **opciones)
 
@@ -379,12 +413,15 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     optim_texto = (f"AdamW, weight decay {como_entrenar['weight_decay']:g}"
                    if como_entrenar["optimizador"] == "adamw" else "Adam")
     print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | "
-          f"recorte {como_entrenar['recorte'] or 'no'} | {optim_texto} | "
+          f"recorte {como_entrenar['recorte'] or 'no'} | "
+          f"cortes por paciente {como_entrenar['cortes_por_paciente'] or 'todos'} | "
+          f"programador {como_entrenar['programador'] or 'no'} | {optim_texto} | "
           f"batch {cfg.batch_size} | lr {cfg.learning_rate} | "
           f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n")
 
     entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimizador,
-                    dispositivo, cfg, carpeta, resultados, eval_train=(cargador_tr_eval, muestra_tr))
+                    dispositivo, cfg, carpeta, resultados, eval_train=(cargador_tr_eval, muestra_tr),
+                    programador=programador)
 
     e = resultados.get("mejor_epoca")
     if e:

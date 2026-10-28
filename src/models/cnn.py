@@ -23,9 +23,9 @@ Estructura:
        (el pooling divide el lado entre 2: 256 -> 128 -> 64 -> ...)
        │
        ▼
-    RESUMEN: "global" (media de cada canal), "flatten" (todos los valores) o "atencion"
+    RESUMEN: "global" (media de cada canal), "flatten" (todos los valores), "atencion"
        (media PONDERADA de las posiciones del mapa, con pesos aprendidos: la red decide
-       dónde mirar; Ilse et al., 2018) (D28)
+       dónde mirar; Ilse et al., 2018) (D28) o "media+max" (media y máximo de cada canal, D34)
        │
        ▼
     CABEZA: [Linear -> ReLU] (si hay capa oculta) -> [Dropout] -> Linear -> 1 logit
@@ -44,7 +44,7 @@ LADO_ENTRADA = 256
 CANALES_ENTRADA = 3            # lo que RECIBE siempre la red: PRE, EARLY, LATE
 CANALES_POR_ENTRADA = {"fases": 3, "fases+realce": 5}
 NORMALIZACIONES = (None, "pre")
-RESUMENES = ("global", "flatten", "atencion")
+RESUMENES = ("global", "flatten", "atencion", "media+max")
 UMBRAL_TEJIDO = 0.1            # PRE > 0,1 es tejido (lo demás, aire); igual que la auditoría
 REFERENCIA_MINIMA = 0.1        # si un corte casi no tiene tejido, no se divide entre ~0
 OCULTA_ATENCION = 32           # tamaño de la capa interna del pooling por atención
@@ -88,6 +88,18 @@ class PoolingAtencion(nn.Module):
         return (pesos * h).sum(dim=1)                            # (B, canales)
 
 
+class MediaYMaximo(nn.Module):
+    """Une la media global y el máximo global de cada canal: (B, C, H, W) → (B, 2C).
+
+    La media resume todo el corte (contexto, tejido de alrededor); el máximo se queda con la
+    respuesta más fuerte de cada filtro, que en un tumor pequeño suele ser el propio tumor y que
+    la media diluye entre el fondo (D34). Sin parámetros: solo dobla el tamaño del vector.
+    """
+
+    def forward(self, mapas: torch.Tensor) -> torch.Tensor:
+        return torch.cat([mapas.mean(dim=(2, 3)), mapas.amax(dim=(2, 3))], dim=1)
+
+
 class CNN(nn.Module):
     def __init__(
         self,
@@ -109,8 +121,9 @@ class CNN(nn.Module):
         convs_por_bloque  convoluciones seguidas antes de cada pooling.
         pooling           "max" (¿aparece el patrón?) o "avg" (media de la zona).
         batchnorm         BatchNorm2d después de cada convolución.
-        resumen           "global" (AdaptiveAvgPool: un valor por canal), "flatten" o "atencion"
-                          (media ponderada con pesos aprendidos, PoolingAtencion).
+        resumen           "global" (AdaptiveAvgPool: un valor por canal), "flatten", "atencion"
+                          (media ponderada con pesos aprendidos, PoolingAtencion) o "media+max"
+                          (media y máximo de cada canal, juntos: MediaYMaximo).
         cabeza_oculta     None = Linear directa a 1 salida; un número = capa intermedia.
         dropout           probabilidad de dropout en la cabeza (0 = sin dropout).
         entrada           "fases" (PRE, EARLY, LATE) o "fases+realce" (además EARLY − PRE y
@@ -154,6 +167,9 @@ class CNN(nn.Module):
         elif resumen == "atencion":
             self.resumen = PoolingAtencion(canales)
             n_vector = canales
+        elif resumen == "media+max":
+            self.resumen = MediaYMaximo()
+            n_vector = 2 * canales
         else:
             self.resumen = nn.Flatten()
             n_vector = canales * lado_final * lado_final

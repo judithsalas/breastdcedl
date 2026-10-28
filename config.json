@@ -1,18 +1,74 @@
 {
   "_leeme": [
     "Parámetros de ejecución del proyecto, en un solo sitio (D31). Explicación de cada uno en _ayuda, al final.",
-    "experimento: lo que lanza 'python -m src.training.experimento'. Es la plantilla para probar cosas: se edita aquí o se copia a otro fichero y se lanza con --config.",
+    "experimento: lo que lanza 'python -m src.training.experimento'. Es la plantilla para probar cosas: una prueba o una lista de pruebas, que se lanzan una detrás de otra. Se edita aquí o se copia a otro fichero y se lanza con --config.",
     "modos: el estándar con el que se comparan las versiones. Si se cambia un valor, las ejecuciones anteriores dejan de contar para el criterio. Para probar otro valor, usa experimento.cambios.",
     "No está aquí lo que define una versión (capas, aumento, optimizador, weight decay, dropout): está en src/models/versiones.py, porque cambiarlo es crear otra versión con su ficha."
   ],
-  "experimento": {
-    "modelo": "cnn_v10",
-    "modo": "completo",
-    "perdida": "normal",
-    "folds": [0],
-    "cambios": {},
-    "nota": "prueba de un fold"
-  },
+  "experimento": [
+    {
+      "modelo": "cnn_v3",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {
+        "learning_rate": 0.0001
+      },
+      "nota": "lr 0,0001, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v12",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {},
+      "nota": "dos convoluciones por bloque, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v13",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {},
+      "nota": "media + máximo, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v14",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {},
+      "nota": "aumento de escáner, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v15",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {},
+      "nota": "2 cortes por paciente y época, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v16",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {},
+      "nota": "programador meseta, fold 0 (D34)"
+    }
+  ],
   "modos": {
     "rapido": {
       "n_pacientes": 40,
@@ -46,6 +102,7 @@
     "sobreajuste_maximo": 0.15
   },
   "_ayuda": {
+    "experimento": "Una prueba (un objeto) o una lista de pruebas que se lanzan en orden (D34). Cada prueba lleva los campos de abajo.",
     "experimento.modelo": "Versión de la red que se entrena, por su nombre en src/models/versiones.py (cnn_v3, cnn_v10...).",
     "experimento.modo": "rapido (comprobar que funciona, sus cifras no cuentan) o completo (entrenamiento real).",
     "experimento.perdida": "normal o ponderada (BCE con pos_weight = no pCR / pCR, para que la red no ignore la clase minoritaria).",

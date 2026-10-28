@@ -60,7 +60,8 @@ def validaciones_validas(historico: pd.DataFrame, perdida: str = "normal") -> pd
                       & (historico.folds.astype(str) == TODOS_LOS_FOLDS)
                       & historico.modelo.isin(list(VERSIONES))]
     filas = filas[filas.apply(lambda f: _huella_ok(f) is True, axis=1)] if len(filas) else filas
-    filas = filas[filas.apply(lambda f: es_estandar(f.modo, f.get("batch"), f.get("lr"), f.get("semilla")),
+    filas = filas[filas.apply(lambda f: es_estandar(f.modo, f.get("batch"), f.get("lr"), f.get("semilla"),
+                                                    receta(f.modelo).get("learning_rate")),
                               axis=1)] if len(filas) else filas
     return filas.groupby("modelo").tail(1)
 

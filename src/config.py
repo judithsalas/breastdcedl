@@ -94,13 +94,16 @@ def obtener_config(modo: str, **cambios) -> Config:
     return replace(MODOS[modo], **{k: v for k, v in cambios.items() if v is not None})
 
 
-def es_estandar(modo: str, batch: float | None, lr: float | None, semilla: float | None) -> bool:
+def es_estandar(modo: str, batch: float | None, lr: float | None, semilla: float | None,
+                lr_version: float | None = None) -> bool:
     """¿Una ejecución usó el batch, el learning rate y la semilla de su modo? Solo esas cuentan para
-    comparar versiones (D31): una prueba con otro learning rate no debe pasar por la versión."""
+    comparar versiones (D31): una prueba con otro learning rate no debe pasar por la versión.
+    Si la versión fija su propio learning rate en su receta (`lr_version`, D34), se compara con ese."""
     if modo not in MODOS:
         return False
     estandar = MODOS[modo]
-    for valor, referencia in ((batch, estandar.batch_size), (lr, estandar.learning_rate),
+    lr_esperado = estandar.learning_rate if lr_version is None else lr_version
+    for valor, referencia in ((batch, estandar.batch_size), (lr, lr_esperado),
                               (semilla, estandar.semilla)):
         if valor is None or math.isnan(float(valor)):       # ejecuciones antiguas sin ese dato
             continue

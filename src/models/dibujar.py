@@ -76,6 +76,10 @@ def etapas(nombre: str) -> list[dict]:
                       "lineas": [f"un peso por posición ({lado}×{lado})", "media ponderada"],
                       "forma": f"vector {n}", "lado": 24, "canales": filtros[-1],
                       "params": sum(p.numel() for p in modelo.resumen.parameters())})
+    elif v["resumen"] == "media+max":
+        n = 2 * filtros[-1]
+        lista.append({"tipo": "resumen", "titulo": "Media + máximo", "lineas": ["media de cada canal", "+ máximo de cada canal"],
+                      "forma": f"vector {n}", "lado": 24, "canales": filtros[-1], "params": 0})
     else:
         n = filtros[-1] * lado * lado
         lista.append({"tipo": "resumen", "titulo": "Flatten", "lineas": ["todos los valores"],
@@ -139,10 +143,17 @@ def dibujar(nombre: str) -> list:
     como = receta(nombre)
     aumento = como["aumento"]
     nombre_aumento = {"geometrico": "geométrico",
-                      "geometrico+giros90": "geométrico con giros de 90°"}.get(aumento, aumento)
+                      "geometrico+giros90": "geométrico con giros de 90°",
+                      "geometrico+escaner": "geométrico de escáner (zoom, brillo y ruido)"}.get(aumento, aumento)
     nota_receta = f" Entrenada con aumento {nombre_aumento} (solo en entrenamiento)." if aumento else ""
     if como.get("optimizador") == "adamw":
         nota_receta += f" Optimizador AdamW, weight decay {como['weight_decay']:g}."
+    if como.get("learning_rate"):
+        nota_receta += f" Learning rate {como['learning_rate']:g}."
+    if como.get("cortes_por_paciente"):
+        nota_receta += f" {como['cortes_por_paciente']} cortes por paciente y época."
+    if como.get("programador") == "meseta":
+        nota_receta += " Learning rate a la mitad si se estanca."
     fig.text(0.5, 0.015, "Los 3 canales de entrada son instantes de la DCE-MRI, no colores. "
              "Altura de cada caja según el tamaño del mapa; anchura según los canales." + nota_receta,
              ha="center", fontsize=8.5, color=SUAVE)

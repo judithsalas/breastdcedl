@@ -199,6 +199,8 @@ VERSIONES: dict[str, dict] = {
     # ÚNICO cambio respecto a cnn_v3: la red ve un cuadrado de 128×128 centrado en la caja
     # del tumor (patients.csv), sin cambiar la escala, en vez del corte entero de 256×256.
     # NO es desplegable: la app no tiene la caja. Mide cuánto se gana mirando solo el tumor.
+    # Descartada sin entrenar (D34): la regla de la fase A no permite usar la caja del tumor
+    # ni como entrada ni como supervisión. cnn_v9 (atención guiada por la caja), igual.
     "cnn_v11": {
         "filtros": (16, 32, 64, 128),
         "kernel": 3,
@@ -210,6 +212,82 @@ VERSIONES: dict[str, dict] = {
         "dropout": 0.0,
         "entrenamiento": {"aumento": "geometrico", "recorte": "caja"},
     },
+    # ====================================================================== #
+    # Quinta ronda (2026-10-28, D34). Solo imágenes y pCR (fase A): ni datos clínicos, ni
+    # hospital, ni caja del tumor. Cada idea sobre cnn_v3, y se prueba primero en el fold 0.
+    # ====================================================================== #
+    # cnn_v12 · ver el tumor entero
+    # ÚNICO cambio respecto a cnn_v3: dos convoluciones por bloque. El campo receptivo pasa de
+    # 46 a ~94 px: un tumor de I-SPY mide ~70 px y la red no lo ve entero (su puntuación no
+    # tiene relación con el tamaño del tumor, R5).
+    "cnn_v12": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 2,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico"},
+    },
+    # cnn_v13 · no diluir la respuesta del tumor
+    # ÚNICO cambio respecto a cnn_v12: el resumen une la media y el máximo de cada canal. El
+    # máximo conserva la respuesta más fuerte, que en un tumor pequeño la media diluye.
+    "cnn_v13": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 2,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "media+max",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico"},
+    },
+    # cnn_v14 · que el escáner no sirva de pista
+    # ÚNICO cambio respecto a cnn_v3: aumento "geometrico+escaner" (zoom 0,8–1,2, el mismo
+    # brillo en las 3 fases y un poco de ruido). Imita lo que cambia de un hospital a otro.
+    "cnn_v14": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico+escaner"},
+    },
+    # cnn_v15 · no memorizar pacientes
+    # ÚNICO cambio respecto a cnn_v3: cada época, 2 cortes al azar de cada paciente en vez de
+    # los 10. Todas las pacientes pesan igual y cada época ve otros cortes.
+    "cnn_v15": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico", "cortes_por_paciente": 2},
+    },
+    # cnn_v16 · bajar el paso cuando se estanca
+    # ÚNICO cambio respecto a cnn_v3: programador "meseta" (el learning rate se reduce a la
+    # mitad si el AUC de validación no mejora en 3 épocas). La mejor época de cnn_v3 llega muy
+    # pronto (1, 6, 5, 16 y 6) y luego la validación cae.
+    "cnn_v16": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrenamiento": {"aumento": "geometrico", "programador": "meseta"},
+    },
 }
 
 # Valores que se usan cuando una versión no los declara (las antiguas no los tienen y
@@ -218,7 +296,9 @@ POR_DEFECTO: dict = {
     "entrada": "fases",
     "normalizacion": None,
     # Adam sin weight decay es lo que usaron cnn_v1 a cnn_v4.
-    "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0, "recorte": None},
+    "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0, "recorte": None,
+                      # D34: None = el learning rate del modo, todos los cortes cada época, sin programador
+                      "learning_rate": None, "cortes_por_paciente": None, "programador": None},
 }
 
 # -------------------------------------------------------------------------- #
@@ -237,6 +317,11 @@ ORIGEN: dict[str, str | None] = {
     "cnn_v8": "cnn_v3",
     "cnn_v10": "cnn_v3",
     "cnn_v11": "cnn_v3",
+    "cnn_v12": "cnn_v3",
+    "cnn_v13": "cnn_v12",
+    "cnn_v14": "cnn_v3",
+    "cnn_v15": "cnn_v3",
+    "cnn_v16": "cnn_v3",
 }
 
 # En qué punto está cada versión. Se justifica en su ficha.
@@ -251,5 +336,10 @@ ESTADO: dict[str, str] = {
     "cnn_v7": "descartada",     # empata (0,588 ± 0,042); no baja la diferencia train − val
     "cnn_v8": "descartada",     # empata (0,593 ± 0,025) pero sobreajusta (0,169 > 0,15)
     "cnn_v10": "descartada",    # empata (0,581 ± 0,045); delata menos el hospital y memoriza menos
-    "cnn_v11": "por entrenar",  # solo para medir; no desplegable (necesita la caja)
+    "cnn_v11": "descartada",    # sin entrenar: usa la caja del tumor (regla de la fase A, D34)
+    "cnn_v12": "por entrenar",
+    "cnn_v13": "por entrenar",
+    "cnn_v14": "por entrenar",
+    "cnn_v15": "por entrenar",
+    "cnn_v16": "por entrenar",
 }
