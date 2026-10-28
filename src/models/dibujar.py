@@ -49,7 +49,11 @@ def etapas(nombre: str) -> list[dict]:
         lineas_entrada += ["÷ media del PRE en el tejido", "(intensidad relativa, dentro)"]
     if v["entrada"] == "fases+realce":
         lineas_entrada += ["+ EARLY−PRE, LATE−EARLY", "(calculados dentro)"]
-    lado = LADO_ENTRADA
+    if v["entrada"] == "fases+cinetica":
+        lineas_entrada += ["+ realce relativo y SER", "(mapas cinéticos, dentro)"]
+    lado = LADO_ENTRADA // v["reduccion"]
+    if v["reduccion"] > 1:                                  # D35: la red trabaja a menos resolución
+        lineas_entrada += [f"recibe {LADO_ENTRADA}×{LADO_ENTRADA}; dentro, media", f"de {v['reduccion']}×{v['reduccion']} → {lado}×{lado}"]
     if receta(nombre).get("recorte") == "caja":            # D33: la red ve un recorte alrededor del tumor
         lado = LADO_RECORTE
         lineas_entrada += [f"recorte {LADO_RECORTE}×{LADO_RECORTE} en el tumor", "(con la caja; no desplegable)"]

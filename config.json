@@ -7,36 +7,28 @@
   ],
   "experimento": [
     {
-      "modelo": "cnn_v3",
+      "modelo": "cnn_v17",
       "modo": "completo",
       "perdida": "normal",
       "folds": [
         0
       ],
       "cambios": {
-        "learning_rate": 0.0001
+        "num_workers": 2
       },
-      "nota": "lr 0,0001, fold 0 (D34)"
+      "nota": "la red trabaja a 128×128, fold 0 (D35)"
     },
     {
-      "modelo": "cnn_v12",
+      "modelo": "cnn_v18",
       "modo": "completo",
       "perdida": "normal",
       "folds": [
         0
       ],
-      "cambios": {},
-      "nota": "dos convoluciones por bloque, fold 0 (D34)"
-    },
-    {
-      "modelo": "cnn_v13",
-      "modo": "completo",
-      "perdida": "normal",
-      "folds": [
-        0
-      ],
-      "cambios": {},
-      "nota": "media + máximo, fold 0 (D34)"
+      "cambios": {
+        "num_workers": 2
+      },
+      "nota": "mapas cinéticos (realce relativo y SER), fold 0 (D35)"
     },
     {
       "modelo": "cnn_v14",
@@ -45,7 +37,9 @@
       "folds": [
         0
       ],
-      "cambios": {},
+      "cambios": {
+        "num_workers": 2
+      },
       "nota": "aumento de escáner, fold 0 (D34)"
     },
     {
@@ -55,7 +49,9 @@
       "folds": [
         0
       ],
-      "cambios": {},
+      "cambios": {
+        "num_workers": 2
+      },
       "nota": "2 cortes por paciente y época, fold 0 (D34)"
     },
     {
@@ -65,8 +61,22 @@
       "folds": [
         0
       ],
-      "cambios": {},
+      "cambios": {
+        "num_workers": 2
+      },
       "nota": "programador meseta, fold 0 (D34)"
+    },
+    {
+      "modelo": "cnn_v13",
+      "modo": "completo",
+      "perdida": "normal",
+      "folds": [
+        0
+      ],
+      "cambios": {
+        "num_workers": 2
+      },
+      "nota": "media + máximo, fold 0 (D34, repetida tras el cuelgue de la tarjeta)"
     }
   ],
   "modos": {

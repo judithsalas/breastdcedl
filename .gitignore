@@ -233,7 +233,7 @@ models/**
 *.ckpt
 *.pt
 *.pth
-!models/final/*.pt
+!models/final/**/*.pt
 *.onnx
 *.pkl
 *.joblib

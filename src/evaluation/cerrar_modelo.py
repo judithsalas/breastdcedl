@@ -1,16 +1,21 @@
-"""Cierre del modelo (F4, D21): de la validación cruzada ganadora al modelo final en models/final/.
+"""Cierre del modelo (F4, D21, D36): de las validaciones cruzadas al modelo final en models/final/.
 
-    python -m src.evaluation.cerrar_modelo                          # lo elige todo con los criterios
-    python -m src.evaluation.cerrar_modelo --cv runs/<carpeta_cv>   # forzar una validación cruzada
+    python -m src.evaluation.cerrar_modelo                          # conjunto de versiones (D36)
+    python -m src.evaluation.cerrar_modelo --una                    # solo la versión ganadora (D21)
+    python -m src.evaluation.cerrar_modelo --cv runs/<cv1> runs/<cv2>   # validaciones cruzadas concretas
     python -m src.evaluation.cerrar_modelo --modo rapido            # prueba de humo
 
 Todo se decide con las predicciones FUERA DE FOLD de train: cada paciente de train está predicha
 por el modelo que no la vio al entrenar. Test no se toca aquí (rúbrica: test una sola vez).
 
 Pasos:
-1. **Qué validación cruzada.** La versión ganadora según el criterio de comparación (D16). De sus
-   dos pérdidas, la ponderada solo gana si su AUC medio supera al de la normal en más de una
-   desviación; si no, la normal, que es la más simple.
+1. **Qué validaciones cruzadas.** Por defecto (D36), un **conjunto**: todas las versiones con
+   validación cruzada completa, pérdida normal y sin sobreajuste (`elegir_conjunto`). Con `--una`,
+   la versión ganadora según el criterio de comparación (D16); de sus dos pérdidas, la ponderada
+   solo gana si su AUC medio supera al de la normal en más de una desviación.
+   En el conjunto, la probabilidad fuera de fold de un corte es la media de los logits de las
+   versiones: cada una con el modelo del fold que no vio a esa paciente, igual que al desplegar
+   (allí, cada versión hace antes la media de sus 5 modelos).
 2. **Calibración de Platt.** Se ajusta logit_calibrado = a · logit + b con regresión logística
    sobre los cortes. No cambia el orden de las pacientes (el AUC apenas se mueve), pero hace que
    la probabilidad mostrada se parezca a la frecuencia real. Es imprescindible con la pérdida
@@ -18,8 +23,9 @@ Pasos:
 3. **Agregación por paciente:** la media de los cortes (lo que indica el profesor). Las demás se
    calculan solo para enseñar que la elección no cambia mucho las cosas.
 4. **Umbral:** la mayor sensibilidad con especificidad ≥ 0,80 (src/evaluation/umbral.py).
-5. **Exportar** a models/final/ los 5 modelos (uno por fold) y manifiesto.json con todo lo
-   necesario: arquitectura, sha256 de cada fichero, calibración, umbral y métricas internas.
+5. **Exportar** a models/final/<versión>/ los 5 modelos de cada versión (uno por fold) y
+   manifiesto.json con todo lo necesario: arquitecturas, sha256 de cada fichero, calibración, umbral
+   y métricas internas.
 6. **Informe** en docs/resultados/2_cierre/CIERRE_MODELO.md, con sus figuras al lado. Ahí queda
    también oof_pacientes.csv (probabilidad fuera de fold por paciente), que usa el modelo clínico
    (D25).
@@ -46,7 +52,14 @@ from src.data.caso import NOMBRE_COHORTE, RAIZ_REPO, RESULTADOS
 from src.evaluation.metricas import auc_con_ic, brier, coma, metricas_con_umbral, tabla_calibracion
 from src.evaluation.umbral import ESPECIFICIDAD_MINIMA, comparar_umbrales
 from src.models.final import CARPETA_FINAL, cargar_modelo_final, huella_modelo, sha256
-from src.models.historial import HISTORICO, desplegable, elegir_mejor, leer_historico, validaciones_validas
+from src.models.historial import (
+    HISTORICO,
+    desplegable,
+    elegir_conjunto,
+    elegir_mejor,
+    leer_historico,
+    validaciones_validas,
+)
 
 CARPETA_RUNS = RAIZ_REPO / "runs"
 FIGURAS = RESULTADOS / "2_cierre"
@@ -83,6 +96,38 @@ def elegir_validacion(modo: str = "completo", historico: Path = HISTORICO) -> tu
     return CARPETA_RUNS / fila.ejecucion, eleccion
 
 
+def elegir_conjunto_cv(modo: str = "completo", historico: Path = HISTORICO) -> tuple[list[Path], dict]:
+    """Carpetas de las validaciones cruzadas del conjunto (D36) y el porqué."""
+    conjunto = elegir_conjunto(leer_historico(historico, modo))
+    if conjunto is None:
+        raise SystemExit("No hay validaciones cruzadas completas para el conjunto. Lanza antes: python -m src.training.plan")
+    versiones = conjunto["versiones"]
+    eleccion = {"version": f"conjunto de {len(versiones)} CNN" if len(versiones) > 1 else versiones[0],
+                "versiones": versiones, "motivo_version": conjunto["motivo"], "excluidas": conjunto["excluidas"],
+                "auc_val_versiones": conjunto["auc_val"], "diferencia_versiones": conjunto["diferencia_auc"],
+                "perdida": "normal",
+                "motivo_perdida": ("las versiones se compararon con la pérdida normal; con cnn_v3, la ponderada da "
+                                   "el mismo AUC (rúbrica, punto 6)")}
+    return [CARPETA_RUNS / e for e in conjunto["ejecuciones"]], eleccion
+
+
+def combinar_oof(carpetas: list[Path]) -> pd.DataFrame:
+    """Predicciones fuera de fold por corte del conjunto: media de los logits de las versiones.
+
+    Todas las versiones usan los mismos folds (samples.csv), así que en cada corte las predicciones
+    vienen de modelos que no vieron a esa paciente: la media sigue estando fuera de fold.
+    """
+    base, logits = None, []
+    for carpeta in carpetas:
+        oof = pd.read_csv(carpeta / "predicciones_oof.csv").sort_values("sample_id").reset_index(drop=True)
+        if base is None:
+            base = oof.drop(columns="prob")
+        elif not (oof.sample_id.equals(base.sample_id) and oof.fold.equals(base.fold) and oof.pCR.equals(base.pCR)):
+            raise SystemExit(f"{carpeta.name} no tiene los mismos cortes, folds o etiquetas que {carpetas[0].name}.")
+        logits.append(logit(oof.prob.to_numpy()))
+    return base.assign(prob=sigmoide(np.mean(logits, axis=0)))
+
+
 # --------------------------------------------------------------------------- #
 # 2-4. Calibración, agregación y umbral (fuera de fold)
 # --------------------------------------------------------------------------- #
@@ -111,6 +156,12 @@ def analizar(oof: pd.DataFrame, cohortes: dict | None = None) -> dict:
     g = oof.groupby("patient_id")
     pacientes = pd.DataFrame({"pCR": g.pCR.first(), "prob_sin_calibrar": g.prob.mean(), "prob": g.prob_cal.mean(),
                               "mediana": g.prob_cal.median(), "maximo": g.prob_cal.max()})
+    por_fold = []
+    if "fold" in oof:
+        pacientes["fold"] = g.fold.first()
+        for _, grupo in pacientes.groupby("fold"):
+            if grupo.pCR.nunique() == 2:
+                por_fold.append(float(roc_auc_score(grupo.pCR, grupo.prob)))
     if cohortes is not None:
         pacientes["cohorte"] = pacientes.index.map(cohortes)
     y = pacientes.pCR.to_numpy()
@@ -133,6 +184,9 @@ def analizar(oof: pd.DataFrame, cohortes: dict | None = None) -> dict:
                         "tabla_sin_calibrar": tabla_calibracion(y, pacientes.prob_sin_calibrar),
                         "tabla_calibrada": tabla_calibracion(y, pacientes.prob)},
         "agregaciones": agregaciones, "umbrales": umbrales, "por_cohorte": por_cohorte,
+        "auc_por_fold": por_fold,
+        "auc_folds_media": float(np.mean(por_fold)) if por_fold else float("nan"),
+        "auc_folds_desviacion": float(np.std(por_fold, ddof=1)) if len(por_fold) > 1 else float("nan"),
         "pacientes": len(pacientes), "pacientes_pcr": int(y.sum()),
         "_tabla": pacientes,
     }
@@ -142,48 +196,72 @@ def analizar(oof: pd.DataFrame, cohortes: dict | None = None) -> dict:
 # 5. Exportar
 # --------------------------------------------------------------------------- #
 
-def exportar(carpeta_cv: Path, eleccion: dict, analisis: dict, destino: Path = CARPETA_FINAL) -> dict:
-    """Copia los 5 modelos (solo los pesos) y escribe manifiesto.json."""
+def _exportar_version(carpeta_cv: Path, destino: Path, subcarpeta: str) -> dict:
+    """Copia los 5 modelos (solo los pesos) de una validación cruzada a destino/subcarpeta/."""
     folds = sorted(carpeta_cv.glob("fold_*"))
     if len(folds) != 5:
         raise SystemExit(f"{carpeta_cv.name} tiene {len(folds)} folds; el modelo final necesita los 5.")
-    destino.mkdir(parents=True, exist_ok=True)
-    for viejo in [*destino.glob("*.pt"), destino / "manifiesto.json"]:
-        viejo.unlink(missing_ok=True)
-
+    (destino / subcarpeta).mkdir(parents=True, exist_ok=True)
     resultados = [json.loads((f / "resultados.json").read_text(encoding="utf-8")) for f in folds]
     pesos = []
     for f, r in zip(folds, resultados, strict=True):
         punto = torch.load(f / "mejor.pt", map_location="cpu", weights_only=True)
-        ruta = destino / f"{f.name}.pt"
+        ruta = destino / subcarpeta / f"{f.name}.pt"
         torch.save(punto["estado"], ruta)
-        pesos.append({"fichero": ruta.name, "sha256": sha256(ruta), "epoca": punto["epoca"],
-                      "auc_val_fold": r["mejor_epoca"]["auc_val"]})
-
+        pesos.append({"fichero": ruta.relative_to(destino).as_posix(), "sha256": sha256(ruta),
+                      "epoca": punto["epoca"], "auc_val_fold": r["mejor_epoca"]["auc_val"]})
     definicion = resultados[0]["arquitectura"]
-    resumen = json.loads((carpeta_cv / "resumen.json").read_text(encoding="utf-8"))
+    md = json.loads((carpeta_cv / "resumen.json").read_text(encoding="utf-8"))["media_desviacion"]
+    return {"version": subcarpeta, "validacion_cruzada": carpeta_cv.name, "definicion": definicion,
+            "arquitectura": {k: v for k, v in definicion.items() if k != "entrenamiento"},
+            "receta": resultados[0].get("receta"), "parametros": resultados[0]["parametros"],
+            "config": resultados[0]["config"], "maquina": resultados[0]["maquina"],
+            "auc_val_media": md["auc_val"]["media"], "auc_val_desviacion": md["auc_val"]["desviacion"],
+            "auc_train_media": md["auc_train"]["media"], "diferencia_media": md["diferencia_auc"]["media"],
+            "pesos": pesos}
+
+
+def exportar(carpetas: list[Path], eleccion: dict, analisis: dict, destino: Path = CARPETA_FINAL) -> dict:
+    """Copia los 5 modelos de cada versión (solo los pesos) y escribe manifiesto.json."""
+    destino.mkdir(parents=True, exist_ok=True)
+    for viejo in [*destino.glob("*.pt"), *destino.glob("*/*.pt"), destino / "manifiesto.json"]:
+        viejo.unlink(missing_ok=True)
+    for sub in destino.iterdir():
+        if sub.is_dir() and not any(sub.iterdir()):
+            sub.rmdir()
+
+    versiones = eleccion.get("versiones") or [eleccion["version"]]
+    miembros = [_exportar_version(c, destino, v) for c, v in zip(carpetas, versiones, strict=True)]
+    solo = len(miembros) == 1
     elegido = analisis["umbrales"]["elegido"]
+    media = (lambda clave: float(np.mean([m[clave] for m in miembros])))
     manifiesto = {
         "fecha": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "version": eleccion["version"], "eleccion": eleccion, "validacion_cruzada": carpeta_cv.name,
-        "definicion": definicion,
-        "arquitectura": {k: v for k, v in definicion.items() if k != "entrenamiento"},
-        "receta": resultados[0].get("receta"),
+        "version": eleccion["version"], "versiones": versiones, "eleccion": eleccion,
+        "validacion_cruzada": [m["validacion_cruzada"] for m in miembros],
+        "miembros": miembros,
+        "receta": miembros[0]["receta"] if solo else None,
         "entrada": "3 PNG en gris de 8 bits (PRE, EARLY, LATE), 256×256, divididos entre 255 → [0, 1]",
-        "conjunto": "media de los logits de los 5 modelos (uno por fold)",
+        "conjunto": ("media de los logits de los 5 modelos (uno por fold)" if solo else
+                     f"media de los logits de los 5 modelos de cada versión (uno por fold) y media entre las "
+                     f"{len(miembros)} versiones: {len(miembros) * 5} CNN propias desde cero"),
         "calibracion": {k: analisis["calibracion"][k] for k in ("a", "b", "metodo")},
         "agregacion": "media de las probabilidades de los cortes de una paciente",
         "umbral": float(elegido["umbral"]),
         "criterio_umbral": elegido["criterio"],
-        "pesos": pesos,
-        "entrenamiento": {"perdida": eleccion["perdida"], "config": resultados[0]["config"],
-                          "parametros": resultados[0]["parametros"],
-                          "maquina": resultados[0]["maquina"]},
+        "pesos": [f for m in miembros for f in m["pesos"]],
+        "entrenamiento": {"perdida": eleccion["perdida"], "config": miembros[0]["config"],
+                          "parametros": int(sum(m["parametros"] for m in miembros)),
+                          "parametros_por_version": {m["version"]: m["parametros"] for m in miembros},
+                          "redes": 5 * len(miembros), "maquina": miembros[0]["maquina"]},
         "metricas_internas": {
-            "auc_val_media": resumen["media_desviacion"]["auc_val"]["media"],
-            "auc_val_desviacion": resumen["media_desviacion"]["auc_val"]["desviacion"],
-            "auc_train_media": resumen["media_desviacion"]["auc_train"]["media"],
-            "diferencia_media": resumen["media_desviacion"]["diferencia_auc"]["media"],
+            "auc_val_media": (miembros[0]["auc_val_media"] if solo else analisis["auc_folds_media"]),
+            "auc_val_desviacion": (miembros[0]["auc_val_desviacion"] if solo else analisis["auc_folds_desviacion"]),
+            "auc_val_por_fold": analisis["auc_por_fold"],
+            "auc_train_media": media("auc_train_media"),
+            "diferencia_media": media("diferencia_media"),
+            "nota_train": ("" if solo else "AUC de entrenamiento y diferencia: media de las versiones del "
+                           "conjunto (cada una se midió en su validación cruzada)"),
             "fuera_de_fold": {"auc": analisis["agregaciones"]["media"],
                               **{k: elegido[k] for k in ("sensibilidad", "especificidad", "precision_pcr",
                                                          "precision_no_pcr", "f1_pcr", "f1_no_pcr", "f1_macro",
@@ -192,33 +270,35 @@ def exportar(carpeta_cv: Path, eleccion: dict, analisis: dict, destino: Path = C
         },
     }
     manifiesto["huella_modelo"] = huella_modelo(manifiesto)
-    (destino / "manifiesto.json").write_text(json.dumps(manifiesto, indent=2, ensure_ascii=False), encoding="utf-8")
+    (destino / "manifiesto.json").write_text(json.dumps(manifiesto, indent=2, ensure_ascii=False, default=list),
+                                             encoding="utf-8")
     return manifiesto
 
 
-def comprobar_exportacion(destino: Path, carpeta_cv: Path) -> float | None:
+def comprobar_exportacion(destino: Path, carpetas: list[Path]) -> float | None:
     """Recarga el modelo final y comprueba que reproduce el pipeline en unos cortes.
 
     Cada modelo de fold, solo, debe dar en sus cortes de validación lo mismo que guardó el
-    entrenamiento; el conjunto, lo mismo que la media de logits de los 5. Devuelve la mayor
-    diferencia encontrada en un modelo individual (debería ser ~1e-6), o None si no hay imágenes.
+    entrenamiento. Devuelve la mayor diferencia encontrada en un modelo individual (debería ser
+    ~1e-6), o None si no hay imágenes.
     """
     from src.data.caso import RAIZ_DATOS, uc
 
     modelo, _ = cargar_modelo_final(destino)
     samples = uc.cargar_samples().set_index("sample_id")
     diferencia = 0.0
-    for k, red in enumerate(modelo.redes):
-        pred = pd.read_csv(carpeta_cv / f"fold_{k}" / "predicciones_val.csv").head(8)
-        if not pred.sample_id.isin(samples.index).all():
-            return None
-        filas = samples.loc[pred.sample_id].reset_index()
-        if not all((RAIZ_DATOS / r).exists() for r in filas.path_pre):
-            return None                      # sin imágenes (por ejemplo, en los tests): no se comprueba
-        x = torch.stack([torch.from_numpy(uc.cargar_imagen(f)) for f in filas.itertuples()])
-        with torch.no_grad():
-            p = torch.sigmoid(red(x).squeeze(1)).numpy()
-        diferencia = max(diferencia, float(np.abs(p - pred.prob.to_numpy()).max()))
+    for carpeta_cv, grupo in zip(carpetas, modelo.grupos, strict=True):
+        for k, i in enumerate(grupo):
+            pred = pd.read_csv(carpeta_cv / f"fold_{k}" / "predicciones_val.csv").head(8)
+            if not pred.sample_id.isin(samples.index).all():
+                return None
+            filas = samples.loc[pred.sample_id].reset_index()
+            if not all((RAIZ_DATOS / r).exists() for r in filas.path_pre):
+                return None                  # sin imágenes (por ejemplo, en los tests): no se comprueba
+            x = torch.stack([torch.from_numpy(uc.cargar_imagen(f)) for f in filas.itertuples()])
+            with torch.no_grad():
+                p = torch.sigmoid(modelo.redes[i](x).squeeze(1)).numpy()
+            diferencia = max(diferencia, float(np.abs(p - pred.prob.to_numpy()).max()))
     return diferencia
 
 
@@ -284,6 +364,22 @@ def figuras(analisis: dict, carpeta: Path) -> list[Path]:
     return rutas
 
 
+def _lineas_miembros(manifiesto: dict, eleccion: dict) -> list[str]:
+    """Qué versiones forman el modelo y con qué validación cruzada."""
+    miembros = manifiesto["miembros"]
+    if len(miembros) == 1:
+        return [f"- **Validación cruzada usada:** `{miembros[0]['validacion_cruzada']}`."]
+    lineas = ["", "| Versión | AUC val (5 folds) | Train − val | Parámetros | Validación cruzada |",
+              "|---|---|---|---|---|"]
+    for m in miembros:
+        parametros = f"{m['parametros']:,}".replace(",", ".")
+        lineas.append(f"| {m['version']} | {coma(m['auc_val_media'], 3)} ± {coma(m['auc_val_desviacion'], 3)} | "
+                      f"{coma(m['diferencia_media'], 3)} | {parametros} | `{m['validacion_cruzada']}` |")
+    for version, motivo in (eleccion.get("excluidas") or {}).items():
+        lineas.append(f"| ~~{version}~~ | — | — | — | no entra: {motivo} |")
+    return [*lineas, ""]
+
+
 def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float | None) -> str:
     u, cal = analisis["umbrales"], analisis["calibracion"]
     mi = manifiesto["metricas_internas"]
@@ -293,13 +389,14 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
         "Todo con predicciones **fuera de fold** de train; test no se ha usado. Explicación de cada",
         "decisión: [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).", "",
         "## 1. Qué modelo", "",
-        f"- **Versión:** {eleccion['version']}. Motivo: {eleccion['motivo_version']}.",
+        f"- **Modelo:** {eleccion['version']}. Motivo: {eleccion['motivo_version']}.",
         f"- **Pérdida:** {eleccion['perdida']}. Motivo: {eleccion['motivo_perdida']}.",
-        f"- **Validación cruzada usada:** `{manifiesto['validacion_cruzada']}`.",
+        *_lineas_miembros(manifiesto, eleccion),
         (f"- **AUC en validación (5 folds):** {coma(mi['auc_val_media'], 3)} ± "
          f"{coma(mi['auc_val_desviacion'], 3)}; en entrenamiento {coma(mi['auc_train_media'], 3)}; "
-         f"diferencia media {coma(mi['diferencia_media'], 3)}."),
-        ("- **Modelo final:** media de los logits de los 5 modelos de esa validación cruzada "
+         f"diferencia media {coma(mi['diferencia_media'], 3)}."
+         + (f" {mi['nota_train']}." if mi.get("nota_train") else "")),
+        (f"- **Modelo final:** {manifiesto['conjunto']} "
          f"(huella del modelo `{manifiesto['huella_modelo']}`)."), "",
         "## 2. Calibración (Platt)", "",
         (f"logit calibrado = {coma(cal['a'], 3)} · logit + ({coma(cal['b'], 3)}). Error de Brier por "
@@ -330,6 +427,7 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
         lineas.append("")
     lineas += ["## 6. Exportación", "",
                "| Fichero | Época | AUC del fold | sha256 |", "|---|---|---|---|"]
+    # (un fichero por fold y versión, en models/final/<versión>/)
     for f in manifiesto["pesos"]:
         lineas.append(f"| `models/final/{f['fichero']}` | {f['epoca']} | {coma(f['auc_val_fold'], 3)} | "
                       f"`{f['sha256'][:16]}…` |")
@@ -340,15 +438,16 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
     return "\n".join(lineas)
 
 
-def cerrar(carpeta_cv: Path, eleccion: dict, destino: Path = CARPETA_FINAL, informe_md: Path = INFORME,
+def cerrar(carpetas: Path | list[Path], eleccion: dict, destino: Path = CARPETA_FINAL, informe_md: Path = INFORME,
            carpeta_figuras: Path = FIGURAS, comprobar: bool = True) -> dict:
-    """Hace todo el cierre a partir de una validación cruzada. Devuelve el manifiesto."""
+    """Hace todo el cierre a partir de una o varias validaciones cruzadas. Devuelve el manifiesto."""
     from src.training.entrenar import cohortes
 
-    oof = pd.read_csv(carpeta_cv / "predicciones_oof.csv")
+    carpetas = [carpetas] if isinstance(carpetas, Path) else list(carpetas)
+    oof = combinar_oof(carpetas)
     analisis = analizar(oof, cohortes())
-    manifiesto = exportar(carpeta_cv, eleccion, analisis, destino)
-    diferencia = comprobar_exportacion(destino, carpeta_cv) if comprobar else None
+    manifiesto = exportar(carpetas, eleccion, analisis, destino)
+    diferencia = comprobar_exportacion(destino, carpetas) if comprobar else None
     figuras(analisis, carpeta_figuras)
     informe_md.parent.mkdir(parents=True, exist_ok=True)
     informe_md.write_text(informe(eleccion, analisis, manifiesto, diferencia), encoding="utf-8")
@@ -363,22 +462,33 @@ def cerrar(carpeta_cv: Path, eleccion: dict, destino: Path = CARPETA_FINAL, info
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Cierra el modelo: calibración, umbral y exportación a models/final/.")
-    p.add_argument("--cv", help="carpeta de una validación cruzada concreta (por defecto, la ganadora)")
+    p.add_argument("--cv", nargs="+", help="carpetas de validaciones cruzadas concretas (por defecto, el conjunto)")
+    p.add_argument("--una", action="store_true", help="solo la versión ganadora del criterio (D21), no el conjunto")
     p.add_argument("--modo", choices=["rapido", "completo"], default="completo")
     args = p.parse_args()
     if args.cv:
-        carpeta = Path(args.cv).resolve()
-        resumen = json.loads((carpeta / "resumen.json").read_text(encoding="utf-8"))
-        eleccion = {"version": resumen["modelo"], "motivo_version": "elegida a mano con --cv",
-                    "perdida": resumen["perdida"], "motivo_perdida": "elegida a mano con --cv"}
-    else:
+        carpetas = [Path(c).resolve() for c in args.cv]
+        resumenes = [json.loads((c / "resumen.json").read_text(encoding="utf-8")) for c in carpetas]
+        versiones = [r["modelo"] for r in resumenes]
+        eleccion = {"version": versiones[0] if len(versiones) == 1 else f"conjunto de {len(versiones)} CNN",
+                    "versiones": versiones, "motivo_version": "elegidas a mano con --cv",
+                    "perdida": resumenes[0]["perdida"], "motivo_perdida": "elegida a mano con --cv"}
+    elif args.una:
         carpeta, eleccion = elegir_validacion(args.modo)
-    if not desplegable(eleccion["version"]):
-        raise SystemExit(f"{eleccion['version']} se entrenó recortando con la caja del tumor, que la app y la "
-                         "validación privada no tienen: no puede ser el modelo final (D33).")
-    manifiesto = cerrar(carpeta, eleccion)
-    print(f"Modelo final: {manifiesto['version']} ({eleccion['perdida']}), umbral {manifiesto['umbral']:.3f}, "
-          f"huella {manifiesto['huella_modelo']}")
+        carpetas, eleccion["versiones"] = [carpeta], [eleccion["version"]]
+    else:
+        carpetas, eleccion = elegir_conjunto_cv(args.modo)
+    for version in eleccion["versiones"]:
+        if not desplegable(version):
+            raise SystemExit(f"{version} se entrenó recortando con la caja del tumor, que la app y la "
+                             "validación privada no tienen: no puede estar en el modelo final (D33).")
+    if len(set(eleccion["versiones"])) != len(eleccion["versiones"]):
+        raise SystemExit("Hay una versión repetida: cada versión entra una sola vez en el conjunto.")
+    manifiesto = cerrar(carpetas, eleccion)
+    mi = manifiesto["metricas_internas"]
+    print(f"Modelo final: {manifiesto['version']} ({', '.join(manifiesto['versiones'])}), pérdida {eleccion['perdida']}")
+    print(f"AUC fuera de fold (media de 5 folds): {mi['auc_val_media']:.3f} ± {mi['auc_val_desviacion']:.3f} · "
+          f"umbral {manifiesto['umbral']:.3f} · huella {manifiesto['huella_modelo']}")
     print(f"Pesos y manifiesto en {CARPETA_FINAL.relative_to(RAIZ_REPO)}/ · informe en {INFORME.relative_to(RAIZ_REPO)}")
     print("Siguiente paso: python -m src.evaluation.modelo_clinico (comparación con el médico, D25)")
     print("Después, UNA sola vez: python -m src.evaluation.evaluar_test")

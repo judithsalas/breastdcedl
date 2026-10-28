@@ -4,7 +4,7 @@
 
 Uso educativo, sin validez clínica. Usa EXACTAMENTE el mismo código que el pipeline:
 - src/data/entrada.py   lectura y validación de las tres fases (misma normalización: PNG / 255)
-- src/models/final.py   modelo final (conjunto de 5 folds + calibración), en modo evaluación y
+- src/models/final.py   modelo final (conjunto de CNN: 5 folds por versión + calibración), en modo evaluación y
                         sin gradientes
 Despliegue: app/README.md.
 """
@@ -105,14 +105,19 @@ def tarjeta_modelo(manifiesto: dict, dispositivo: str) -> None:
         f"b = {_num(manifiesto['calibracion']['b'])})"
     )
     st.sidebar.subheader("Entrenamiento")
-    config, receta = ent["config"], manifiesto.get("receta") or {}
-    st.sidebar.markdown(
-        f"- CNN propia desde cero, {ent['parametros']:,} parámetros".replace(",", ".") + "\n"
-        f"- Pérdida {ent['perdida']} · batch {config.get('batch_size')} · lr {config.get('learning_rate')} · "
-        f"semilla {config.get('semilla')}\n"
-        f"- Aumento de datos: {receta.get('aumento') or 'no'}\n"
-        f"- Épocas elegidas por fold: {', '.join(str(p['epoca']) for p in manifiesto['pesos'])}"
-    )
+    config = ent["config"]
+    miembros = manifiesto.get("miembros") or [{"version": manifiesto["version"], "parametros": ent["parametros"],
+                                               "receta": manifiesto.get("receta"), "pesos": manifiesto["pesos"]}]
+    lineas = [f"- {len(miembros) * 5} CNN propias desde cero ({len(miembros)} versiones × 5 folds)"
+              if len(miembros) > 1 else "- CNN propia desde cero (5 modelos, uno por fold)",
+              (f"- Pérdida {ent['perdida']} · batch {config.get('batch_size')} · lr {config.get('learning_rate')} · "
+               f"semilla {config.get('semilla')}")]
+    for m in miembros:
+        receta = m.get("receta") or {}
+        lineas.append(f"- **{m['version']}:** {m['parametros']:,} parámetros".replace(",", ".")
+                      + f" · aumento {receta.get('aumento') or 'no'} · épocas "
+                      + ", ".join(str(f["epoca"]) for f in m["pesos"]))
+    st.sidebar.markdown("\n".join(lineas))
     st.sidebar.subheader("Métricas internas (validación cruzada)")
     st.sidebar.markdown(
         f"- AUC por paciente: **{_num(mi['auc_val_media'])} ± {_num(mi['auc_val_desviacion'])}** "

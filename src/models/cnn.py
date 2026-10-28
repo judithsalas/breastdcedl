@@ -9,6 +9,10 @@ Estructura:
     entrada (B, 3, 256, 256)       PRE, EARLY, LATE (instantes, no colores)
        │
        ▼
+    [REDUCCIÓN] si reduccion = 2: media de cada cuadrado de 2×2 píxeles → (B, 3, 128, 128).
+       La red trabaja a la mitad de resolución, pero recibe lo mismo de siempre (D35)
+       │
+       ▼
     [NORMALIZACIÓN] si normalizacion = "pre": las tres fases se dividen entre la intensidad
        media del PRE en el tejido de ESE corte → intensidad relativa a la propia paciente,
        sin la escala de cada escáner (D28)
@@ -16,6 +20,8 @@ Estructura:
        ▼
     [REALCE] si entrada = "fases+realce": se añaden dos canales calculados DENTRO
        de la red, EARLY − PRE (realce) y LATE − EARLY (lavado) → (B, 5, 256, 256)
+       si entrada = "fases+cinetica": se añaden los mapas cinéticos de la radiología,
+       realce relativo al PRE y SER (lavado), también calculados dentro (D35)
        │
        ▼
     EXTRACTOR: un bloque por elemento de `filtros`
@@ -30,7 +36,7 @@ Estructura:
        ▼
     CABEZA: [Linear -> ReLU] (si hay capa oculta) -> [Dropout] -> Linear -> 1 logit
 
-El realce y la normalización se calculan dentro de la red a propósito: así la app y
+La reducción, el realce, los mapas cinéticos y la normalización se calculan dentro de la red a propósito: así la app y
 el entrenamiento reciben exactamente lo mismo (las 3 fases en [0, 1]) y no puede haber
 una normalización distinta entre los dos.
 """
@@ -42,12 +48,37 @@ from torch import nn
 
 LADO_ENTRADA = 256
 CANALES_ENTRADA = 3            # lo que RECIBE siempre la red: PRE, EARLY, LATE
-CANALES_POR_ENTRADA = {"fases": 3, "fases+realce": 5}
+CANALES_POR_ENTRADA = {"fases": 3, "fases+realce": 5, "fases+cinetica": 5}
 NORMALIZACIONES = (None, "pre")
+REDUCCIONES = (1, 2, 4)        # 1 = la resolución de siempre; 2 = 128×128 dentro de la red (D35)
 RESUMENES = ("global", "flatten", "atencion", "media+max")
 UMBRAL_TEJIDO = 0.1            # PRE > 0,1 es tejido (lo demás, aire); igual que la auditoría
 REFERENCIA_MINIMA = 0.1        # si un corte casi no tiene tejido, no se divide entre ~0
 OCULTA_ATENCION = 32           # tamaño de la capa interna del pooling por atención
+# Mapas cinéticos (D35). Convenciones de la radiología de mama (I-SPY: volumen funcional del tumor
+# con realce ≥ 70 %; curva persistente si SER < 0,9, meseta 0,9–1,1, lavado si SER > 1,1).
+PE_UMBRAL = 0.7                # realce relativo a partir del cual un píxel «realza»
+PE_MAX = 3.0                   # se recorta para que un PRE casi negro no dé valores enormes
+SER_MAX = 2.0
+SER_DENOMINADOR_MINIMO = 0.02
+
+
+def mapas_cineticos(x: torch.Tensor) -> torch.Tensor:
+    """Realce relativo y SER por píxel: (B, 3, H, W) → (B, 2, H, W), los dos en [0, 1].
+
+    - Realce relativo (PE) = (EARLY − PRE) / PRE: cuánto sube cada punto respecto a sí mismo. Solo en
+      tejido (PRE > 0,1); el aire vale 0. Se recorta a [0, 3] y se divide entre 3.
+    - SER = (EARLY − PRE) / (LATE − PRE): > 1 si al final baja (lavado, típico de tumores agresivos),
+      < 1 si sigue subiendo. Solo donde el píxel realza (PE ≥ 0,7); en el resto, 0. Se recorta a
+      [0, 2] y se divide entre 2.
+    Son divisiones, que una red de convoluciones y ReLU no sabe hacer por sí sola: por eso se le dan.
+    """
+    pre, early, late = x[:, 0:1], x[:, 1:2], x[:, 2:3]
+    tejido = (pre > UMBRAL_TEJIDO).to(x.dtype)
+    pe = ((early - pre) / pre.clamp(min=UMBRAL_TEJIDO)).clamp(0.0, PE_MAX) * tejido
+    realza = (pe >= PE_UMBRAL).to(x.dtype)
+    ser = ((early - pre) / (late - pre).clamp(min=SER_DENOMINADOR_MINIMO)).clamp(0.0, SER_MAX) * realza
+    return torch.cat([pe / PE_MAX, ser / SER_MAX], dim=1)
 
 
 def normalizar_por_pre(x: torch.Tensor) -> torch.Tensor:
@@ -113,6 +144,7 @@ class CNN(nn.Module):
         dropout: float = 0.0,
         entrada: str = "fases",
         normalizacion: str | None = None,
+        reduccion: int = 1,
     ) -> None:
         """
         filtros           canales de salida de cada bloque; su longitud = número de bloques.
@@ -126,10 +158,13 @@ class CNN(nn.Module):
                           (media y máximo de cada canal, juntos: MediaYMaximo).
         cabeza_oculta     None = Linear directa a 1 salida; un número = capa intermedia.
         dropout           probabilidad de dropout en la cabeza (0 = sin dropout).
-        entrada           "fases" (PRE, EARLY, LATE) o "fases+realce" (además EARLY − PRE y
-                          LATE − EARLY, calculados dentro de la red).
+        entrada           "fases" (PRE, EARLY, LATE), "fases+realce" (además EARLY − PRE y
+                          LATE − EARLY) o "fases+cinetica" (además realce relativo y SER,
+                          mapas_cineticos); todo calculado dentro de la red.
         normalizacion     None (las fases tal cual, en [0, 1]) o "pre" (divididas entre la
                           intensidad media del PRE en el tejido del corte; normalizar_por_pre).
+        reduccion         1 = la red trabaja a 256×256; 2 = a 128×128 (media de 2×2 píxeles al
+                          entrar). La entrada sigue siendo (B, 3, 256, 256).
         """
         super().__init__()
         if kernel % 2 == 0:
@@ -142,8 +177,11 @@ class CNN(nn.Module):
             raise ValueError(f"entrada debe ser una de {sorted(CANALES_POR_ENTRADA)}")
         if normalizacion not in NORMALIZACIONES:
             raise ValueError(f"normalizacion debe ser una de {NORMALIZACIONES}")
+        if reduccion not in REDUCCIONES:
+            raise ValueError(f"reduccion debe ser una de {REDUCCIONES}")
         self.entrada = entrada
         self.normalizacion = normalizacion
+        self.reduccion = reduccion
 
         # ---- Extractor ------------------------------------------------------ #
         capas: list[nn.Module] = []
@@ -160,7 +198,7 @@ class CNN(nn.Module):
         self.extractor = nn.Sequential(*capas)
 
         # ---- Resumen: de mapas a vector ------------------------------------ #
-        lado_final = LADO_ENTRADA // 2 ** len(filtros)
+        lado_final = LADO_ENTRADA // reduccion // 2 ** len(filtros)
         if resumen == "global":
             self.resumen = nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten())
             n_vector = canales
@@ -185,13 +223,17 @@ class CNN(nn.Module):
         self.cabeza = nn.Sequential(*cabeza)
 
     def preparar_entrada(self, x: torch.Tensor) -> torch.Tensor:
-        """(B, 3, H, W) → lo que ve el primer bloque: normalizada si toca y, con realce, con
-        EARLY − PRE y LATE − EARLY añadidos."""
+        """(B, 3, H, W) → lo que ve el primer bloque: reducida y normalizada si toca, y con los
+        canales calculados que pida `entrada` (realce o mapas cinéticos)."""
+        if self.reduccion > 1:
+            x = nn.functional.avg_pool2d(x, self.reduccion)
         if self.normalizacion == "pre":
             x = normalizar_por_pre(x)
         if self.entrada == "fases+realce":
             pre, early, late = x[:, 0:1], x[:, 1:2], x[:, 2:3]
             x = torch.cat([x, early - pre, late - early], dim=1)
+        elif self.entrada == "fases+cinetica":
+            x = torch.cat([x, mapas_cineticos(x)], dim=1)
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

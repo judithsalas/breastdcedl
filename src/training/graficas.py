@@ -14,7 +14,7 @@ Ejecución normal:
                                        validación juntos, con la época elegida marcada
     graficas/matriz_confusion.png      matriz de confusión por paciente de la época elegida
 Validación cruzada:
-    graficas/curvas_folds.png          las curvas de todos los folds superpuestas
+    graficas/curvas_folds.png          media de los folds ± 1 desviación, y la época elegida de cada uno
     graficas/matriz_confusion_oof.png  matriz fuera de fold (todas las pacientes de train)
 
 Las gráficas que vayan al informe se copian a docs/figuras/ (runs/ no se versiona).
@@ -37,8 +37,11 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 from src.evaluation.metricas import coma, dibujar_matriz_confusion
 
 # Dos series: entrenamiento (azul) y validación (naranja), como en las figuras del profesor.
+# Son los dos primeros colores de la paleta validada para daltonismo.
 COLOR_TR, COLOR_VA = "#2a78d6", "#eb6834"
-TINTA, TINTA_SUAVE, REJILLA = "#0b0b0b", "#52514e", "#e4e3df"
+TINTA, TINTA_SUAVE, REJILLA, REFERENCIA, FONDO = "#0b0b0b", "#52514e", "#e4e3df", "#9a9893", "#ffffff"
+SOMBRA = 0.13          # opacidad de la banda de ± 1 desviación entre folds
+MIN_FOLDS = 3          # la media se dibuja mientras siguen entrenando al menos 3 folds
 
 
 def _leer_json(ruta: Path) -> dict:
@@ -63,82 +66,129 @@ def epoca_elegida(historial: pd.DataFrame) -> int:
 
 
 def _estilo(ax, titulo: str, ylabel: str) -> None:
-    ax.set_title(titulo, fontsize=10.5, fontweight="bold", color=TINTA, loc="left")
-    ax.set_xlabel("Época", color=TINTA_SUAVE)
-    ax.set_ylabel(ylabel, color=TINTA_SUAVE)
+    """Ejes discretos: rejilla fina, sin marco arriba ni a la derecha, texto en gris."""
+    ax.set_title(titulo, fontsize=11.5, fontweight="bold", color=TINTA, loc="left", pad=10)
+    ax.set_xlabel("Época", color=TINTA_SUAVE, fontsize=10)
+    ax.set_ylabel(ylabel, color=TINTA_SUAVE, fontsize=10)
     ax.grid(True, color=REJILLA, linewidth=0.8)
     ax.set_axisbelow(True)
     for lado in ("top", "right"):
         ax.spines[lado].set_visible(False)
     for lado in ("left", "bottom"):
         ax.spines[lado].set_color(REJILLA)
-    ax.tick_params(colors=TINTA_SUAVE, length=0)
+    ax.tick_params(colors=TINTA_SUAVE, length=0, labelsize=9.5)
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: coma(v, 2)))
 
 
-def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str, subtitulo: str) -> Path:
-    """Dos paneles (pérdida y AUC por paciente) con entrenamiento y validación juntos."""
+def _hay(h: pd.DataFrame, columna: str) -> bool:
+    return columna in h and h[columna].notna().any()
+
+
+def _media_por_epoca(historiales: list[tuple[pd.DataFrame, int]], columna: str):
+    """Media y desviación entre folds en cada época, mientras sigan entrenando al menos MIN_FOLDS."""
+    series = [h.set_index("epoca")[columna].rename(i) for i, (h, _) in enumerate(historiales) if _hay(h, columna)]
+    if not series:
+        return None
+    tabla = pd.concat(series, axis=1)
+    tabla = tabla[tabla.notna().sum(axis=1) >= min(MIN_FOLDS, len(series))]
+    return tabla.index.to_numpy(), tabla.mean(axis=1).to_numpy(), tabla.std(axis=1, ddof=1).fillna(0).to_numpy()
+
+
+def _etiqueta_final(ax, x, y, texto: str) -> None:
+    """Nombre de la serie al final de su línea (en gris: el color lo lleva la línea)."""
+    ax.annotate(texto, (x, y), xytext=(6, 0), textcoords="offset points", va="center", ha="left",
+                fontsize=9, color=TINTA_SUAVE)
+
+
+def _numeros_epoca_elegida(historiales: list[tuple[pd.DataFrame, int]]) -> str:
+    """AUC de validación, de entrenamiento y su diferencia en la época elegida (rúbrica, punto 5)."""
+    filas = [h[h.epoca == e].iloc[0] for h, e in historiales]
+    val = np.array([f.auc for f in filas], float)
+    tr = np.array([f.auc_tr if "auc_tr" in f else np.nan for f in filas], float)
+    if len(filas) == 1:
+        texto = f"Época elegida {historiales[0][1]}: AUC de validación {coma(val[0], 3)}"
+        if not np.isnan(tr[0]):
+            texto += f" · entrenamiento {coma(tr[0], 3)} · diferencia {coma(tr[0] - val[0], 3)}"
+        return texto
+    texto = (f"En la época elegida de cada fold: AUC de validación {coma(val.mean(), 3)} ± "
+             f"{coma(val.std(ddof=1), 3)}")
+    if not np.isnan(tr).all():
+        texto += (f" · entrenamiento {coma(np.nanmean(tr), 3)} · diferencia "
+                  f"{coma(np.nanmean(tr - val), 3)}")
+    return texto
+
+
+def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str, pie: str) -> Path:
+    """AUC por paciente (izquierda, la medida que importa) y pérdida (derecha), entrenamiento y validación.
+
+    Con varios folds se dibuja la media de los folds y una banda de ± 1 desviación, en vez de diez
+    líneas cruzadas: se ve de un vistazo cuánto sube el entrenamiento y dónde se queda la validación.
+    Los puntos son la época elegida de cada fold, en su valor real.
+    """
     varios = len(historiales) > 1
-    grosor, alfa = (1.3, 0.85) if varios else (2.0, 1.0)
-    fig, (ax_p, ax_a) = plt.subplots(1, 2, figsize=(11, 4.3))
-    hay_auc_tr = any("auc_tr" in h and h["auc_tr"].notna().any() for h, _ in historiales)
+    fig, (ax_a, ax_p) = plt.subplots(1, 2, figsize=(12.5, 5.6))
+    fig.patch.set_facecolor(FONDO)
+    hay_auc_tr = any(_hay(h, "auc_tr") for h, _ in historiales)
+    paneles = ((ax_a, "auc_tr", "auc"), (ax_p, "perdida_tr", "perdida_va"))
 
-    for i, (h, elegida) in enumerate(historiales):
-        etiqueta = i == 0
-        ax_p.plot(h.epoca, h.perdida_tr, color=COLOR_TR, lw=grosor, alpha=alfa,
-                  label="entrenamiento" if etiqueta else None)
-        ax_p.plot(h.epoca, h.perdida_va, color=COLOR_VA, lw=grosor, alpha=alfa,
-                  label="validación" if etiqueta else None)
-        if hay_auc_tr and "auc_tr" in h:
-            ax_a.plot(h.epoca, h.auc_tr, color=COLOR_TR, lw=grosor, alpha=alfa,
-                      label="entrenamiento" if etiqueta else None)
-        ax_a.plot(h.epoca, h.auc, color=COLOR_VA, lw=grosor, alpha=alfa,
-                  label="validación" if etiqueta else None)
-        # Época elegida: punto en la curva de validación (con anillo del color del fondo).
-        fila = h[h.epoca == elegida].iloc[0]
-        for ax, y in ((ax_p, fila.perdida_va), (ax_a, fila.auc)):
-            ax.scatter([elegida], [y], s=46, color=COLOR_VA, edgecolor="white", linewidth=1.5, zorder=5,
-                       label="época elegida" if etiqueta and ax is ax_a else None)
+    ultima = max(e for _, e in historiales)        # el eje llega hasta lo dibujado y las épocas elegidas
+    for ax, col_tr, col_va in paneles:
+        for columna, color, nombre in ((col_tr, COLOR_TR, "entrenamiento"), (col_va, COLOR_VA, "validación")):
+            if varios:
+                media = _media_por_epoca(historiales, columna)
+                if media is None:
+                    continue
+                x, m, s = media
+                ax.fill_between(x, m - s, m + s, color=color, alpha=SOMBRA, lw=0, zorder=2)
+            else:
+                h = historiales[0][0]
+                if not _hay(h, columna):
+                    continue
+                x, m = h.epoca.to_numpy(), h[columna].to_numpy(float)
+            ax.plot(x, m, color=color, lw=2.2, solid_capstyle="round", solid_joinstyle="round", zorder=3,
+                    label=nombre if ax is ax_a or not hay_auc_tr else None)
+            _etiqueta_final(ax, x[-1], m[-1], nombre)
+            ultima = max(ultima, int(x[-1]))
+        # Época elegida: un punto por fold en su valor real de validación, con anillo blanco.
+        puntos = [(e, float(h.loc[h.epoca == e, col_va].iloc[0])) for h, e in historiales]
+        ax.scatter([e for e, _ in puntos], [v for _, v in puntos], s=58, color=COLOR_VA, edgecolor=FONDO,
+                   linewidth=2, zorder=5, label=("época elegida de cada fold" if varios else "época elegida")
+                   if ax is ax_a else None)
         if not varios:
-            for ax in (ax_p, ax_a):
-                ax.axvline(elegida, color=TINTA_SUAVE, lw=0.8, ls=":", zorder=1)
+            ax.axvline(historiales[0][1], color=REJILLA, lw=1.2, zorder=1)
 
-    ax_a.axhline(0.5, color=TINTA_SUAVE, lw=0.8, ls="--", zorder=1)
-    ax_a.text(ax_a.get_xlim()[1], 0.5, " azar", va="center", ha="left", fontsize=8, color=TINTA_SUAVE)
-    valores = np.concatenate([np.r_[h.auc.values, h["auc_tr"].values if "auc_tr" in h else []]
-                              for h, _ in historiales]).astype(float)
+    # AUC: la referencia del azar y una escala fija, para comparar figuras entre versiones.
+    ax_a.axhline(0.5, color=REFERENCIA, lw=1, zorder=1)
+    ax_a.annotate("azar (0,5)", (0, 0.5), xycoords=("axes fraction", "data"), xytext=(4, -11),
+                  textcoords="offset points", fontsize=8.5, color=TINTA_SUAVE)
+    valores = np.concatenate([h[c].to_numpy(float) for h, _ in historiales for c in ("auc", "auc_tr") if _hay(h, c)])
     ax_a.set_ylim(min(0.4, np.nanmin(valores) - 0.03), 1.0)
-
-    # Diferencia de AUC entrenamiento − validación en la época elegida (rúbrica, punto 5).
-    if hay_auc_tr:
-        difs = [float(h.loc[h.epoca == e, "auc_tr"].iloc[0] - h.loc[h.epoca == e, "auc"].iloc[0])
-                for h, e in historiales]
-        difs = [d for d in difs if not np.isnan(d)]
-        if varios and len(difs) > 1:
-            texto = f"diferencia de AUC en la época elegida: {coma(np.mean(difs), 3)} ± {coma(np.std(difs, ddof=1), 3)}"
-        elif difs:
-            h, e = historiales[0]
-            f = h[h.epoca == e].iloc[0]
-            texto = (f"época {e}: AUC entrenamiento {coma(f.auc_tr, 3)} · validación {coma(f.auc, 3)}"
-                     f" · diferencia {coma(difs[0], 3)}")
-        else:
-            texto = ""
-    else:
-        texto = "AUC de entrenamiento no medido en esta ejecución"
-
-    _estilo(ax_p, "Pérdida", "BCE")
     _estilo(ax_a, "ROC-AUC por paciente", "AUC")
-    for ax in (ax_p, ax_a):
-        ax.legend(frameon=False, fontsize=8.5, labelcolor=TINTA, loc="best")
-    fig.suptitle(titulo, x=0.01, y=0.99, ha="left", fontsize=12, fontweight="bold", color=TINTA)
-    fig.text(0.01, 0.915, subtitulo, ha="left", fontsize=8.5, color=TINTA_SUAVE)
-    if texto:
-        fig.text(0.01, 0.87, texto, ha="left", fontsize=9, color=TINTA)
-    fig.tight_layout(rect=(0, 0, 1, 0.86))
+    _estilo(ax_p, "Pérdida (entropía cruzada)", "BCE")
+    for ax in (ax_a, ax_p):
+        ax.margins(x=0.02)
+        ax.set_xlim(0.5, ultima + 0.5 + (ultima - 0.5) * 0.17)          # sitio para las etiquetas finales
+        ax.set_xticks([x for x in ax.get_xticks() if 1 <= x <= ultima])
+
+    # Cabecera: título, números clave, cómo leerla y leyenda, cada uno en su línea.
+    fig.text(0.012, 0.975, titulo, ha="left", va="top", fontsize=15, fontweight="bold", color=TINTA)
+    fig.text(0.012, 0.895, _numeros_epoca_elegida(historiales) if hay_auc_tr or not varios else
+             "Esta ejecución no medía el AUC de entrenamiento", ha="left", va="top", fontsize=10.5, color=TINTA)
+    if varios:
+        fig.text(0.012, 0.845, (f"Línea: media de los {len(historiales)} folds (mientras siguen al menos {MIN_FOLDS}) · "
+                                "sombra: ± 1 desviación · puntos: la mejor época de cada fold, por eso quedan por "
+                                "encima de la línea"),
+                 ha="left", va="top", fontsize=9, color=TINTA_SUAVE)
+    manejadores, etiquetas = ax_a.get_legend_handles_labels()
+    fig.legend(manejadores, etiquetas, loc="upper left", bbox_to_anchor=(0.006, 0.80 if varios else 0.85),
+               ncol=len(etiquetas), frameon=False, fontsize=9.5, labelcolor=TINTA, handlelength=1.8,
+               columnspacing=1.8)
+    fig.text(0.995, 0.005, pie, ha="right", va="bottom", fontsize=7.5, color=REFERENCIA)
+    fig.subplots_adjust(left=0.06, right=0.985, bottom=0.12, top=0.67 if varios else 0.71, wspace=0.2)
 
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(ruta, dpi=160, bbox_inches="tight", facecolor="white")
+    fig.savefig(ruta, dpi=200, bbox_inches="tight", facecolor=FONDO)
     plt.close(fig)
     return ruta
 
@@ -165,7 +215,7 @@ def graficas_ejecucion(carpeta: Path) -> list[Path]:
     umbral = coma(r.get("umbral", 0.5), 2)
     titulo = f"{r.get('modelo', carpeta.name)} · pérdida {perdida} · fold {fold}"
     rutas = [_curvas([(historial, elegida)], carpeta / "graficas" / "curvas.png", titulo,
-                     f"{carpeta.name} · época elegida {elegida} de {len(historial)}")]
+                     f"{carpeta.name} · {len(historial)} épocas")]
     matriz = _matriz_de_epoca(r, historial, elegida)
     if matriz:
         pacientes = sum(matriz.values())
@@ -188,8 +238,8 @@ def graficas_validacion_cruzada(carpeta: Path) -> list[Path]:
     modelo, perdida = resumen.get("modelo", carpeta.name), resumen.get("perdida", "normal")
     if historiales:
         rutas.append(_curvas(historiales, carpeta / "graficas" / "curvas_folds.png",
-                             f"{modelo} · pérdida {perdida} · {len(historiales)} folds",
-                             f"{carpeta.name} · cada línea es un fold; el punto, su época elegida"))
+                             f"{modelo} · validación cruzada de {len(historiales)} folds · pérdida {perdida}",
+                             carpeta.name))
     oof = resumen.get("fuera_de_fold")
     if oof:
         rutas.append(dibujar_matriz_confusion(

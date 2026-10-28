@@ -3,8 +3,9 @@
 Interfaz Streamlit sobre el **mismo código** del pipeline:
 - `src/data/entrada.py` lee y valida los tres PNG con la misma normalización que el entrenamiento
   (gris de 8 bits / 255);
-- `src/models/final.py` carga el modelo final de `models/final/`: conjunto de 5 folds y
-  calibración de Platt, en modo evaluación y sin gradientes.
+- `src/models/final.py` carga el modelo final de `models/final/`: conjunto de CNN propias (los 5
+  modelos de cada versión, uno por fold, D36) y calibración de Platt, en modo evaluación y sin
+  gradientes.
 
 Por qué Streamlit y Streamlit Community Cloud: D23 del registro y `docs/COMO_SE_HIZO.md`.
 

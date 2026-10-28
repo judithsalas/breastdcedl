@@ -114,6 +114,36 @@ def elegir_mejor(historico: pd.DataFrame) -> dict | None:
             "motivo": motivo, "ejecucion": fila.ejecucion}
 
 
+def elegir_conjunto(historico: pd.DataFrame) -> dict | None:
+    """Versiones que entran en el modelo final como conjunto (D36).
+
+    Regla, la misma del criterio de comparación (D16) pero sin quedarse con una sola: entran todas
+    las versiones con validación cruzada completa de 5 folds, pérdida normal, huella ✓, valores
+    estándar del modo y desplegables, **que no sobreajustan** (diferencia train − val ≤ 0,15). No se
+    mira cuánto sube el conjunto con unas u otras: elegirlas por eso sería ajustar con validación
+    hasta encontrar la mezcla que más da.
+    """
+    candidatas = validaciones_validas(historico, "normal")
+    if not candidatas.empty:
+        candidatas = candidatas[candidatas.modelo.map(desplegable)]
+    if candidatas.empty:
+        return None
+    orden = list(VERSIONES)
+    candidatas = candidatas.assign(_orden=candidatas.modelo.map(orden.index)).sort_values("_orden")
+    sobreajustan = candidatas.diferencia_auc.notna() & (candidatas.diferencia_auc > SOBREAJUSTE)
+    entran, fuera = candidatas[~sobreajustan], candidatas[sobreajustan]
+    if entran.empty:
+        return None
+    excluidas = {f.modelo: f"sobreajusta (diferencia {coma(f.diferencia_auc, 3)} > {coma(SOBREAJUSTE, 2)})"
+                 for f in fuera.itertuples()}
+    return {"versiones": list(entran.modelo), "ejecuciones": list(entran.ejecucion),
+            "auc_val": dict(zip(entran.modelo, entran.auc_val.astype(float), strict=True)),
+            "diferencia_auc": dict(zip(entran.modelo, entran.diferencia_auc.astype(float), strict=True)),
+            "excluidas": excluidas,
+            "motivo": (f"todas las versiones con validación cruzada completa que no sobreajustan "
+                       f"(diferencia ≤ {coma(SOBREAJUSTE, 2)}): {', '.join(entran.modelo)}")}
+
+
 def _num(valor, decimales: int = 3) -> str:
     return "—" if pd.isna(valor) else coma(float(valor), decimales)
 

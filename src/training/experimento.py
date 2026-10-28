@@ -3,6 +3,7 @@
     python -m src.training.experimento                       # config.json de la raíz del repo
     python -m src.training.experimento --config prueba.json  # otro fichero con una sección experimento
     python -m src.training.experimento --ver                 # solo enseña qué se lanzaría
+    python -m src.training.experimento --repetir             # vuelve a entrenar también las ya hechas
 
 Es la plantilla para probar cosas sin tocar el código: qué versión, en qué modo, con qué pérdida,
 en qué folds (por ejemplo solo el 0, unos 15 minutos) y con qué cambios sobre el modo.
@@ -10,6 +11,10 @@ en qué folds (por ejemplo solo el 0, unos 15 minutos) y con qué cambios sobre 
 `experimento` puede ser una prueba (un objeto) o una lista de pruebas, que se lanzan una detrás
 de otra (D34). Así una noche de GPU prueba varias ideas en el fold 0. Para seguirlas:
 `python -m src.training.comparar runs/<carpeta de cnn_v3> runs/<carpeta de la prueba>`.
+
+Es reanudable (D35): una prueba que ya terminó tiene su carpeta en runs/ con `config_usada.json`
+igual a ella, y no se repite. Si la tarjeta se cuelga a mitad, se vuelve a lanzar el mismo comando
+y sigue por la que falló.
 
 El plan de experimentos (`src.training.plan`) no usa esta sección: siempre entrena los 5 folds con
 los valores estándar del modo, que son los que cuentan para comparar versiones (D16). Las pruebas
@@ -27,6 +32,8 @@ from src.config import CAMPOS_MODO, MODOS, RUTA_CONFIG
 from src.models.versiones import POR_DEFECTO, VERSIONES
 
 PERDIDAS = ("normal", "ponderada")
+# Sin importar src.data.caso, que carga torch: --ver tiene que ser instantáneo.
+CARPETA_RUNS = Path(__file__).resolve().parents[2] / "runs"
 
 
 def comprobar(e: dict, n: int | None = None) -> dict:
@@ -74,6 +81,20 @@ def leer_experimento(ruta: Path | str = RUTA_CONFIG) -> list[dict]:
     return [comprobar(e, n) for n, e in enumerate(seccion)]
 
 
+def ya_hecha(e: dict, carpeta_runs: Path = CARPETA_RUNS) -> Path | None:
+    """La carpeta de una ejecución terminada de esta misma prueba, o None.
+
+    `config_usada.json` se escribe al terminar la prueba, así que una que se cortó no cuenta.
+    """
+    for ruta in sorted(Path(carpeta_runs).glob("*/config_usada.json")):
+        try:
+            if json.loads(ruta.read_text(encoding="utf-8")).get("experimento") == e:
+                return ruta.parent
+        except (json.JSONDecodeError, OSError):
+            continue
+    return None
+
+
 def describir(e: dict) -> str:
     modo = MODOS[e["modo"]]
     cambios = ", ".join(f"{k} {getattr(modo, k)} → {v}" for k, v in e["cambios"].items()) or "ninguno"
@@ -86,17 +107,22 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Lanza la sección experimento de config.json.")
     p.add_argument("--config", default=str(RUTA_CONFIG), help="JSON con una sección experimento")
     p.add_argument("--ver", action="store_true", help="solo enseñar qué se lanzaría")
+    p.add_argument("--repetir", action="store_true", help="entrenar también las pruebas ya hechas")
     args = p.parse_args()
 
     pruebas = leer_experimento(args.config)
+    hechas = {} if args.repetir else {n: c for n, e in enumerate(pruebas, 1) if (c := ya_hecha(e))}
     for n, e in enumerate(pruebas, 1):
-        print(f"{n}/{len(pruebas)}. {describir(e)}")
+        estado = f"  [hecha: {hechas[n].name}, no se repite]" if n in hechas else ""
+        print(f"{n}/{len(pruebas)}. {describir(e)}{estado}")
     if args.ver:
         return
     # Se importa aquí porque carga torch, y solo hace falta al entrenar (--ver no lo necesita).
     from src.training.validacion_cruzada import validar
 
     for n, e in enumerate(pruebas, 1):
+        if n in hechas:
+            continue
         print(f"\n{'=' * 72}\nPrueba {n} de {len(pruebas)}: {e['modelo']}, {e['nota'] or 'sin nota'}\n{'=' * 72}")
         carpeta = validar(e["modo"], e["modelo"], ponderada=e["perdida"] == "ponderada",
                           nota=e["nota"] or f"experimento {Path(args.config).name}", cambios=e["cambios"],

@@ -218,7 +218,7 @@ VERSIONES: dict[str, dict] = {
     # ====================================================================== #
     # cnn_v12 · ver el tumor entero
     # ÚNICO cambio respecto a cnn_v3: dos convoluciones por bloque. El campo receptivo pasa de
-    # 46 a ~94 px: un tumor de I-SPY mide ~70 px y la red no lo ve entero (su puntuación no
+    # 46 a 76 px: un tumor de I-SPY mide ~70 px y la red no lo ve entero (su puntuación no
     # tiene relación con el tamaño del tumor, R5).
     "cnn_v12": {
         "filtros": (16, 32, 64, 128),
@@ -288,6 +288,41 @@ VERSIONES: dict[str, dict] = {
         "dropout": 0.0,
         "entrenamiento": {"aumento": "geometrico", "programador": "meseta"},
     },
+    # ====================================================================== #
+    # Sexta ronda (2026-10-28, D35). Misma regla de la fase A y mismo cribado en el fold 0.
+    # ====================================================================== #
+    # cnn_v17 · trabajar a 128×128
+    # ÚNICO cambio respecto a cnn_v3: la red reduce la imagen a la mitad al entrar (media de 2×2
+    # píxeles). Recibe lo mismo (256×256), pero cada neurona del final ve 92 px de la imagen
+    # original en vez de 46, hay menos detalle fino que memorizar y va unas 4 veces más rápida.
+    "cnn_v17": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "reduccion": 2,
+        "entrenamiento": {"aumento": "geometrico"},
+    },
+    # cnn_v18 · mapas cinéticos
+    # ÚNICO cambio respecto a cnn_v3: además de las 3 fases, la red recibe el realce relativo al
+    # PRE y el SER (lavado) de cada píxel, calculados dentro. Son divisiones, que la red no sabe
+    # hacer sola, y son lo que mira la radiología (curvas de realce, volumen funcional de I-SPY).
+    "cnn_v18": {
+        "filtros": (16, 32, 64, 128),
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": True,
+        "resumen": "global",
+        "cabeza_oculta": None,
+        "dropout": 0.0,
+        "entrada": "fases+cinetica",
+        "entrenamiento": {"aumento": "geometrico"},
+    },
 }
 
 # Valores que se usan cuando una versión no los declara (las antiguas no los tienen y
@@ -295,6 +330,7 @@ VERSIONES: dict[str, dict] = {
 POR_DEFECTO: dict = {
     "entrada": "fases",
     "normalizacion": None,
+    "reduccion": 1,          # D35: 1 = la red trabaja a 256×256
     # Adam sin weight decay es lo que usaron cnn_v1 a cnn_v4.
     "entrenamiento": {"aumento": None, "optimizador": "adam", "weight_decay": 0.0, "recorte": None,
                       # D34: None = el learning rate del modo, todos los cortes cada época, sin programador
@@ -322,6 +358,8 @@ ORIGEN: dict[str, str | None] = {
     "cnn_v14": "cnn_v3",
     "cnn_v15": "cnn_v3",
     "cnn_v16": "cnn_v3",
+    "cnn_v17": "cnn_v3",
+    "cnn_v18": "cnn_v3",
 }
 
 # En qué punto está cada versión. Se justifica en su ficha.
@@ -329,17 +367,19 @@ ESTADOS = ("por entrenar", "en prueba", "descartada", "candidata", "final")
 ESTADO: dict[str, str] = {
     "cnn_v1": "descartada",
     "cnn_v2": "descartada",     # empata con cnn_v3 pero sobreajusta (diferencia 0,162 > 0,15)
-    "cnn_v3": "candidata",      # la mejor según el criterio tras la primera ronda (2026-10-21)
-    "cnn_v4": "descartada",     # el realce explícito no mejora (0,572 ± 0,044)
-    "cnn_v5": "descartada",     # no mejora (0,574 ± 0,035) ni quita el atajo del hospital
-    "cnn_v6": "descartada",     # empata (0,591 ± 0,041) pero tiene más parámetros que cnn_v3
-    "cnn_v7": "descartada",     # empata (0,588 ± 0,042); no baja la diferencia train − val
+    "cnn_v3": "final",          # en el conjunto final (D36); la mejor según el criterio tras la primera ronda (2026-10-21)
+    "cnn_v4": "final",          # en el conjunto final (D36); el realce explícito no mejora (0,572 ± 0,044)
+    "cnn_v5": "final",          # en el conjunto final (D36); no mejora (0,574 ± 0,035) ni quita el atajo del hospital
+    "cnn_v6": "final",          # en el conjunto final (D36); empata (0,591 ± 0,041) pero tiene más parámetros que cnn_v3
+    "cnn_v7": "final",          # en el conjunto final (D36); empata (0,588 ± 0,042); no baja la diferencia train − val
     "cnn_v8": "descartada",     # empata (0,593 ± 0,025) pero sobreajusta (0,169 > 0,15)
-    "cnn_v10": "descartada",    # empata (0,581 ± 0,045); delata menos el hospital y memoriza menos
+    "cnn_v10": "final",         # en el conjunto final (D36); empata (0,581 ± 0,045); delata menos el hospital y memoriza menos
     "cnn_v11": "descartada",    # sin entrenar: usa la caja del tumor (regla de la fase A, D34)
-    "cnn_v12": "por entrenar",
+    "cnn_v12": "descartada",    # fold 0: 0,579 < 0,61 (cribado D34); memoriza más rápido
     "cnn_v13": "por entrenar",
     "cnn_v14": "por entrenar",
     "cnn_v15": "por entrenar",
     "cnn_v16": "por entrenar",
+    "cnn_v17": "por entrenar",
+    "cnn_v18": "por entrenar",
 }
