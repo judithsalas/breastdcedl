@@ -245,6 +245,8 @@ runs/*
 !runs/historico.csv
 # Paquetes de resultados (src/utils/exportar_resultados.py): no se suben.
 resultados_*.zip
+# Ficheros para probar la app (app/casos_prueba.py): se regeneran cuando hace falta.
+pruebas_app/
 logs/
 outputs/
 wandb/

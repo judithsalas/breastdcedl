@@ -58,12 +58,20 @@ defensa (el enunciado lo prohíbe).
 
 ## Pruebas con entradas válidas e inválidas (antes de entregar)
 
-- [ ] Un ejemplo: la probabilidad de la app coincide con la del pipeline (✅ en pantalla).
-- [ ] Las tres fases de un corte de test subidas a mano: mismo resultado que
+Los ficheros de casi todas las pruebas se crean con `python -m app.casos_prueba` (a partir de
+`app/ejemplos/`; no hacen falta las imágenes del dataset). Deja en `pruebas_app/` (no se versiona) una
+carpeta por prueba, con los ficheros que hay que subir juntos, y en `pruebas_app/LEEME.md` lo que la
+app tiene que responder a cada una, con una columna para marcarla.
+
+- [ ] Un ejemplo de la pestaña «Elegir un ejemplo»: la probabilidad de la app coincide con la del
+      pipeline (✅ en pantalla).
+- [ ] `01_valido`: predice, y da la misma probabilidad que el pipeline (está en el LEEME).
+- [ ] Un corte de train que no sea de los ejemplos, subido a mano: mismo resultado que
       `python -m src.models.predecir <PRE> <EARLY> <LATE>`.
-- [ ] Solo dos fases → "Falta la fase …".
-- [ ] La misma fase dos veces → "Fase … duplicada".
-- [ ] Un JPG renombrado a .png → "no es un PNG".
-- [ ] Un PNG en color o de otro tamaño → mensaje de modo o de tamaño.
-- [ ] Un PNG cortado (fichero dañado) → "dañado".
-- [ ] Fases de dos cortes distintos → "mismo corte".
+- [ ] `02_dos_fases` → "Falta la fase LATE".
+- [ ] `03_misma_imagen_dos_veces` → "Dos de los ficheros son idénticos".
+- [ ] `04_jpg_renombrado` → "no es un PNG".
+- [ ] `05_png_en_color` y `06_otro_tamano` → mensaje de modo o de tamaño.
+- [ ] `07_png_danado` → "dañado".
+- [ ] `08_fases_de_dos_cortes` → "mismo corte".
+- [ ] `09_fases_cambiadas` → predice, con el aviso de que EARLY no es más brillante que PRE.
