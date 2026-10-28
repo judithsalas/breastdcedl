@@ -1,27 +1,27 @@
 {
-  "modelo": "5c1dbb39aef8",
+  "modelo": "86efe7b4b112",
   "ISPY1_1012_z020": {
-    "probabilidad_pipeline": 0.2981240153312683,
+    "probabilidad_pipeline": 0.2921684980392456,
     "cohorte": "spy1"
   },
   "ISPY1_1208_z015": {
-    "probabilidad_pipeline": 0.2939574718475342,
+    "probabilidad_pipeline": 0.29513680934906006,
     "cohorte": "spy1"
   },
   "ISPY2-554577_z026": {
-    "probabilidad_pipeline": 0.2977582812309265,
+    "probabilidad_pipeline": 0.2973374128341675,
     "cohorte": "spy2"
   },
   "ISPY2-273691_z009": {
-    "probabilidad_pipeline": 0.32017984986305237,
+    "probabilidad_pipeline": 0.31704986095428467,
     "cohorte": "spy2"
   },
   "Breast_MRI_387_z023": {
-    "probabilidad_pipeline": 0.25186866521835327,
+    "probabilidad_pipeline": 0.25476688146591187,
     "cohorte": "duke"
   },
   "Breast_MRI_735_z018": {
-    "probabilidad_pipeline": 0.30743029713630676,
+    "probabilidad_pipeline": 0.2912469208240509,
     "cohorte": "duke"
   }
 }
