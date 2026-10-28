@@ -98,6 +98,12 @@ def _media_por_epoca(historiales: list[tuple[pd.DataFrame, int]], columna: str):
     return tabla.index.to_numpy(), tabla.mean(axis=1).to_numpy(), tabla.std(axis=1, ddof=1).fillna(0).to_numpy()
 
 
+def _epoca_fija(historiales: list[tuple[pd.DataFrame, int]]) -> bool:
+    """¿Se usó la última época en todos los folds, sin elegirla con la validación (modo fijo, D37)?"""
+    return bool(historiales) and all(
+        e == int(h.epoca.max()) and "mejor" in h and bool(h["mejor"].all()) for h, e in historiales)
+
+
 def _etiqueta_final(ax, x, y, texto: str) -> None:
     """Nombre de la serie al final de su línea (en gris: el color lo lleva la línea)."""
     ax.annotate(texto, (x, y), xytext=(6, 0), textcoords="offset points", va="center", ha="left",
@@ -136,12 +142,18 @@ def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str
     paneles = ((ax_a, "auc_tr", "auc"), (ax_p, "perdida_tr", "perdida_va"))
 
     ultima = max(e for _, e in historiales)        # el eje llega hasta lo dibujado y las épocas elegidas
+    fija = _epoca_fija(historiales)
     for ax, col_tr, col_va in paneles:
         for columna, color, nombre in ((col_tr, COLOR_TR, "entrenamiento"), (col_va, COLOR_VA, "validación")):
             if varios:
                 media = _media_por_epoca(historiales, columna)
                 if media is None:
                     continue
+                if columna == col_va:          # cada fold, fino: cada punto tiene su curva
+                    for k, (h, _) in enumerate(historiales):
+                        ax.plot(h.epoca, h[columna], color=color, lw=0.9, alpha=0.4, zorder=1.8,
+                                label="validación de cada fold" if ax is ax_a and k == 0 else None)
+                        ultima = max(ultima, int(h.epoca.max()))
                 x, m, s = media
                 ax.fill_between(x, m - s, m + s, color=color, alpha=SOMBRA, lw=0, zorder=2)
             else:
@@ -156,8 +168,9 @@ def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str
         # Época elegida: un punto por fold en su valor real de validación, con anillo blanco.
         puntos = [(e, float(h.loc[h.epoca == e, col_va].iloc[0])) for h, e in historiales]
         ax.scatter([e for e, _ in puntos], [v for _, v in puntos], s=58, color=COLOR_VA, edgecolor=FONDO,
-                   linewidth=2, zorder=5, label=("época elegida de cada fold" if varios else "época elegida")
-                   if ax is ax_a else None)
+                   linewidth=2, zorder=5, label=(("época usada (la última, fija)" if fija else
+                                                  "época elegida de cada fold" if varios else "época elegida")
+                                                 if ax is ax_a else None))
         if not varios:
             ax.axvline(historiales[0][1], color=REJILLA, lw=1.2, zorder=1)
 
@@ -180,8 +193,10 @@ def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str
              "Esta ejecución no medía el AUC de entrenamiento", ha="left", va="top", fontsize=10.5, color=TINTA)
     if varios:
         fig.text(0.012, 0.845, (f"Línea: media de los {len(historiales)} folds (mientras siguen al menos {MIN_FOLDS}) · "
-                                "sombra: ± 1 desviación · puntos: la mejor época de cada fold, por eso quedan por "
-                                "encima de la línea"),
+                                "sombra: ± 1 desviación · líneas finas: la validación de cada fold · "
+                                + ("puntos: la última época, fijada de antemano (no se elige con la validación)"
+                                   if fija else "puntos: su mejor época, elegida con esa misma validación (por eso "
+                                   "quedan arriba: es optimista)")),
                  ha="left", va="top", fontsize=9, color=TINTA_SUAVE)
     manejadores, etiquetas = ax_a.get_legend_handles_labels()
     fig.legend(manejadores, etiquetas, loc="upper left", bbox_to_anchor=(0.006, 0.80 if varios else 0.85),
@@ -225,28 +240,38 @@ def figura_conjunto(miembros: list[dict], carpetas: list[Path], auc_conjunto: tu
     from src.models.versiones import NOMBRES
 
     n = len(miembros)
+    elegidas: list[float] = []      # AUC de validación en la época elegida de cada fold
+    todas: list[float] = []         # y en todas las épocas: la diferencia es lo optimista que es elegir
+    fijas = True                    # ¿todas las redes con épocas fijas (D37)?
     columnas = 3
     filas = int(np.ceil(n / columnas))
     fig = plt.figure(figsize=(17, 5.2 + 3.0 * filas))
     fig.patch.set_facecolor(FONDO)
     rejilla = GridSpec(filas, columnas + 1, figure=fig, width_ratios=[1, 1, 1, 1.45], wspace=0.3, hspace=0.55,
-                       left=0.045, right=0.985, bottom=0.08, top=0.76)
+                       left=0.045, right=0.985, bottom=0.08, top=0.74)
 
     for i, (m, carpeta) in enumerate(zip(miembros, carpetas, strict=True)):
         ax = fig.add_subplot(rejilla[i // columnas, i % columnas])
         historiales = _historiales_cv(carpeta)
-        ultima = max((e for _, e in historiales), default=1)
+        ultima = max((int(h.epoca.max()) for h, _ in historiales), default=1)
+        for k, (h, _) in enumerate(historiales):      # la validación de cada fold, fina
+            ax.plot(h.epoca, h.auc, color=COLOR_VA, lw=0.9, alpha=0.4, zorder=1.8,
+                    label="validación de cada fold" if i == 0 and k == 0 else None)
         for columna, color, nombre in (("auc_tr", COLOR_TR, "entrenamiento"), ("auc", COLOR_VA, "validación")):
             media = _media_por_epoca(historiales, columna) if historiales else None
             if media is None:
                 continue
             x, mu, s = media
             ax.fill_between(x, mu - s, mu + s, color=color, alpha=SOMBRA, lw=0, zorder=2)
-            ax.plot(x, mu, color=color, lw=2, solid_capstyle="round", zorder=3, label=nombre if i == 0 else None)
-            ultima = max(ultima, int(x[-1]))
+            ax.plot(x, mu, color=color, lw=2.2, solid_capstyle="round", zorder=3,
+                    label=f"{nombre} (media de los folds)" if i == 0 else None)
         ax.scatter([e for _, e in historiales], [float(h.loc[h.epoca == e, "auc"].iloc[0]) for h, e in historiales],
                    s=40, color=COLOR_VA, edgecolor=FONDO, linewidth=1.8, zorder=5,
-                   label="época elegida de cada fold" if i == 0 else None)
+                   label=("época usada (la última, fija)" if _epoca_fija(historiales) else
+                          "época elegida de cada fold") if i == 0 else None)
+        elegidas += [float(h.loc[h.epoca == e, "auc"].iloc[0]) for h, e in historiales]
+        fijas = fijas and _epoca_fija(historiales)
+        todas += [float(v) for h, _ in historiales for v in h.auc]
         ax.axhline(0.5, color=REFERENCIA, lw=1, zorder=1)
         ax.set_ylim(0.4, 1.0)
         ax.set_xlim(0.5, ultima + 0.5)
@@ -303,11 +328,22 @@ def figura_conjunto(miembros: list[dict], carpetas: list[Path], auc_conjunto: tu
                             f"{coma(max(medias[:-1]), 3)}; el conjunto (media de sus logits), "
                             f"{coma(auc_conjunto[0], 3)} ± {coma(auc_conjunto[1], 3)}"),
              ha="left", va="top", fontsize=12, color=TINTA)
-    fig.text(0.012, 0.873, ("Izquierda: cómo aprendió cada red (media de los 5 folds ± 1 desviación). "
-                            "Derecha: lo que da cada una y lo que da el conjunto, con las mismas pacientes, "
-                            "fuera de fold."), ha="left", va="top", fontsize=9.5, color=TINTA_SUAVE)
+    fig.text(0.012, 0.873, ("Izquierda: cómo aprendió cada red (gruesa: media de los 5 folds ± 1 desviación; fina: "
+                            f"la validación de cada fold; punto: {'la época usada' if fijas else 'su época elegida'}). "
+                            "Derecha: lo que da cada una y el conjunto, con las mismas pacientes, fuera de fold."),
+             ha="left", va="top", fontsize=9.5, color=TINTA_SUAVE)
+    if elegidas and todas and fijas:
+        fig.text(0.012, 0.848, ("Épocas fijadas de antemano y se usa la última en todos los folds (D37): el AUC de "
+                                "validación no lleva el sesgo de elegir la mejor época. El test dará la cifra definitiva."),
+                 ha="left", va="top", fontsize=9.5, color=TINTA_SUAVE)
+    elif elegidas and todas:
+        fig.text(0.012, 0.848, (f"Ojo: cada fold se queda con su mejor época, elegida con su propia validación. Por eso "
+                                f"su AUC es optimista: {coma(np.mean(elegidas), 3)} de media en la época elegida "
+                                f"frente a {coma(np.mean(todas), 3)} en el conjunto de las épocas. El test, que no se "
+                                "ha tocado, dará la cifra sin ese sesgo."),
+                 ha="left", va="top", fontsize=9.5, color=TINTA_SUAVE)
     manejadores, nombres = fig.axes[0].get_legend_handles_labels()
-    fig.legend(manejadores, nombres, loc="upper left", bbox_to_anchor=(0.006, 0.845), ncol=3, frameon=False,
+    fig.legend(manejadores, nombres, loc="upper left", bbox_to_anchor=(0.006, 0.825), ncol=4, frameon=False,
                fontsize=10, labelcolor=TINTA, handlelength=1.8, columnspacing=1.8)
     if pie:
         fig.text(0.995, 0.008, pie, ha="right", va="bottom", fontsize=7.5, color=REFERENCIA)

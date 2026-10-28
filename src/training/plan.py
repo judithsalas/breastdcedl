@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import time
 
+from src.config import MODOS
 from src.models.historial import HISTORICO, elegir_mejor, leer_historico, validaciones_validas
 from src.training.validacion_cruzada import validar
 
@@ -82,7 +83,7 @@ def imprimir_estado(modo: str) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Lanza el plan de experimentos (reanudable).")
-    p.add_argument("--modo", choices=["rapido", "completo"], default="completo")
+    p.add_argument("--modo", choices=list(MODOS), default="completo")
     p.add_argument("--ver", action="store_true", help="solo mostrar el estado del plan")
     args = p.parse_args()
 

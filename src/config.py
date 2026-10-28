@@ -6,7 +6,10 @@
   - `rapido`: comprobar que el código funciona de principio a fin con pocos datos y pocas
     épocas. Sus métricas NO cuentan para nada.
   - `completo`: entrenamiento real. Sus métricas son las que se comparan y van al informe. El
-    batch es fijo para que los entrenamientos sean comparables entre sí.
+    batch es fijo para que los entrenamientos sean comparables entre sí. La época se elige con la
+    validación del propio fold (parada temprana).
+  - `fijo` (D37): como `completo`, pero con un número de épocas fijado de antemano y quedándose con
+    la última. Así la época no se elige mirando la validación, y su AUC no lleva ese sesgo (R10).
 - `evaluacion` y `comparacion`: agregación por paciente, umbrales y límite de sobreajuste.
 - `experimento`: la plantilla de lo que lanza `python -m src.training.experimento`.
 
@@ -30,6 +33,7 @@ RUTA_CONFIG = Path(__file__).resolve().parents[1] / "config.json"
 # Los mismos que METODOS_AGREGACION de utils_caso (un test lo comprueba). No se importa utils_caso
 # aquí para que leer la configuración no cargue torch.
 AGREGACIONES = ("mean", "max", "median", "voto")
+ELECCIONES_EPOCA = ("mejor", "ultima")
 
 
 @dataclass(frozen=True)
@@ -51,6 +55,9 @@ class Config:
     # Reproducibilidad y carga
     semilla: int
     num_workers: int
+    # Qué época se guarda (D37): "mejor" = la de mayor AUC de validación, con parada temprana;
+    # "ultima" = la última de epocas_max, sin mirar la validación para decidir nada.
+    eleccion_epoca: str = "mejor"
 
     def como_dict(self) -> dict:
         return asdict(self)
@@ -73,6 +80,9 @@ def leer_config(ruta: Path | str = RUTA_CONFIG) -> dict:
         faltan, sobran = set(CAMPOS_MODO) - set(valores), set(valores) - set(CAMPOS_MODO)
         if faltan or sobran:
             raise ValueError(f"Modo {modo!r} de {ruta.name}: faltan {sorted(faltan)}, sobran {sorted(sobran)}")
+    for modo, valores in datos["modos"].items():
+        if valores["eleccion_epoca"] not in ELECCIONES_EPOCA:
+            raise ValueError(f"Modo {modo!r}: eleccion_epoca debe ser una de {ELECCIONES_EPOCA}")
     if datos["evaluacion"].get("agregacion") not in AGREGACIONES:
         raise ValueError(f"evaluacion.agregacion debe ser una de {AGREGACIONES}")
     return datos

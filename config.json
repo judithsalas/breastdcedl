@@ -2,81 +2,93 @@
   "_leeme": [
     "Parámetros de ejecución del proyecto, en un solo sitio (D31). Explicación de cada uno en _ayuda, al final.",
     "experimento: lo que lanza 'python -m src.training.experimento'. Es la plantilla para probar cosas: una prueba o una lista de pruebas, que se lanzan una detrás de otra. Se edita aquí o se copia a otro fichero y se lanza con --config.",
-    "modos: el estándar con el que se comparan las versiones. Si se cambia un valor, las ejecuciones anteriores dejan de contar para el criterio. Para probar otro valor, usa experimento.cambios.",
+    "modos: el estándar con el que se comparan las versiones (rapido, completo y fijo, D37). Si se cambia un valor, las ejecuciones anteriores dejan de contar para el criterio. Para probar otro valor, usa experimento.cambios.",
     "No está aquí lo que define una versión (capas, aumento, optimizador, weight decay, dropout): está en src/models/versiones.py, porque cambiarlo es crear otra versión con su ficha."
   ],
   "experimento": [
     {
-      "modelo": "cnn_v17",
-      "modo": "completo",
+      "modelo": "cnn_v3",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "la red trabaja a 128×128, fold 0 (D35)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     },
     {
-      "modelo": "cnn_v18",
-      "modo": "completo",
+      "modelo": "cnn_v10",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "mapas cinéticos (realce relativo y SER), fold 0 (D35)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     },
     {
-      "modelo": "cnn_v14",
-      "modo": "completo",
+      "modelo": "cnn_v6",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "aumento de escáner, fold 0 (D34)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     },
     {
-      "modelo": "cnn_v15",
-      "modo": "completo",
+      "modelo": "cnn_v7",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "2 cortes por paciente y época, fold 0 (D34)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     },
     {
-      "modelo": "cnn_v16",
-      "modo": "completo",
+      "modelo": "cnn_v5",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "programador meseta, fold 0 (D34)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     },
     {
-      "modelo": "cnn_v13",
-      "modo": "completo",
+      "modelo": "cnn_v4",
+      "modo": "fijo",
       "perdida": "normal",
       "folds": [
-        0
+        0,
+        1,
+        2,
+        3,
+        4
       ],
-      "cambios": {
-        "num_workers": 2
-      },
-      "nota": "media + máximo, fold 0 (D34, repetida tras el cuelgue de la tarjeta)"
+      "cambios": {},
+      "nota": "6 épocas fijas, sin elegir con la validación (D37)"
     }
   ],
   "modos": {
@@ -89,7 +101,8 @@
       "learning_rate": 0.001,
       "pacientes_auc_train": 0,
       "semilla": 42,
-      "num_workers": 0
+      "num_workers": 0,
+      "eleccion_epoca": "mejor"
     },
     "completo": {
       "n_pacientes": null,
@@ -100,7 +113,20 @@
       "learning_rate": 0.001,
       "pacientes_auc_train": 220,
       "semilla": 42,
-      "num_workers": 4
+      "num_workers": 4,
+      "eleccion_epoca": "mejor"
+    },
+    "fijo": {
+      "n_pacientes": null,
+      "fold_val": 0,
+      "batch_size": 32,
+      "epocas_max": 6,
+      "paciencia": 6,
+      "learning_rate": 0.001,
+      "pacientes_auc_train": 220,
+      "semilla": 42,
+      "num_workers": 2,
+      "eleccion_epoca": "ultima"
     }
   },
   "evaluacion": {
@@ -131,6 +157,8 @@
     "evaluacion.agregacion": "Cómo se juntan los cortes de una paciente en una probabilidad: mean, median, max o voto (utils_caso). Con cnn_v3 dan lo mismo (R5); se usa la media.",
     "evaluacion.umbral_entrenamiento": "Umbral para la matriz de confusión y la sensibilidad durante el entrenamiento. El umbral definitivo se elige al cerrar el modelo, con validación, nunca con test (D21).",
     "evaluacion.especificidad_minima": "Criterio clínico del umbral final: la mayor sensibilidad con especificidad ≥ este valor, porque decir pCR cuando queda tumor es el error más grave (D21).",
-    "comparacion.sobreajuste_maximo": "Diferencia de AUC entrenamiento − validación a partir de la cual una versión se considera sobreajustada y pierde los empates (D16)."
+    "comparacion.sobreajuste_maximo": "Diferencia de AUC entrenamiento − validación a partir de la cual una versión se considera sobreajustada y pierde los empates (D16).",
+    "modos.eleccion_epoca": "Qué época se guarda: mejor (la de mayor AUC de validación, con parada temprana) o ultima (la última de epocas_max, sin mirar la validación; modo fijo, D37).",
+    "modos.fijo": "Modo fijo (D37): 6 épocas fijadas de antemano (la mediana de las épocas elegidas en los 30 modelos del conjunto, R10) y se usa la última. Su AUC de validación no lleva el sesgo de elegir la mejor época."
   }
 }

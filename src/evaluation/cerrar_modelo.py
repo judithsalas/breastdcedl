@@ -48,6 +48,7 @@ import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, roc_curve
 
+from src.config import MODOS
 from src.data.caso import NOMBRE_COHORTE, RAIZ_REPO, RESULTADOS
 from src.evaluation.metricas import auc_con_ic, brier, coma, metricas_con_umbral, tabla_calibracion
 from src.evaluation.umbral import ESPECIFICIDAD_MINIMA, comparar_umbrales
@@ -472,7 +473,8 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Cierra el modelo: calibración, umbral y exportación a models/final/.")
     p.add_argument("--cv", nargs="+", help="carpetas de validaciones cruzadas concretas (por defecto, el conjunto)")
     p.add_argument("--una", action="store_true", help="solo la versión ganadora del criterio (D21), no el conjunto")
-    p.add_argument("--modo", choices=["rapido", "completo"], default="completo")
+    p.add_argument("--modo", choices=list(MODOS), default="completo",
+                   help="de qué ejecuciones sale el modelo: completo (época elegida) o fijo (épocas fijas, D37)")
     args = p.parse_args()
     if args.cv:
         carpetas = [Path(c).resolve() for c in args.cv]

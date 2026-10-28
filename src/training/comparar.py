@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.ticker import FuncFormatter
 
+from src.config import MODOS
 from src.evaluation.metricas import auc_por_cohorte, coma, senal_de_hospital
 from src.training.graficas import TINTA_SUAVE, _estilo, epoca_elegida, leer_historial
 
@@ -151,7 +152,7 @@ def main() -> None:
     p.add_argument("referencia", help="versión (p. ej. cnn_v3) o carpeta de runs/")
     p.add_argument("nueva", help="versión (p. ej. cnn_v10) o carpeta de runs/")
     p.add_argument("--fold", type=int, default=0)
-    p.add_argument("--modo", choices=["rapido", "completo"], default="completo")
+    p.add_argument("--modo", choices=list(MODOS), default="completo")
     args = p.parse_args()
     comparar(args.referencia, args.nueva, args.fold, args.modo)
 

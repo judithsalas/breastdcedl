@@ -98,7 +98,7 @@ def ya_hecha(e: dict, carpeta_runs: Path = CARPETA_RUNS) -> Path | None:
 def describir(e: dict) -> str:
     modo = MODOS[e["modo"]]
     cambios = ", ".join(f"{k} {getattr(modo, k)} → {v}" for k, v in e["cambios"].items()) or "ninguno"
-    duracion = "unos 15 min por fold" if e["modo"] == "completo" else "unos minutos"
+    duracion = {"completo": "unos 15 min por fold", "fijo": "unos 4 min por fold"}.get(e["modo"], "unos minutos")
     return (f"{e['modelo']} · modo {e['modo']} · pérdida {e['perdida']} · folds {e['folds']} ({duracion})\n"
             f"  cambios sobre el modo: {cambios}\n  nota: {e['nota'] or '—'}")
 

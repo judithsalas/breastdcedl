@@ -257,6 +257,7 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
     sobre la que se mide el AUC de entrenamiento. Si es None, no se mide.
     """
     mejor_auc, sin_mejora = -math.inf, 0
+    ultima = cfg.eleccion_epoca == "ultima"    # D37: se guarda la última época, sin mirar la validación
     resultados["epocas"] = []
     inicio = time.perf_counter()
 
@@ -275,7 +276,7 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
         lr_epoca = optimizador.param_groups[0]["lr"]          # el de esta época, antes de que el programador lo baje
         if programador is not None and not math.isnan(auc):
             programador.step(auc)
-        mejora = not math.isnan(auc) and auc > mejor_auc
+        mejora = ultima or (not math.isnan(auc) and auc > mejor_auc)
         if mejora:
             mejor_auc, sin_mejora = auc, 0
             torch.save({"modelo": resultados["modelo"], "arquitectura": resultados.get("arquitectura"),
@@ -311,7 +312,7 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
         guardar(resultados, carpeta)
         dibujar_graficas(carpeta)   # graficas/: curvas hasta esta época y matriz de la elegida
 
-        if sin_mejora >= cfg.paciencia:
+        if not ultima and sin_mejora >= cfg.paciencia:
             print(f"Parada: {cfg.paciencia} épocas sin mejorar el AUC por paciente.")
             break
 
@@ -417,7 +418,8 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
           f"cortes por paciente {como_entrenar['cortes_por_paciente'] or 'todos'} | "
           f"programador {como_entrenar['programador'] or 'no'} | {optim_texto} | "
           f"batch {cfg.batch_size} | lr {cfg.learning_rate} | "
-          f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n")
+          + (f"{cfg.epocas_max} épocas fijas, se usa la última (D37)\n" if cfg.eleccion_epoca == "ultima"
+             else f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n"))
 
     entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimizador,
                     dispositivo, cfg, carpeta, resultados, eval_train=(cargador_tr_eval, muestra_tr),
@@ -426,7 +428,8 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     e = resultados.get("mejor_epoca")
     if e:
         mc = e["matriz_confusion"]
-        print(f"\nÉpoca elegida {e['epoca']}: AUC va {e['auc_val']:.3f} | AUC tr {e['auc_train']:.3f} | "
+        cual = "usada (la última, fija)" if cfg.eleccion_epoca == "ultima" else "elegida"
+        print(f"\nÉpoca {cual} {e['epoca']}: AUC va {e['auc_val']:.3f} | AUC tr {e['auc_train']:.3f} | "
               f"diferencia {e['diferencia_auc']:+.3f}")
         print(f"Umbral {UMBRAL}: VP {mc['VP']} FN {mc['FN']} FP {mc['FP']} VN {mc['VN']} | "
               f"F1 pCR {e['f1_pcr']:.2f} · F1 no pCR {e['f1_no_pcr']:.2f} · F1 macro {e['f1_macro']:.2f}")
@@ -453,7 +456,7 @@ def registrar_ejecucion() -> None:
 
 def anadir_argumentos(p: argparse.ArgumentParser, con_fold: bool = True) -> argparse.ArgumentParser:
     """Argumentos comunes a entrenar.py y validacion_cruzada.py."""
-    p.add_argument("--modo", choices=["rapido", "completo"], required=True)
+    p.add_argument("--modo", choices=list(MODOS), required=True)
     p.add_argument("--modelo", required=True, help="nombre registrado en src/models (p. ej. cnn_v1)")
     p.add_argument("--ponderada", action="store_true", help="BCEWithLogitsLoss con pos_weight = N0/N1")
     p.add_argument("--nota", default="", help="comentario libre que se guarda con los resultados")
