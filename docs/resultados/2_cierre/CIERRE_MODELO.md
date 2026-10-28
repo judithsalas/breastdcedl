@@ -1,6 +1,6 @@
 # Cierre del modelo
 
-Generado por `python -m src.evaluation.cerrar_modelo` el 2026-10-28 18:09.
+Generado por `python -m src.evaluation.cerrar_modelo` el 2026-10-28 18:22.
 Todo con predicciones **fuera de fold** de train; test no se ha usado. Explicación de cada
 decisión: [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).
 

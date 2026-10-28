@@ -1,6 +1,6 @@
 # Modelo clínico de comparación (sin imagen)
 
-Generado por `python -m src.evaluation.modelo_clinico` el 2026-10-28 18:09. Solo train, con
+Generado por `python -m src.evaluation.modelo_clinico` el 2026-10-28 18:22. Solo train, con
 los mismos 5 folds que la CNN; test no se ha usado (se evalúa una sola vez, junto con la CNN, en `evaluar_test`).
 Por qué y cómo: D25 en [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md#25-el-modelo-del-médico-sin-imagen-d25).
 
