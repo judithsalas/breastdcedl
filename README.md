@@ -9,7 +9,7 @@ Aprendizaje Automático (UAX).
 
 - Enunciado oficial: [`breastdcedl/documentation/caso_breastdcedl.pdf`](breastdcedl/documentation/caso_breastdcedl.pdf)
 - Guía del caso: [`breastdcedl/GUIA.md`](breastdcedl/GUIA.md)
-- App web: URL pendiente de publicar en Hugging Face (pasos en [App web](#app-web))
+- **App web:** <https://huggingface.co/spaces/judithsalas/breastdcedl-pcr> (cómo se publica: [App web](#app-web))
 
 ## Por dónde empezar
 
@@ -298,7 +298,7 @@ python -m src.models.exportar_web                            # web/modelo, web/e
 python -m src.models.publicar_web <usuario>/breastdcedl-pcr  # crea el Space si no existe y sube web/
 ```
 
-La app queda en `https://huggingface.co/spaces/<usuario>/breastdcedl-pcr`. Para probarla con entradas
+Publicada el 2026-10-29 en <https://huggingface.co/spaces/judithsalas/breastdcedl-pcr>. Para probarla con entradas
 válidas e inválidas: `python -m app.casos_prueba` y la lista de `pruebas_app/LEEME.md`.
 
 **Probarla en local** (opcional): `python -m http.server -d web 8000` y abrir <http://localhost:8000>.
