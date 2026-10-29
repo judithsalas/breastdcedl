@@ -235,6 +235,8 @@ models/**
 *.pth
 !models/final/**/*.pt
 *.onnx
+# Excepción: el modelo final en ONNX de la app web (D38) y la red de la página «La red» (D39), que se publican.
+!web/modelo/*.onnx
 *.pkl
 *.joblib
 

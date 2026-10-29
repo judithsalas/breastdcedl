@@ -9,7 +9,7 @@ Aprendizaje Automático (UAX).
 
 - Enunciado oficial: [`breastdcedl/documentation/caso_breastdcedl.pdf`](breastdcedl/documentation/caso_breastdcedl.pdf)
 - Guía del caso: [`breastdcedl/GUIA.md`](breastdcedl/GUIA.md)
-- App web: URL pendiente de desplegar (instrucciones en [`app/README.md`](app/README.md))
+- App web: URL pendiente de publicar en Hugging Face (pasos en [App web](#app-web))
 
 ## Por dónde empezar
 
@@ -45,7 +45,8 @@ generan desde el código (`python -m src.models.dibujar cnn_v2`):
 │   ├── utils/            CPU o GPU, semilla
 │   └── config.py         lee config.json
 ├── tests/              comprobaciones automáticas (`pytest -q`)
-├── app/                la app web (Streamlit)
+├── web/                la app web publicada: página estática con el modelo en ONNX (Hugging Face, D38)
+├── app/                ejemplos y pruebas de la app, y una versión local en Python (Streamlit)
 ├── docs/
 │   ├── COMO_SE_HIZO.md   las decisiones, explicadas
 │   ├── ARQUITECTURAS.md  la historia de la red
@@ -71,9 +72,12 @@ python -m src.training.plan              # 2. plan de experimentos (una noche, r
 python -m src.utils.exportar_resultados  #    resultados en un zip pequeño (sin imágenes ni pesos)
 python -m src.evaluation.cerrar_modelo   # 3. modelo final → models/final/ y docs/resultados/2_cierre/
 python -m src.evaluation.modelo_clinico  # 4. el «médico» sin imagen y CNN + médico → docs/resultados/3_clinico/
+python -m src.evaluation.validacion_interna  #  Platt y umbral sin el fold que se mide → docs/resultados/2_cierre/
 python -m app.preparar_ejemplos          # 5. ejemplos de la app
+python -m src.models.exportar_web        #    la app web: modelo en ONNX, comprobado con PyTorch → web/
+python -m src.models.publicar_web <usuario>/breastdcedl-pcr   #    la sube a Hugging Face
 python -m src.evaluation.evaluar_test    # 6. test, UNA sola vez → docs/resultados/4_test/
-streamlit run app/app.py                 # app en local (despliegue: app/README.md)
+streamlit run app/app.py                 # versión local en Python (opcional)
 ```
 
 ## Puesta en marcha
@@ -262,3 +266,39 @@ Los datos derivan de **BreastDCEDL** (Fridman et al., *Scientific Data*, 2026,
 [doi:10.1038/s41597-026-06589-6](https://doi.org/10.1038/s41597-026-06589-6)).
 Uso docente y de investigación; ver [`breastdcedl/LICENSE`](breastdcedl/LICENSE) y la sección
 de ética de la guía.
+
+## App web
+
+La app publicada es una página propia (`web/`) en un Space **estático** de Hugging Face, gratis. El modelo
+final se ejecuta en el navegador de quien la usa, con ONNX Runtime Web: las imágenes no salen de su
+ordenador. Por qué así y cómo se garantiza que da lo mismo que el pipeline:
+[`docs/COMO_SE_HIZO.md` §7](docs/COMO_SE_HIZO.md#7-la-app) y D38 del registro.
+
+Tiene tres páginas (D39):
+- **Predicción** (`index.html`): se suben las tres fases de un corte, o se elige un ejemplo, y da la
+  probabilidad, la clase y el mapa de qué zonas la suben o la bajan.
+- **La red** (`red.html`): la arquitectura pieza a pieza, con un corte atravesándola, sus mapas de
+  características reales y los parámetros de cada capa.
+- **Resultados** (`resultados.html`): la CNN frente al modelo del médico y a los dos juntos, con las
+  gráficas que piden las guías (ROC, calibración, curva de decisión, subgrupos…).
+
+**La primera vez** (en el PC de la uni, con el entorno `cancer`):
+
+1. Crear una cuenta en <https://huggingface.co> (gratis).
+2. En *Settings → Access Tokens*, crear un token de tipo **Write** y copiarlo.
+3. Guardarlo en el ordenador:
+   ```bash
+   python -c "from huggingface_hub import login; login()"   # pegar el token cuando lo pida
+   ```
+
+**Cada vez que cambie el modelo final o los ejemplos:**
+
+```bash
+python -m src.models.exportar_web                            # web/modelo, web/ejemplos y web/datos, comprobados con PyTorch
+python -m src.models.publicar_web <usuario>/breastdcedl-pcr  # crea el Space si no existe y sube web/
+```
+
+La app queda en `https://huggingface.co/spaces/<usuario>/breastdcedl-pcr`. Para probarla con entradas
+válidas e inválidas: `python -m app.casos_prueba` y la lista de `pruebas_app/LEEME.md`.
+
+**Probarla en local** (opcional): `python -m http.server -d web 8000` y abrir <http://localhost:8000>.

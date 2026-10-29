@@ -1,0 +1,138 @@
+{
+  "pacientes": 1097,
+  "pacientes_pcr": 322,
+  "prevalencia": 0.2935278030993619,
+  "platt": {
+    "todas": {
+      "a": 0.1865455673450981,
+      "b": -0.6880873427695147
+    },
+    "por_fold": [
+      {
+        "fold": 0,
+        "a": 0.17884021721565524,
+        "b": -0.7003430144317742,
+        "umbral": 0.3067497803829671
+      },
+      {
+        "fold": 1,
+        "a": 0.39498132592150204,
+        "b": -0.46528035282409963,
+        "umbral": 0.32388729913247893
+      },
+      {
+        "fold": 2,
+        "a": 0.15361454670717775,
+        "b": -0.6848949513312181,
+        "umbral": 0.31213124239682033
+      },
+      {
+        "fold": 3,
+        "a": 0.20766188574132996,
+        "b": -0.7249246212663643,
+        "umbral": 0.2957938189629448
+      },
+      {
+        "fold": 4,
+        "a": 0.08852322183344873,
+        "b": -0.7755601934477747,
+        "umbral": 0.30318513545527404
+      }
+    ]
+  },
+  "brier": {
+    "constante": 0.20736923190702414,
+    "constante_cruzada": 0.2077207147103788,
+    "sin_calibrar": 0.20926500639207982,
+    "platt_mismas": 0.20675362095256133,
+    "platt_cruzado": 0.20788269009602012
+  },
+  "umbral": {
+    "mismas": {
+      "umbral": 0.30691576119190556,
+      "sensibilidad": 0.2826086956521739,
+      "especificidad": 0.8012903225806451,
+      "precision_pcr": 0.37142857142857144,
+      "precision_no_pcr": 0.7288732394366197,
+      "marcadas_pcr": 245,
+      "matriz_confusion": {
+        "VP": 91,
+        "FP": 154,
+        "FN": 231,
+        "VN": 621
+      }
+    },
+    "cruzado": {
+      "umbrales_por_fold": [
+        0.3067497803829671,
+        0.32388729913247893,
+        0.31213124239682033,
+        0.2957938189629448,
+        0.30318513545527404
+      ],
+      "sensibilidad": 0.2795031055900621,
+      "especificidad": 0.8051612903225807,
+      "precision_pcr": 0.37344398340248963,
+      "precision_no_pcr": 0.7289719626168224,
+      "marcadas_pcr": 241,
+      "matriz_confusion": {
+        "VP": 90,
+        "FP": 151,
+        "FN": 232,
+        "VN": 624
+      }
+    }
+  },
+  "auc": {
+    "media_folds": 0.5538055472909356,
+    "todas_juntas_platt_global": 0.5464556201162092,
+    "todas_juntas_platt_por_fold": 0.5283029453015428
+  },
+  "dispersion": {
+    "desviacion_logit_paciente": 0.11443229933238627,
+    "percentil_5": 0.2606456570086159,
+    "percentil_95": 0.3243143176273302,
+    "redes_por_paciente": "las de su fold (una por versión)"
+  },
+  "medico": {
+    "brier": 0.18901604685163712,
+    "umbral": {
+      "mismas": {
+        "umbral": 0.38718564366966435,
+        "sensibilidad": 0.39751552795031053,
+        "especificidad": 0.8025806451612904,
+        "precision_pcr": 0.4555160142348754,
+        "precision_no_pcr": 0.7622549019607843,
+        "marcadas_pcr": 281,
+        "matriz_confusion": {
+          "VP": 128,
+          "FP": 153,
+          "FN": 194,
+          "VN": 622
+        }
+      },
+      "cruzado": {
+        "umbrales_por_fold": [
+          0.38718564366966435,
+          0.38666209198873763,
+          0.3888637096332752,
+          0.38718564366966435,
+          0.38718564366966435
+        ],
+        "sensibilidad": 0.39751552795031053,
+        "especificidad": 0.8025806451612904,
+        "precision_pcr": 0.4555160142348754,
+        "precision_no_pcr": 0.7622549019607843,
+        "marcadas_pcr": 281,
+        "matriz_confusion": {
+          "VP": 128,
+          "FP": 153,
+          "FN": 194,
+          "VN": 622
+        }
+      }
+    }
+  },
+  "huella_modelo": "86efe7b4b112",
+  "versiones": 6
+}

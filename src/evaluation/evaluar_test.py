@@ -16,8 +16,12 @@ Qué calcula (rúbrica, puntos 8 y 9):
   F1 macro; accuracy.
 - Comparación con decir siempre «no pCR» y siempre «pCR», y con las métricas internas (fuera de
   fold) para ver cuánto se pierde fuera de train.
-- Resultados por cohorte, calibración (Brier y deciles) y los casos más claramente fallados,
-  mirados con sus imágenes (figura con las tres fases y el realce).
+- Resultados por cohorte, calibración (Brier y deciles, frente al Brier de decir a todas la tasa de pCR de
+  train) y los casos más claramente fallados, mirados con sus imágenes (figura con las tres fases y el realce).
+- **Conjunto de 30 frente a los de 6 (D40).** Fuera de fold, a cada paciente la predijeron las 6 redes de su
+  fold, y con esas predicciones se ajustaron Platt y el umbral; aquí predicen las 30. Se describe qué cambia
+  (dispersión del logit, pacientes por encima del umbral, AUC) con el conjunto de 30 y con los de 6 de cada
+  fold. Solo se mide: el modelo, Platt y el umbral siguen como estaban.
 - Comparación con el modelo clínico (D25, "el médico": edad, menopausia, HR, HER2) y con el
   combinado CNN + médico, en las mismas pacientes y en esta misma evaluación única. Por eso se
   niega a empezar si falta models/clinico/modelo_clinico.json o si se hizo con otra CNN
@@ -71,6 +75,51 @@ def predecir_cortes(modelo, filas: pd.DataFrame, lote: int = 64, raiz: Path | No
         for x, _ in DataLoader(datos, batch_size=lote, shuffle=False):
             salida.append(modelo.probabilidad(x).cpu().numpy())
     return np.concatenate(salida)
+
+
+def logits_de_cada_red(modelo, filas: pd.DataFrame, lote: int = 64, raiz: Path | None = None) -> np.ndarray:
+    """Logit SIN calibrar de cada red para cada corte: matriz (cortes, versiones, folds)."""
+    datos = uc.BreastDCEDataset(filas) if raiz is None else uc.BreastDCEDataset(filas, raiz)
+    dispositivo = next(modelo.parameters()).device
+    salida = []
+    with torch.no_grad():
+        for x, _ in DataLoader(datos, batch_size=lote, shuffle=False):
+            x = x.to(dispositivo)
+            salida.append(np.stack([np.stack([modelo.redes[i](x).squeeze(1).cpu().numpy() for i in grupo], axis=-1)
+                                    for grupo in modelo.grupos], axis=1))
+    return np.concatenate(salida)
+
+
+def conjunto_frente_a_folds(cortes: pd.DataFrame, logits: np.ndarray, platt: dict, umbral: float,
+                            oof: pd.DataFrame | None = None) -> dict:
+    """D40: lo que cambia al predecir con las 30 redes (como la app) en vez de con las 6 de un fold (como fuera de
+    fold, donde se ajustaron Platt y el umbral). Solo describe; no cambia nada del modelo."""
+    a, b = platt["a"], platt["b"]
+    y = cortes.groupby("patient_id").pCR.first()
+
+    def por_paciente(z: np.ndarray) -> pd.Series:
+        return pd.Series(1 / (1 + np.exp(-(a * z + b))), index=cortes.index).groupby(cortes.patient_id).mean()
+
+    def resumen(p: pd.Series) -> dict:
+        p = p.loc[y.index]
+        m = metricas_con_umbral(y.to_numpy(), p.to_numpy(), umbral)
+        lp = np.log(p.clip(1e-7, 1 - 1e-7) / (1 - p.clip(1e-7, 1 - 1e-7)))
+        return {"auc": float(auc_con_ic(y.to_numpy(), p.to_numpy(), n=200)["auc"]),
+                "desviacion_logit": float(np.std(lp, ddof=1)), "por_encima_umbral": float((p >= umbral).mean()),
+                "sensibilidad": m["sensibilidad"], "especificidad": m["especificidad"]}
+
+    filas = [{"conjunto": f"{logits.shape[1] * logits.shape[2]} redes (el modelo final)",
+              **resumen(por_paciente(logits.mean(axis=(1, 2))))}]
+    for k in range(logits.shape[2]):
+        filas.append({"conjunto": f"{logits.shape[1]} redes del fold {k}",
+                      **resumen(por_paciente(logits[:, :, k].mean(axis=1)))})
+    salida = {"test": filas}
+    if oof is not None:
+        q = oof.prob.clip(1e-7, 1 - 1e-7)
+        lp = np.log(q / (1 - q))
+        salida["fuera_de_fold"] = {"desviacion_logit": float(np.std(lp, ddof=1)),
+                                   "por_encima_umbral": float((oof.prob >= umbral).mean())}
+    return salida
 
 
 def evaluar(pacientes: pd.DataFrame, umbral: float) -> dict:
@@ -245,7 +294,8 @@ def informe(resultado: dict, manifiesto: dict, motivo_repeticion: str | None) ->
         f"## Métricas por paciente ({r['pacientes']} pacientes, {r['pacientes_pcr']} con pCR)", "",
         "| Métrica | Test | Fuera de fold (train) | Siempre «no pCR» | Siempre «pCR» |", "|---|---|---|---|---|",
         (f"| AUC | {coma(r['auc'], 3)} (IC 95 % {coma(r['ic95'][0], 3)}–{coma(r['ic95'][1], 3)}) | "
-        f"{coma(mi['fuera_de_fold']['auc']['auc'], 3)} | 0,500 | 0,500 |"),
+        f"{coma(mi['fuera_de_fold']['auc']['auc'], 3)} (media de folds {coma(mi['auc_val_media'], 3)}) | 0,500 | "
+         "0,500 |"),
         (f"| Sensibilidad (recall pCR) | {coma(r['sensibilidad'], 3)} (IC {coma(r['sensibilidad_ic95'][0], 2)}–"
         f"{coma(r['sensibilidad_ic95'][1], 2)}) | {coma(mi['fuera_de_fold']['sensibilidad'], 3)} | 0 | 1 |"),
         (f"| Especificidad (recall no pCR) | {coma(r['especificidad'], 3)} (IC {coma(r['especificidad_ic95'][0], 2)}–"
@@ -258,9 +308,18 @@ def informe(resultado: dict, manifiesto: dict, motivo_repeticion: str | None) ->
         lineas.append(f"| {nombre} | {_v(r[clave])} | {_v(interno)} | {_v(tr['siempre_no_pcr'][clave])} | "
                       f"{_v(tr['siempre_pcr'][clave])} |")
     m = r["matriz_confusion"]
+    bc = r.get("brier_constante")
     lineas += ["", (f"Matriz de confusión: VP {m['VP']}, FN {m['FN']}, FP {m['FP']}, VN {m['VN']}. "
-               f"Error de Brier: {coma(r['brier'], 4)}."), "",
-               "![Matriz de confusión](matriz_confusion_test.png)", "",
+               f"Error de Brier: {coma(r['brier'], 4)}"
+                    + (f" (decir a todas la tasa de pCR de train, {coma(100 * bc['tasa_train'], 1)} %, da "
+                       f"{coma(bc['brier'], 4)})." if bc else ".")), ""]
+    if r.get("validacion_interna"):
+        vi = r["validacion_interna"]
+        lineas += [(f"Estimación interna sin el fold que se mide (Platt y umbral elegidos sin él, D40): sensibilidad "
+                    f"{coma(vi['sensibilidad'], 3)}, especificidad {coma(vi['especificidad'], 3)}, precisión pCR "
+                    f"{coma(vi['precision_pcr'], 3)}. La columna «fuera de fold» usa las mismas pacientes con las que se "
+                    "eligieron, así que es algo optimista."), ""]
+    lineas += ["![Matriz de confusión](matriz_confusion_test.png)", "",
                "## Por cohorte", "", "| Cohorte | Pacientes | Con pCR | AUC (IC 95 %) | Sensibilidad | Especificidad |",
                "|---|---|---|---|---|---|"]
     for c, v in r["por_cohorte"].items():
@@ -270,6 +329,23 @@ def informe(resultado: dict, manifiesto: dict, motivo_repeticion: str | None) ->
                "cohortes se describen, no se afirman.", ""]
     if r.get("comparacion_clinica"):
         lineas += seccion_clinica(r)
+    if r.get("conjunto_frente_a_folds"):
+        cf = r["conjunto_frente_a_folds"]
+        lineas += ["## Conjunto de 30 frente a los de 6 (D40)", "",
+                   ("Platt y el umbral se ajustaron con predicciones de 6 redes por paciente (las de su fold); la app y "
+                    "esta evaluación usan las 30. Solo se describe qué cambia; no se ha ajustado nada."), "",
+                   "| Conjunto | AUC | Desviación del logit | Por encima del umbral | Sensibilidad | Especificidad |",
+                   "|---|---|---|---|---|---|"]
+        if cf.get("fuera_de_fold"):
+            o = cf["fuera_de_fold"]
+            lineas.append(f"| Fuera de fold en train (6 redes) | — | {coma(o['desviacion_logit'], 3)} | "
+                          f"{coma(100 * o['por_encima_umbral'], 1)} % | — | — |")
+        for f in cf["test"]:
+            lineas.append(f"| {f['conjunto']} | {coma(f['auc'], 3)} | {coma(f['desviacion_logit'], 3)} | "
+                          f"{coma(100 * f['por_encima_umbral'], 1)} % | {coma(f['sensibilidad'], 3)} | "
+                          f"{coma(f['especificidad'], 3)} |")
+        lineas += ["", ("Si con 30 redes la desviación es menor que con 6, la probabilidad sale más concentrada y caen menos "
+                        "pacientes por encima del umbral: la sensibilidad baja y la especificidad sube."), ""]
     lineas += ["## Calibración y casos fallados", "", "![Calibración](calibracion_test.png)", "",
                "![Casos fallados](casos_fallados_test.png)", "",
                "## Cómo leerlo", "",
@@ -310,6 +386,19 @@ def main() -> None:
     resultado = {"fecha": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M"),
                  "modelo": manifiesto["version"], "huella_modelo": manifiesto["huella_modelo"],
                  **evaluar(pacientes, manifiesto["umbral"]), "repeticion": args.repetir}
+    # Referencia de la probabilidad: decir a todas la tasa de pCR de train (D40)
+    train = uc.cargar_samples()
+    tasa_train = float(train[train.split == "train"].groupby("patient_id").pCR.first().mean())
+    resultado["brier_constante"] = {"tasa_train": tasa_train,
+                                    "brier": brier(pacientes.pCR.to_numpy(), np.full(len(pacientes), tasa_train))}
+    # Conjunto de 30 frente a los de 6 de cada fold (D40): solo se describe
+    oof = RESULTADOS / "2_cierre" / "oof_pacientes.csv"
+    resultado["conjunto_frente_a_folds"] = conjunto_frente_a_folds(
+        cortes, logits_de_cada_red(modelo, test), manifiesto["calibracion"], manifiesto["umbral"],
+        pd.read_csv(oof) if oof.exists() else None)
+    interna = RESULTADOS / "2_cierre" / "validacion_interna.json"
+    if interna.exists():
+        resultado["validacion_interna"] = json.loads(interna.read_text(encoding="utf-8"))["umbral"]["cruzado"]
 
     CARPETA_TEST.mkdir(parents=True, exist_ok=True)
     tabla_pacientes = pacientes.copy()

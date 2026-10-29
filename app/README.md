@@ -1,5 +1,11 @@
 # App web: predicción de pCR para un corte
 
+> **La app publicada ya no es esta (D38, 2026-10-29).** Es la página de `web/`, en un Space estático de
+> Hugging Face, con el mismo modelo en ONNX ejecutado en el navegador (pasos en el `README.md` principal,
+> «App web»). Esta carpeta guarda los **ejemplos** (`ejemplos/`, que también usa `web/`), las **pruebas de
+> entrada** (`casos_prueba.py`) y una **versión local en Python** con Streamlit, que usa el mismo modelo y la
+> misma validación. Lo de abajo describe esa versión local.
+
 Interfaz Streamlit sobre el **mismo código** del pipeline:
 - `src/data/entrada.py` lee y valida los tres PNG con la misma normalización que el entrenamiento
   (gris de 8 bits / 255);

@@ -76,7 +76,7 @@ def respuesta(ficheros: dict[str, bytes]) -> str:
     _, errores, avisos = validar_corte(list(ficheros.items()))
     if errores:
         return "Error: " + " ".join(errores)
-    return "Predice" + (". Aviso: " + " ".join(avisos) if avisos else "") + "."
+    return "Predice." + (" Aviso: " + " ".join(avisos) if avisos else "")
 
 
 def crear(ejemplos: Path = EJEMPLOS, destino: Path = DESTINO) -> list[tuple[str, str, str]]:

@@ -50,7 +50,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, roc_curve
 
 from src.data.caso import NOMBRE_COHORTE, RAIZ_REPO, RESULTADOS, uc
-from src.evaluation.metricas import auc_con_ic, coma, diferencia_auc
+from src.evaluation.metricas import auc_con_ic, auc_media_folds, coma, diferencia_auc, diferencia_media_folds
 from src.evaluation.umbral import ESPECIFICIDAD_MINIMA, umbral_por_especificidad
 
 # --------------------------------------------------------------------------- #
@@ -222,12 +222,15 @@ def cnn_cerrada(oof: Path = OOF_CNN, manifiesto: Path = MANIFIESTO_CNN) -> tuple
 # --------------------------------------------------------------------------- #
 
 def resumen(tabla: pd.DataFrame, prob: pd.Series, folds: list[dict]) -> dict:
-    """AUC medio ± desviación de los folds, AUC fuera de fold con IC y umbral con el criterio de la CNN."""
+    """AUC medio ± desviación de los folds (la cifra principal, con su IC), AUC con todas las pacientes juntas
+    (con IC) y umbral con el criterio de la CNN."""
     y, p = tabla.pCR.to_numpy(), prob.loc[tabla.index].to_numpy()
     val = [f["auc_val"] for f in folds]
     train = [f["auc_train"] for f in folds if f.get("auc_train") is not None]
     salida = {"prob": prob.loc[tabla.index], "por_fold": folds, "auc_val": float(np.mean(val)),
-              "auc_val_desv": float(np.std(val, ddof=1)), "auc_train": float(np.mean(train)) if train else None,
+              "auc_val_desv": float(np.std(val, ddof=1)),
+              "auc_val_ic95": auc_media_folds(y, p, tabla.fold.to_numpy())["ic95"],
+              "auc_train": float(np.mean(train)) if train else None,
               "fuera_de_fold": auc_con_ic(y, p), "umbral": umbral_por_especificidad(y, p),
               "pacientes": len(y)}
     salida["diferencia"] = None if salida["auc_train"] is None else salida["auc_train"] - salida["auc_val"]
@@ -306,11 +309,16 @@ def analizar(tabla: pd.DataFrame, cnn: pd.Series | None = None, referencias: dic
     y = con.pCR.to_numpy()
     p_medico = modelos["medico"]["prob"].loc[con.index]
     p_cnn, p_comb = con.prob_cnn, modelos["combinado"]["prob"]
+    # La comparación usa la misma cifra que se da de cada modelo, la media de los folds (D40): la diferencia
+    # cuadra con las cifras de la tabla. Con todas las pacientes juntas se da aparte, como comprobación.
+    folds = con.fold.to_numpy()
+    pares = {"cnn_menos_medico": (p_cnn, p_medico), "combinado_menos_medico": (p_comb, p_medico),
+             "combinado_menos_cnn": (p_comb, p_cnn)}
     analisis["comparacion"] = {
         "pacientes": len(con),
-        "cnn_menos_medico": diferencia_auc(y, p_cnn.to_numpy(), p_medico.to_numpy()),
-        "combinado_menos_medico": diferencia_auc(y, p_comb.to_numpy(), p_medico.to_numpy()),
-        "combinado_menos_cnn": diferencia_auc(y, p_comb.to_numpy(), p_cnn.to_numpy()),
+        "estimador": "media de los 5 folds, bootstrap pareado de pacientes dentro de cada fold",
+        **{k: diferencia_media_folds(y, a.to_numpy(), b.to_numpy(), folds) for k, (a, b) in pares.items()},
+        "todas_juntas": {k: diferencia_auc(y, a.to_numpy(), b.to_numpy()) for k, (a, b) in pares.items()},
         "correlacion_spearman": float(spearmanr(p_cnn, p_medico).statistic),
     }
     probs = {"cnn": p_cnn, "medico": p_medico, "combinado": p_comb}
@@ -476,13 +484,14 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
 
     lineas += ["", (f"## 2. Resultados en validación cruzada ({analisis['pacientes']} pacientes, "
                     f"{analisis['pacientes_pcr']} con pCR)"), "",
-               ("| Modelo | AUC validación (5 folds) | AUC entrenamiento | Diferencia | AUC fuera de fold (IC 95 %) | "
-                "Sensibilidad | Especificidad |"),
-               "|---|---|---|---|---|---|---|"]
+               ("| Modelo | AUC validación (media de 5 folds) | IC 95 % | AUC entrenamiento | Diferencia | "
+                "Todas juntas (IC 95 %) | Sensibilidad | Especificidad |"),
+               "|---|---|---|---|---|---|---|---|"]
     for clave in ("cohorte", "subtipo"):
         if clave in analisis["referencias"]:
             r = analisis["referencias"][clave]
-            lineas.append(f"| {NOMBRE_MODELO[clave]} | {coma(r['media'], 3)} ± {coma(r['desviacion'], 3)} | — | — | — | — | — |")
+            lineas.append(f"| {NOMBRE_MODELO[clave]} | {coma(r['media'], 3)} ± {coma(r['desviacion'], 3)} | — | — | — | — | — "
+                          "| — |")
     for clave in ("medico", "medico_volumen", "cnn", "combinado"):
         if clave not in m:
             continue
@@ -490,10 +499,17 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
         tr = "—" if r["auc_train"] is None else coma(r["auc_train"], 3)
         di = "—" if r["diferencia"] is None else coma(r["diferencia"], 3)
         lineas.append(f"| {'**' + NOMBRE_MODELO[clave] + '**' if clave == 'medico' else NOMBRE_MODELO[clave]} | "
-                      f"{coma(r['auc_val'], 3)} ± {coma(r['auc_val_desv'], 3)} | {tr} | {di} | "
+                      f"{coma(r['auc_val'], 3)} ± {coma(r['auc_val_desv'], 3)} | "
+                      f"{coma(r['auc_val_ic95'][0], 2)}–{coma(r['auc_val_ic95'][1], 2)} | {tr} | {di} | "
                       f"{_ic(r['fuera_de_fold'])} | {coma(u['sensibilidad'], 3)} | {coma(u['especificidad'], 3)} |")
-    lineas += ["", ("Sensibilidad y especificidad con el umbral de cada modelo elegido con el mismo criterio que la "
-                    f"CNN (mayor sensibilidad con especificidad ≥ {coma(ESPECIFICIDAD_MINIMA, 2)})."),
+    lineas += ["", ("La cifra principal es la media de los 5 folds (rúbrica, punto 2); su IC 95 % sale de remuestrear "
+                    "pacientes dentro de cada fold."),
+               ("«Todas juntas» es el AUC de las predicciones fuera de fold de todas las pacientes a la vez: es otro "
+                "estimador y se da solo como comprobación."),
+               ("Sensibilidad y especificidad con el umbral de cada modelo elegido con el mismo criterio que la "
+                f"CNN (mayor sensibilidad con especificidad ≥ {coma(ESPECIFICIDAD_MINIMA, 2)}), y medidas en las "
+                "mismas pacientes con las que se eligió: son optimistas (validación interna en "
+                "`docs/resultados/2_cierre/VALIDACION_INTERNA.md`)."),
                ("El volumen se prueba solo como variante: sale de la segmentación de la imagen y en Duke tiene "
                 "otra escala, así que no es «lo que sabe el médico» y no se lleva a test."), "",
                "![ROC fuera de fold](roc_fuera_de_fold.png)", "",
@@ -508,11 +524,17 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
 
     if "comparacion" in analisis:
         c = analisis["comparacion"]
+        j = c.get("todas_juntas", {})
         lineas += [f"## 4. CNN frente al médico ({c['pacientes']} pacientes, fuera de fold)", "",
-                   "| Comparación | Diferencia de AUC (bootstrap pareado de pacientes) |", "|---|---|",
-                   f"| CNN − médico | {_dif(c['cnn_menos_medico'])} |",
-                   f"| (CNN + médico) − médico: lo que **añade la imagen** | {_dif(c['combinado_menos_medico'])} |",
-                   f"| (CNN + médico) − CNN: lo que añade la clínica | {_dif(c['combinado_menos_cnn'])} |", "",
+                   ("| Comparación | Diferencia de AUC, media de folds (IC 95 %, bootstrap pareado) | Por fold | "
+                    "Todas juntas (comprobación) |"), "|---|---|---|---|"]
+        for clave, etiqueta in (("cnn_menos_medico", "CNN − médico"),
+                                ("combinado_menos_medico", "(CNN + médico) − médico: lo que **añade la imagen**"),
+                                ("combinado_menos_cnn", "(CNN + médico) − CNN: lo que añade la clínica")):
+            fold = " · ".join(coma(v, 3) for v in c[clave].get("por_fold", []))
+            lineas.append(f"| {etiqueta} | {_dif(c[clave])} | {fold} | {_dif(j[clave]) if clave in j else '—'} |")
+        lineas += ["", ("La diferencia es la resta de las cifras principales de la tabla anterior (media de folds), así "
+                        "que cuadra con ellas."), "",
                    (f"Correlación de Spearman entre la puntuación de la CNN y la del médico: "
                     f"{coma(c['correlacion_spearman'], 2)}. Si fuera alta, la CNN estaría"),
                    "repitiendo sobre todo el subtipo; si es baja, mira otra cosa.", "",
@@ -528,8 +550,10 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
                           f"{coma(v['medico'], 3)} | {coma(v['combinado'], 3)} |")
         lineas += ["", ("El combinado usa la puntuación fuera de fold de la CNN (cada paciente, predicha por el modelo "
                         "que no la vio):"),
-                   ("es apilado honesto. En test se le da la puntuación del conjunto de 5 modelos, que es algo más "
-                    "estable."), ""]
+                   ("es apilado honesto. Fuera de fold, a cada paciente la predicen las 6 redes de su fold; en test, "
+                    "las 30 del conjunto."),
+                   ("La media de 30 varía menos entre pacientes, así que en test el peso de la CNN en el combinado podría "
+                    "quedarse corto: `evaluar_test` mide esa dispersión (D40)."), ""]
     else:
         lineas += ["## 4. CNN frente al médico", "",
                    f"Pendiente: {motivo_cnn}. Se completa ejecutando de nuevo este script después de `cerrar_modelo`.",

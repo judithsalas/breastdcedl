@@ -1,0 +1,68 @@
+[
+  {
+    "corte": "Breast_MRI_387_z023",
+    "cohorte": "duke",
+    "pcr": 0,
+    "ficheros": [
+      "Breast_MRI_387_z023_PRE.png",
+      "Breast_MRI_387_z023_EARLY.png",
+      "Breast_MRI_387_z023_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.25476688146591187
+  },
+  {
+    "corte": "Breast_MRI_735_z018",
+    "cohorte": "duke",
+    "pcr": 1,
+    "ficheros": [
+      "Breast_MRI_735_z018_PRE.png",
+      "Breast_MRI_735_z018_EARLY.png",
+      "Breast_MRI_735_z018_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.2912469208240509
+  },
+  {
+    "corte": "ISPY1_1012_z020",
+    "cohorte": "spy1",
+    "pcr": 0,
+    "ficheros": [
+      "ISPY1_1012_z020_PRE.png",
+      "ISPY1_1012_z020_EARLY.png",
+      "ISPY1_1012_z020_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.2921684980392456
+  },
+  {
+    "corte": "ISPY1_1208_z015",
+    "cohorte": "spy1",
+    "pcr": 1,
+    "ficheros": [
+      "ISPY1_1208_z015_PRE.png",
+      "ISPY1_1208_z015_EARLY.png",
+      "ISPY1_1208_z015_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.29513680934906006
+  },
+  {
+    "corte": "ISPY2-273691_z009",
+    "cohorte": "spy2",
+    "pcr": 1,
+    "ficheros": [
+      "ISPY2-273691_z009_PRE.png",
+      "ISPY2-273691_z009_EARLY.png",
+      "ISPY2-273691_z009_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.31704986095428467
+  },
+  {
+    "corte": "ISPY2-554577_z026",
+    "cohorte": "spy2",
+    "pcr": 0,
+    "ficheros": [
+      "ISPY2-554577_z026_PRE.png",
+      "ISPY2-554577_z026_EARLY.png",
+      "ISPY2-554577_z026_LATE.png"
+    ],
+    "probabilidad_pipeline": 0.2973374128341675
+  }
+]

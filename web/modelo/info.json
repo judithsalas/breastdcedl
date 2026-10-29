@@ -1,0 +1,1080 @@
+{
+  "huella_modelo": "86efe7b4b112",
+  "fecha_cierre": "2026-10-28T21:31:47+01:00",
+  "modelo": "conjunto de 6 CNN",
+  "conjunto": "media de los logits de los 5 modelos de cada versión (uno por fold) y media entre las 6 versiones: 30 CNN propias desde cero",
+  "entrada": "3 PNG en gris de 8 bits (PRE, EARLY, LATE), 256×256, divididos entre 255 → [0, 1]",
+  "umbral": 0.30691576119190556,
+  "criterio_umbral": "máxima sensibilidad con especificidad ≥ 0,80",
+  "calibracion": {
+    "a": 0.1865455673450981,
+    "b": -0.6880873427695147
+  },
+  "onnx": {
+    "fichero": "modelo.onnx",
+    "sha256": "7ec1fde61b6d53b880d8e191ef53398c75be6d034e70f94c28862f2f8a8fc599",
+    "bytes": 11967446,
+    "opset": 17,
+    "torch": "2.14.0+rocm7.14",
+    "comprobacion": {
+      "diferencia_maxima": 8.940696716308594e-08,
+      "cortes": 9,
+      "mapa_diferencia_maxima": 7.450580596923828e-09,
+      "mapa_suma_error": 1.0645861325819794e-07
+    }
+  },
+  "entrenamiento": {
+    "redes": 30,
+    "parametros": 591303,
+    "perdida": "normal",
+    "batch": 32,
+    "learning_rate": 0.001,
+    "semilla": 42,
+    "epocas": 6,
+    "eleccion_epoca": "ultima",
+    "optimizador": "Adam",
+    "gpu": "AMD Radeon RX 6700 XT",
+    "versiones": [
+      {
+        "version": "cnn_v3",
+        "que_cambia": "aumento geométrico",
+        "parametros": 97809,
+        "aumento": "geometrico",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})",
+        "weight_decay": 0.0,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "global",
+          "cabeza_oculta": null,
+          "dropout": 0.0
+        },
+        "red": {
+          "entrada": "fases",
+          "normalizacion": null,
+          "bloques": [
+            {
+              "entrada": [
+                3,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 3,
+                  "pesos": 432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 464,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "media global",
+            "parametros": 0,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 97809
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.5083669354838709,
+          0.536059174029176,
+          0.5627960837982946,
+          0.5293793103448275,
+          0.6080747893979865
+        ],
+        "auc_val": 0.548935258610831,
+        "auc_val_desviacion": 0.03835239263941796,
+        "auc_train": 0.666070541137099,
+        "validacion_cruzada": "20261028-195129_cv_cnn_v3_fijo"
+      },
+      {
+        "version": "cnn_v4",
+        "que_cambia": "con el realce dado",
+        "parametros": 98097,
+        "aumento": "geometrico",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})",
+        "weight_decay": 0.0,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "global",
+          "cabeza_oculta": null,
+          "dropout": 0.0,
+          "entrada": "fases+realce"
+        },
+        "red": {
+          "entrada": "fases+realce",
+          "normalizacion": null,
+          "bloques": [
+            {
+              "entrada": [
+                5,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 5,
+                  "pesos": 720,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 752,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "media global",
+            "parametros": 0,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 98097
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.5196572580645161,
+          0.550955414012739,
+          0.5620591641225393,
+          0.4919540229885057,
+          0.620916375590713
+        ],
+        "auc_val": 0.5491084469558026,
+        "auc_val_desviacion": 0.04863515108289055,
+        "auc_train": 0.6601529500604448,
+        "validacion_cruzada": "20261028-211140_cv_cnn_v4_fijo"
+      },
+      {
+        "version": "cnn_v5",
+        "que_cambia": "intensidad relativa al PRE",
+        "parametros": 97809,
+        "aumento": "geometrico",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})",
+        "weight_decay": 0.0,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "global",
+          "cabeza_oculta": null,
+          "dropout": 0.0,
+          "normalizacion": "pre"
+        },
+        "red": {
+          "entrada": "fases",
+          "normalizacion": "pre",
+          "bloques": [
+            {
+              "entrada": [
+                3,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 3,
+                  "pesos": 432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 464,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "media global",
+            "parametros": 0,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 97809
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.4960685483870968,
+          0.49537702897061847,
+          0.5352142330771661,
+          0.5520919540229885,
+          0.6304705157181016
+        ],
+        "auc_val": 0.5418444560351944,
+        "auc_val_desviacion": 0.05535838921385378,
+        "auc_train": 0.6605115860419324,
+        "validacion_cruzada": "20261028-205529_cv_cnn_v5_fijo"
+      },
+      {
+        "version": "cnn_v6",
+        "que_cambia": "pooling por atención",
+        "parametros": 101970,
+        "aumento": "geometrico",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})",
+        "weight_decay": 0.0,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "atencion",
+          "cabeza_oculta": null,
+          "dropout": 0.0
+        },
+        "red": {
+          "entrada": "fases",
+          "normalizacion": null,
+          "bloques": [
+            {
+              "entrada": [
+                3,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 3,
+                  "pesos": 432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 464,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "atención",
+            "parametros": 4161,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 101970
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.5492943548387097,
+          0.5571193753852476,
+          0.6072218128224024,
+          0.5102528735632184,
+          0.600678035750976
+        ],
+        "auc_val": 0.5649132904721107,
+        "auc_val_desviacion": 0.039879774032969176,
+        "auc_train": 0.6710927505991912,
+        "validacion_cruzada": "20261028-202321_cv_cnn_v6_fijo"
+      },
+      {
+        "version": "cnn_v7",
+        "que_cambia": "dropout y weight decay",
+        "parametros": 97809,
+        "aumento": "geometrico",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})",
+        "weight_decay": 0.05,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "global",
+          "cabeza_oculta": null,
+          "dropout": 0.3
+        },
+        "red": {
+          "entrada": "fases",
+          "normalizacion": null,
+          "bloques": [
+            {
+              "entrada": [
+                3,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 3,
+                  "pesos": 432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 464,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "media global",
+            "parametros": 0,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Dropout",
+              "parametros": 0,
+              "p": 0.3
+            },
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 97809
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.5384072580645161,
+          0.5483870967741936,
+          0.5594273081376987,
+          0.48983908045977015,
+          0.6251284158619274
+        ],
+        "auc_val": 0.5522378318596213,
+        "auc_val_desviacion": 0.04864268422335134,
+        "auc_train": 0.6508462789793203,
+        "validacion_cruzada": "20261028-203931_cv_cnn_v7_fijo"
+      },
+      {
+        "version": "cnn_v10",
+        "que_cambia": "giros de 90°",
+        "parametros": 97809,
+        "aumento": "geometrico+giros90",
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5, 'giros90': True})",
+        "weight_decay": 0.0,
+        "arquitectura": {
+          "filtros": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "kernel": 3,
+          "convs_por_bloque": 1,
+          "pooling": "max",
+          "batchnorm": true,
+          "resumen": "global",
+          "cabeza_oculta": null,
+          "dropout": 0.0
+        },
+        "red": {
+          "entrada": "fases",
+          "normalizacion": null,
+          "bloques": [
+            {
+              "entrada": [
+                3,
+                256,
+                256
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 16,
+                  "entra": 3,
+                  "pesos": 432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 464,
+              "batchnorm": 32,
+              "pooling": "máximo 2×2",
+              "salida": [
+                16,
+                128,
+                128
+              ],
+              "campo_receptivo": 4,
+              "salto": 2
+            },
+            {
+              "entrada": [
+                16,
+                128,
+                128
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 32,
+                  "entra": 16,
+                  "pesos": 4608,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 4672,
+              "batchnorm": 64,
+              "pooling": "máximo 2×2",
+              "salida": [
+                32,
+                64,
+                64
+              ],
+              "campo_receptivo": 10,
+              "salto": 4
+            },
+            {
+              "entrada": [
+                32,
+                64,
+                64
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 64,
+                  "entra": 32,
+                  "pesos": 18432,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 18560,
+              "batchnorm": 128,
+              "pooling": "máximo 2×2",
+              "salida": [
+                64,
+                32,
+                32
+              ],
+              "campo_receptivo": 22,
+              "salto": 8
+            },
+            {
+              "entrada": [
+                64,
+                32,
+                32
+              ],
+              "convoluciones": [
+                {
+                  "kernel": 3,
+                  "filtros": 128,
+                  "entra": 64,
+                  "pesos": 73728,
+                  "sesgo": false
+                }
+              ],
+              "parametros": 73984,
+              "batchnorm": 256,
+              "pooling": "máximo 2×2",
+              "salida": [
+                128,
+                16,
+                16
+              ],
+              "campo_receptivo": 46,
+              "salto": 16
+            }
+          ],
+          "resumen": {
+            "tipo": "media global",
+            "parametros": 0,
+            "vector": 128
+          },
+          "cabeza": [
+            {
+              "capa": "Linear",
+              "parametros": 129
+            }
+          ],
+          "parametros": 97809
+        },
+        "epocas": [
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "auc_val_por_fold": [
+          0.5210685483870967,
+          0.5302034107252928,
+          0.5590062111801242,
+          0.519632183908046,
+          0.6040682145058558
+        ],
+        "auc_val": 0.546795713741283,
+        "auc_val_desviacion": 0.03572213774772297,
+        "auc_train": 0.6390019775935363,
+        "validacion_cruzada": "20261028-200725_cv_cnn_v10_fijo"
+      }
+    ]
+  },
+  "metricas": {
+    "auc_val": 0.5538055472909356,
+    "auc_val_desviacion": 0.04258184257012439,
+    "auc_val_por_fold": [
+      0.5255040322580645,
+      0.5384220258886377,
+      0.5752184440467418,
+      0.5124597701149425,
+      0.6174234641462913
+    ],
+    "auc_train": 0.6579460140685872,
+    "auc_oof": 0.5464556201162092,
+    "auc_oof_ic95": [
+      0.5100468150006584,
+      0.5844696350926644
+    ],
+    "sensibilidad": 0.2826086956521739,
+    "especificidad": 0.8012903225806451,
+    "precision_pcr": 0.37142857142857144,
+    "f1_macro": 0.5421779082914095,
+    "brier": 0.20675362095256133
+  },
+  "referencia": {
+    "tasa_pcr": 0.2935278030993619,
+    "pacientes": 1097,
+    "franja_90": [
+      0.2606456570086159,
+      0.3243143176273302
+    ],
+    "medico_auc": 0.6894571394180542,
+    "cnn_mas_medico_auc": 0.692522882626328
+  },
+  "validacion_interna": {
+    "brier_constante": 0.20736923190702414,
+    "brier_platt_cruzado": 0.20788269009602012,
+    "sensibilidad": 0.2795031055900621,
+    "especificidad": 0.8051612903225807,
+    "precision_pcr": 0.37344398340248963
+  },
+  "una_red": {
+    "fichero": "una_red.onnx",
+    "sha256": "c584530428d111fd2818493cb4f62544eaaa3314b42a44c0138aba8ecdc9949b",
+    "bytes": 398018,
+    "version": "cnn_v3",
+    "fold": 0,
+    "diferencia_logit": 7.152557373046875e-07,
+    "salidas": [
+      "bloque1",
+      "bloque2",
+      "bloque3",
+      "bloque4",
+      "mapa",
+      "logit"
+    ]
+  }
+}

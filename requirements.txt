@@ -12,6 +12,11 @@ matplotlib==3.11.2
 scikit-learn==1.9.1
 requests==2.34.2
 
+# App web (D38): exportar el modelo final a ONNX, comprobarlo y subirlo a Hugging Face
+onnx==1.23.2
+onnxruntime==1.31.1
+huggingface_hub==2.3.0
+
 # Desarrollo: tests y linter (también los usa GitHub Actions)
 pytest==9.1.1
 ruff==0.16.8

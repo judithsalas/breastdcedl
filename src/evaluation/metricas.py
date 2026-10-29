@@ -203,6 +203,57 @@ def diferencia_auc(y: np.ndarray, p1: np.ndarray, p2: np.ndarray, n: int = 2000,
     return {"diferencia": float(diferencia(np.asarray(y), pares)), "ic95": [inferior, superior]}
 
 
+def _auc_media_folds(y: np.ndarray, columnas: np.ndarray, grupos: list[np.ndarray]) -> np.ndarray:
+    """Media, sobre los folds, del AUC de cada columna de `columnas` (pacientes × modelos)."""
+    return np.mean([[auc_por_rangos(y[g], columnas[g, j]) for j in range(columnas.shape[1])] for g in grupos], axis=0)
+
+
+def _bootstrap_por_fold(y: np.ndarray, columnas: np.ndarray, folds: np.ndarray, n: int, semilla: int) -> np.ndarray:
+    """Remuestrea pacientes DENTRO de cada fold (con reemplazo) y devuelve el AUC medio de cada columna."""
+    rng = np.random.default_rng(semilla)
+    indices = [np.flatnonzero(folds == k) for k in np.unique(folds)]
+    salida = []
+    for _ in range(n):
+        grupos = [rng.choice(g, len(g)) for g in indices]
+        if any(len(np.unique(y[g])) < 2 for g in grupos):
+            continue
+        salida.append(_auc_media_folds(y, columnas, grupos))
+    return np.array(salida)
+
+
+def auc_media_folds(y: np.ndarray, p: np.ndarray, folds: np.ndarray, n: int = 2000, semilla: int = 42) -> dict:
+    """La cifra principal (rúbrica, punto 2): media del AUC de cada fold, con su desviación y su IC 95 %.
+
+    El intervalo sale de remuestrear pacientes dentro de cada fold y volver a hacer la media. Mide la
+    incertidumbre por las pacientes que tocan; no la de volver a entrenar las redes.
+    """
+    y, folds = np.asarray(y), np.asarray(folds)
+    columnas = np.asarray(p, float).reshape(-1, 1)
+    grupos = [np.flatnonzero(folds == k) for k in np.unique(folds)]
+    por_fold = [auc_por_rangos(y[g], columnas[g, 0]) for g in grupos]
+    muestras = _bootstrap_por_fold(y, columnas, folds, n, semilla)[:, 0]
+    return {"auc": float(np.mean(por_fold)), "desviacion": float(np.std(por_fold, ddof=1)) if len(por_fold) > 1 else 0.0,
+            "por_fold": [float(v) for v in por_fold],
+            "ic95": [float(np.quantile(muestras, 0.025)), float(np.quantile(muestras, 0.975))]}
+
+
+def diferencia_media_folds(y: np.ndarray, p1: np.ndarray, p2: np.ndarray, folds: np.ndarray, n: int = 2000,
+                           semilla: int = 42) -> dict:
+    """AUC medio de folds de p1 menos el de p2, en las MISMAS pacientes, con IC 95 % por bootstrap pareado.
+
+    Es la diferencia entre las cifras principales de los dos modelos (media de folds), así que cuadra con
+    ellas. En cada remuestreo, dentro de cada fold, se toman las mismas pacientes para los dos modelos.
+    """
+    y, folds = np.asarray(y), np.asarray(folds)
+    columnas = np.column_stack([np.asarray(p1, float), np.asarray(p2, float)])
+    grupos = [np.flatnonzero(folds == k) for k in np.unique(folds)]
+    por_fold = [auc_por_rangos(y[g], columnas[g, 0]) - auc_por_rangos(y[g], columnas[g, 1]) for g in grupos]
+    muestras = _bootstrap_por_fold(y, columnas, folds, n, semilla)
+    diferencias = muestras[:, 0] - muestras[:, 1]
+    return {"diferencia": float(np.mean(por_fold)), "por_fold": [float(v) for v in por_fold],
+            "ic95": [float(np.quantile(diferencias, 0.025)), float(np.quantile(diferencias, 0.975))]}
+
+
 def brier(y: np.ndarray, p: np.ndarray) -> float:
     """Error cuadrático medio entre probabilidad y resultado (0 perfecto; 0,25 = decir siempre 0,5)."""
     return float(np.mean((np.asarray(p, float) - np.asarray(y, float)) ** 2))

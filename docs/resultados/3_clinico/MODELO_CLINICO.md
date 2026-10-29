@@ -1,6 +1,6 @@
 # Modelo clínico de comparación (sin imagen)
 
-Generado por `python -m src.evaluation.modelo_clinico` el 2026-10-28 21:31. Solo train, con
+Generado por `python -m src.evaluation.modelo_clinico` el 2026-10-29 14:00. Solo train, con
 los mismos 5 folds que la CNN; test no se ha usado (se evalúa una sola vez, junto con la CNN, en `evaluar_test`).
 Por qué y cómo: D25 en [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md#25-el-modelo-del-médico-sin-imagen-d25).
 
@@ -35,16 +35,18 @@ I-SPY1 delataría la cohorte.
 
 ## 2. Resultados en validación cruzada (1097 pacientes, 322 con pCR)
 
-| Modelo | AUC validación (5 folds) | AUC entrenamiento | Diferencia | AUC fuera de fold (IC 95 %) | Sensibilidad | Especificidad |
-|---|---|---|---|---|---|---|
-| Solo la cohorte (R0) | 0,549 ± 0,027 | — | — | — | — | — |
-| Solo el subtipo HR/HER2 (R0) | 0,657 ± 0,028 | — | — | — | — | — |
-| **Médico: edad, menopausia, HR, HER2** | 0,689 ± 0,024 | 0,700 | 0,010 | 0,685 (0,65–0,72) | 0,398 | 0,803 |
-| Médico + volumen tumoral | 0,711 ± 0,030 | 0,720 | 0,010 | 0,707 (0,67–0,74) | 0,444 | 0,801 |
-| CNN (solo imagen) | 0,554 ± 0,043 | — | — | 0,546 (0,51–0,59) | 0,283 | 0,801 |
-| CNN + médico | 0,693 ± 0,026 | 0,705 | 0,012 | 0,691 (0,66–0,72) | 0,435 | 0,800 |
+| Modelo | AUC validación (media de 5 folds) | IC 95 % | AUC entrenamiento | Diferencia | Todas juntas (IC 95 %) | Sensibilidad | Especificidad |
+|---|---|---|---|---|---|---|---|
+| Solo la cohorte (R0) | 0,549 ± 0,027 | — | — | — | — | — | — |
+| Solo el subtipo HR/HER2 (R0) | 0,657 ± 0,028 | — | — | — | — | — | — |
+| **Médico: edad, menopausia, HR, HER2** | 0,689 ± 0,024 | 0,65–0,72 | 0,700 | 0,010 | 0,685 (0,65–0,72) | 0,398 | 0,803 |
+| Médico + volumen tumoral | 0,711 ± 0,030 | 0,67–0,74 | 0,720 | 0,010 | 0,707 (0,67–0,74) | 0,444 | 0,801 |
+| CNN (solo imagen) | 0,554 ± 0,043 | 0,51–0,59 | — | — | 0,546 (0,51–0,59) | 0,283 | 0,801 |
+| CNN + médico | 0,693 ± 0,026 | 0,66–0,73 | 0,705 | 0,012 | 0,691 (0,66–0,72) | 0,435 | 0,800 |
 
-Sensibilidad y especificidad con el umbral de cada modelo elegido con el mismo criterio que la CNN (mayor sensibilidad con especificidad ≥ 0,80).
+La cifra principal es la media de los 5 folds (rúbrica, punto 2); su IC 95 % sale de remuestrear pacientes dentro de cada fold.
+«Todas juntas» es el AUC de las predicciones fuera de fold de todas las pacientes a la vez: es otro estimador y se da solo como comprobación.
+Sensibilidad y especificidad con el umbral de cada modelo elegido con el mismo criterio que la CNN (mayor sensibilidad con especificidad ≥ 0,80), y medidas en las mismas pacientes con las que se eligió: son optimistas (validación interna en `docs/resultados/2_cierre/VALIDACION_INTERNA.md`).
 El volumen se prueba solo como variante: sale de la segmentación de la imagen y en Duke tiene otra escala, así que no es «lo que sabe el médico» y no se lleva a test.
 
 ![ROC fuera de fold](roc_fuera_de_fold.png)
@@ -64,11 +66,13 @@ Razón de odds > 1: más probable la pCR; < 1: menos; si el intervalo cruza el 1
 
 ## 4. CNN frente al médico (1097 pacientes, fuera de fold)
 
-| Comparación | Diferencia de AUC (bootstrap pareado de pacientes) |
-|---|---|
-| CNN − médico | -0,139 (IC 95 % -0,191 a -0,091) |
-| (CNN + médico) − médico: lo que **añade la imagen** | 0,006 (IC 95 % -0,004 a 0,015) |
-| (CNN + médico) − CNN: lo que añade la clínica | 0,144 (IC 95 % 0,100 a 0,191) |
+| Comparación | Diferencia de AUC, media de folds (IC 95 %, bootstrap pareado) | Por fold | Todas juntas (comprobación) |
+|---|---|---|---|
+| CNN − médico | -0,136 (IC 95 % -0,185 a -0,086) | -0,195 · -0,151 · -0,088 · -0,194 · -0,051 | -0,139 (IC 95 % -0,191 a -0,091) |
+| (CNN + médico) − médico: lo que **añade la imagen** | 0,003 (IC 95 % -0,008 a 0,014) | 0,007 · -0,012 · 0,005 · 0,006 · 0,010 | 0,006 (IC 95 % -0,004 a 0,015) |
+| (CNN + médico) − CNN: lo que añade la clínica | 0,139 (IC 95 % 0,095 a 0,183) | 0,202 · 0,138 · 0,093 · 0,200 · 0,061 | 0,144 (IC 95 % 0,100 a 0,191) |
+
+La diferencia es la resta de las cifras principales de la tabla anterior (media de folds), así que cuadra con ellas.
 
 Correlación de Spearman entre la puntuación de la CNN y la del médico: 0,01. Si fuera alta, la CNN estaría
 repitiendo sobre todo el subtipo; si es baja, mira otra cosa.
@@ -91,7 +95,8 @@ quedan edad y menopausia). Si la CNN separa ahí, la imagen aporta algo más que
 | I-SPY2 | 784 | 252 | 0,544 | 0,663 | 0,670 |
 
 El combinado usa la puntuación fuera de fold de la CNN (cada paciente, predicha por el modelo que no la vio):
-es apilado honesto. En test se le da la puntuación del conjunto de 5 modelos, que es algo más estable.
+es apilado honesto. Fuera de fold, a cada paciente la predicen las 6 redes de su fold; en test, las 30 del conjunto.
+La media de 30 varía menos entre pacientes, así que en test el peso de la CNN en el combinado podría quedarse corto: `evaluar_test` mide esa dispersión (D40).
 
 ## 5. Cómo leerlo
 

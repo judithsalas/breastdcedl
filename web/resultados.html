@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resultados del modelo</title>
+  <meta name="description" content="La CNN solo con imagen frente a un modelo clínico y frente a los dos juntos: discriminación, calibración, utilidad clínica, umbral, subgrupos, entrenamiento y bibliografía.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1318'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23f0a33a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700;800&family=Schibsted+Grotesk:wght@700;800&display=swap">
+  <link rel="stylesheet" href="estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" crossorigin="anonymous"></script>
+  <script type="module" src="js/resultados.js"></script>
+</head>
+<body class="pagina-resultados">
+  <p class="aviso" role="note">
+    <strong>Uso educativo, sin validez clínica.</strong>
+    Todas las cifras son de entrenamiento, con validación cruzada; el test se evalúa una sola vez, aparte.
+  </p>
+  <nav class="navegacion" aria-label="Secciones">
+    <a class="navegacion__marca" href="index.html">pCR en RM de mama</a>
+    <a href="index.html">Predicción</a>
+    <a href="red.html">La red</a>
+    <a href="resultados.html" aria-current="page">Resultados</a>
+  </nav>
+
+  <header class="cabecera cabecera--resultados">
+    <div class="cabecera__texto">
+      <h1>¿Cuánto aporta la imagen?</h1>
+      <p class="entradilla">
+        Tres modelos y las mismas pacientes de entrenamiento, cada una predicha por un modelo que no la había visto
+        (validación cruzada de 5 folds). La <strong>CNN</strong> solo mira la resonancia. El <strong>médico</strong>
+        solo sabe la edad, la menopausia y el subtipo de la biopsia (HR y HER2). El tercero junta los dos.
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <section class="cifras" id="cifras" aria-label="AUC de cada modelo"></section>
+
+    <div class="filtros" role="group" aria-label="Modelos que se muestran en las gráficas">
+      <span class="filtros__texto">Mostrar</span>
+      <div class="filtros__chips" id="filtros"></div>
+    </div>
+
+    <p class="aviso-datos" id="aviso-datos" hidden></p>
+
+    <section class="graficas" id="graficas">
+      <article class="tarjeta" id="t-roc">
+        <h2>Discriminación: curva ROC</h2>
+        <p class="tarjeta__que">Cada punto es un umbral: arriba, la proporción de pCR que detecta; a la derecha, la de
+          «no pCR» que marca por error. Cuanto más pegada arriba a la izquierda, mejor separa. La diagonal es el azar.</p>
+        <div class="grafica" data-grafica="roc"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="roc"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-calibracion">
+        <h2>Calibración</h2>
+        <p class="tarjeta__que">Las pacientes se ordenan por la probabilidad del modelo y se agrupan en diez. Para cada
+          grupo, lo que decía el modelo frente a cuántas lograron pCR de verdad. Sobre la diagonal, la probabilidad
+          es fiable.</p>
+        <div class="grafica" data-grafica="calibracion"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="calibracion"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-distribucion">
+        <h2>Distribución del riesgo</h2>
+        <p class="tarjeta__que">La probabilidad que da cada modelo a las pacientes que lograron pCR (relleno) y a las
+          que no (línea). Si las dos formas se separan, el modelo distingue; si se tapan, no.</p>
+        <div class="grafica" data-grafica="distribucion"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="distribucion"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-decision">
+        <h2>Utilidad clínica: curva de decisión</h2>
+        <p class="tarjeta__que">Beneficio neto de decidir con el modelo, para cada umbral de riesgo a partir del cual se
+          actuaría. Las referencias son actuar con todas las pacientes (gris) o con ninguna (cero). Un modelo útil va por
+          encima de las dos.</p>
+        <div class="grafica" data-grafica="decision"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="decision"></div></details>
+      </article>
+
+      <article class="tarjeta tarjeta--ancha" id="t-umbral">
+        <h2>Mueve el umbral</h2>
+        <p class="tarjeta__que">Con un umbral, cada probabilidad se convierte en «pCR» o «no pCR». Muévelo y mira cómo
+          cambian los aciertos y los errores de cada modelo con las mismas pacientes.</p>
+        <div class="umbral">
+          <div class="umbral__control">
+            <label for="deslizador">Umbral: <output id="valor-umbral">—</output></label>
+            <input type="range" id="deslizador" min="0.05" max="0.7" step="0.005" value="0.3">
+            <button type="button" class="boton boton--claro" id="umbral-propio">Usar el umbral de cada modelo</button>
+          </div>
+          <div class="matrices" id="matrices"></div>
+        </div>
+        <p class="nota" id="umbral-nota"></p>
+      </article>
+
+      <article class="tarjeta" id="t-subgrupos">
+        <h2>Por subtipo y por cohorte</h2>
+        <p class="tarjeta__que">AUC dentro de cada grupo, con su intervalo de confianza del 95 %. Dentro de un subtipo,
+          el médico ya no puede usar HR ni HER2: solo le quedan la edad y la menopausia. Las cohortes son los tres
+          estudios de origen; I-SPY2 junta más de 20 hospitales.</p>
+        <div class="grafica" data-grafica="subgrupos"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="subgrupos"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-folds">
+        <h2>Fold a fold</h2>
+        <p class="tarjeta__que">AUC de cada modelo en cada uno de los cinco grupos de pacientes que no vio al entrenar.
+          Dice cuánto se mueve la cifra solo por qué pacientes tocan.</p>
+        <div class="grafica" data-grafica="folds"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="folds"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-odds">
+        <h2>Qué pesa en cada modelo</h2>
+        <p class="tarjeta__que">Razón de odds de cada variable, con su intervalo: a la derecha de 1, más probable la pCR;
+          a la izquierda, menos. Si el intervalo cruza el 1, no se puede afirmar que influya.</p>
+        <div class="grafica" data-grafica="odds"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="odds"></div></details>
+      </article>
+
+      <article class="tarjeta" id="t-sesgo">
+        <h2>El sesgo que corregimos</h2>
+        <p class="tarjeta__que">Elegir la mejor época mirando la misma validación inflaba la cifra. Reentrenadas con 6
+          épocas fijadas de antemano, todas bajan. La de la derecha ya no lleva ese sesgo, aunque sigue siendo
+          validación interna: el 6 salió de estos mismos folds.</p>
+        <div class="grafica" data-grafica="sesgo"></div>
+        <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="sesgo"></div></details>
+      </article>
+
+      <article class="tarjeta tarjeta--ancha" id="t-entrenamiento">
+        <h2>Cómo aprendió cada versión</h2>
+        <p class="tarjeta__que">AUC por paciente en cada época: en entrenamiento (gris) y en validación (naranja), media
+          de los 5 folds con su desviación. El entrenamiento sube; la validación apenas se mueve: lo que aprende de más
+          es memoria.</p>
+        <div class="grafica grafica--multiples" data-grafica="entrenamiento"></div>
+      </article>
+
+      <article class="tarjeta tarjeta--ancha" id="t-bibliografia">
+        <h2>Dónde estamos frente a lo publicado</h2>
+        <p class="tarjeta__que">Nuestras cifras (validación cruzada en entrenamiento) junto a las de la bibliografía y la
+          del profesor. No son el mismo experimento: cambian los pacientes, las imágenes y el tipo de evaluación. Sirve
+          para situarse, no para competir.</p>
+        <div class="grafica" data-grafica="bibliografia"></div>
+      </article>
+    </section>
+
+    <section class="seccion metodo" aria-labelledby="titulo-metodo">
+      <h2 id="titulo-metodo">Por qué estas gráficas</h2>
+      <p class="seccion__texto">Son las que recomiendan las guías para evaluar modelos de predicción clínicos (Van Calster
+        et al., grupo STRATOS; TRIPOD+AI, 2024): discriminación (ROC y AUC con su intervalo), calibración, utilidad
+        clínica (curva de decisión) y la distribución del riesgo en cada grupo. No se da la exactitud ni la F1 como cifra
+        principal: dependen del umbral y engañan con clases desbalanceadas (decir siempre «no pCR» acierta el 71 %).</p>
+      <p class="seccion__texto">La cifra de cada modelo es la media del AUC de los 5 folds, y las diferencias entre modelos
+        se calculan igual, en las mismas pacientes, con su intervalo por bootstrap pareado. Todo es validación interna: los
+        folds también sirvieron para elegir las versiones y el número de épocas, así que la cifra que vale como
+        evaluación independiente es la de test, medida una sola vez.</p>
+    </section>
+  </main>
+
+  <div class="tooltip" id="tooltip" role="status" hidden></div>
+
+  <footer class="pie">
+    <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
+      <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
+    <p>Datos: predicciones fuera de fold de las pacientes de entrenamiento, sin identificadores. Los datos clínicos solo
+      se usan para comparar; no entran en la CNN ni en la predicción de la app.</p>
+  </footer>
+</body>
+</html>
