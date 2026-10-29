@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Predicción de pCR en RM de mama</title>
   <meta name="description" content="CNN entrenada desde cero que estima la probabilidad de respuesta patológica completa (pCR) a partir de las tres fases de un corte de DCE-MRI de mama. Uso educativo, sin validez clínica.">
+  <meta name="color-scheme" content="dark">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1318'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23f0a33a'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,13 +13,16 @@
   <link rel="stylesheet" href="estilos.css">
   <script type="module" src="js/app.js"></script>
 </head>
-<body>
-  <p class="aviso" role="note">
+<body class="pagina-inicio">
+  <div class="aviso" role="note">
     <strong>Uso educativo, sin validez clínica.</strong>
-    No es un dispositivo médico. La probabilidad sale de un modelo entrenado con datos retrospectivos y puede
-    equivocarse en los dos sentidos. Nunca sirve para evitar la cirugía ni para cambiar un tratamiento: la pCR
-    solo la confirma la anatomía patológica.
-  </p>
+    Nunca sirve para evitar la cirugía ni para cambiar un tratamiento.
+    <details class="aviso__mas">
+      <summary>Leer el aviso completo</summary>
+      No es un dispositivo médico. La probabilidad sale de un modelo entrenado con datos retrospectivos y puede
+      equivocarse en los dos sentidos. La pCR solo la confirma la anatomía patológica.
+    </details>
+  </div>
   <nav class="navegacion" aria-label="Secciones">
     <a class="navegacion__marca" href="index.html">pCR en RM de mama</a>
     <a href="index.html" aria-current="page">Predicción</a>
@@ -26,76 +30,113 @@
     <a href="resultados.html">Resultados</a>
   </nav>
 
-  <header class="cabecera">
-    <div class="cabecera__texto">
-      <h1>¿Desaparecerá el tumor con la quimioterapia?</h1>
-      <p class="entradilla">
-        Una red neuronal entrenada desde cero mira un corte de resonancia de mama hecho <em>antes</em> del
-        tratamiento y estima la probabilidad de respuesta patológica completa (pCR): que tras la quimioterapia
-        no quede tumor invasivo.
-      </p>
-    </div>
-    <dl class="ficha" aria-label="Modelo cargado">
-      <div><dt>Huella del modelo</dt><dd id="ficha-huella">—</dd></div>
-      <div><dt>Umbral</dt><dd id="ficha-umbral">—</dd></div>
-      <div><dt>Estado</dt><dd id="ficha-estado">Cargando…</dd></div>
-    </dl>
-  </header>
-
   <main>
-    <section class="caja-luz" aria-labelledby="titulo-fases">
-      <h2 id="titulo-fases" class="oculto">Las tres fases del corte y el mapa de realce</h2>
-      <ol class="fases" id="fases">
-        <li class="fase" data-fase="PRE">
-          <canvas width="256" height="256" aria-label="Fase PRE"></canvas>
-          <p class="fase__nombre">PRE</p>
-          <p class="fase__nota">antes del contraste</p>
-        </li>
-        <li class="fase" data-fase="EARLY">
-          <canvas width="256" height="256" aria-label="Fase EARLY"></canvas>
-          <p class="fase__nombre">EARLY</p>
-          <p class="fase__nota">el contraste acaba de llegar</p>
-        </li>
-        <li class="fase" data-fase="LATE">
-          <canvas width="256" height="256" aria-label="Fase LATE"></canvas>
-          <p class="fase__nombre">LATE</p>
-          <p class="fase__nota">fase tardía</p>
-        </li>
-        <li class="fase fase--realce" data-fase="REALCE">
-          <canvas width="256" height="256" aria-label="Mapa de realce"></canvas>
-          <p class="fase__nombre">Realce</p>
-          <p class="fase__nota">EARLY − PRE: dónde entra el contraste</p>
-        </li>
-        <li class="fase fase--mapa" data-fase="MAPA">
-          <canvas width="256" height="256" aria-label="Qué zonas empujan la predicción"></canvas>
-          <p class="fase__nombre">Qué empuja</p>
-          <p class="fase__nota">zonas que suben o bajan la probabilidad</p>
-        </li>
-      </ol>
-      <div class="escalas" aria-hidden="true">
-        <div class="escala-realce">
-          <span>sin realce</span><span class="escala-realce__barra"></span><span>realce fuerte</span>
+    <section class="sala" aria-labelledby="titulo-portada">
+      <div class="sala__dentro">
+        <div class="visor">
+          <div class="visor__pantalla caja-luz" id="visor">
+            <canvas id="visor-lienzo" width="256" height="256" aria-label="Corte ampliado"></canvas>
+            <p class="visor__esquina visor__esquina--si" id="esquina-si"></p>
+            <p class="visor__esquina visor__esquina--sd" id="esquina-sd"></p>
+            <p class="visor__esquina visor__esquina--ii" id="esquina-ii"></p>
+            <p class="visor__esquina visor__esquina--id" id="esquina-id"></p>
+            <p class="visor__vacio" id="fases-vacio">Cargando un corte de ejemplo…</p>
+            <span class="mira" id="mira" hidden></span>
+            <div class="cinetica" id="cinetica" hidden>
+              <svg id="cinetica-grafica" viewBox="0 0 196 92" aria-hidden="true"></svg>
+              <p class="cinetica__texto" id="cinetica-texto"></p>
+            </div>
+          </div>
+
+          <div class="fases" id="fases" role="group" aria-label="Qué se ve en grande">
+            <div class="fases__grupo" role="group" aria-label="Las tres fases: tres momentos de la misma resonancia">
+              <button type="button" class="fase" data-fase="PRE" aria-pressed="false">
+                <canvas width="256" height="256" aria-hidden="true"></canvas>
+                <span class="fase__nombre">PRE</span>
+              </button>
+              <button type="button" class="fase" data-fase="EARLY" aria-pressed="true">
+                <canvas width="256" height="256" aria-hidden="true"></canvas>
+                <span class="fase__nombre">EARLY</span>
+              </button>
+              <button type="button" class="fase" data-fase="LATE" aria-pressed="false">
+                <canvas width="256" height="256" aria-hidden="true"></canvas>
+                <span class="fase__nombre">LATE</span>
+              </button>
+            </div>
+            <div class="fases__grupo fases__grupo--calculado" role="group" aria-label="Calculado a partir de las fases">
+              <button type="button" class="fase fase--realce" data-fase="REALCE" aria-pressed="false">
+                <canvas width="256" height="256" aria-hidden="true"></canvas>
+                <span class="fase__nombre">Realce</span>
+              </button>
+              <button type="button" class="fase fase--mapa" data-fase="MAPA" aria-pressed="false">
+                <canvas width="256" height="256" aria-hidden="true"></canvas>
+                <span class="fase__nombre">Qué empuja</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="escala-realce">
-          <span>hacia no pCR</span><span class="escala-realce__barra escala-realce__barra--mapa"></span><span>hacia pCR</span>
+
+        <div class="portada">
+          <h1 id="titulo-portada">¿Desaparecerá el tumor?</h1>
+          <p class="entradilla">
+            Una red neuronal entrenada desde cero mira un corte de resonancia de mama hecho <em>antes</em> de la
+            quimioterapia y estima la probabilidad de respuesta patológica completa (pCR): que tras el tratamiento
+            no quede tumor invasivo.
+          </p>
+
+          <section class="resultado" aria-labelledby="titulo-resultado" id="resultado" data-estado="vacio">
+            <h2 id="titulo-resultado" class="oculto">Resultado</h2>
+            <p class="resultado__vacio" id="resultado-espera">Calculando… El modelo se descarga una sola vez (12 MB)
+              y se ejecuta en este navegador.</p>
+            <div class="resultado__lleno">
+              <div class="cifra">
+                <p class="cifra__valor" id="probabilidad">—</p>
+                <p class="cifra__texto">probabilidad de pCR de este corte</p>
+              </div>
+              <p class="clase" id="clase"></p>
+              <figure class="regla" aria-labelledby="regla-pie">
+                <svg id="regla" viewBox="0 0 600 150" role="img" aria-label="Dónde cae este corte"></svg>
+                <figcaption id="regla-pie">Arriba, la escala de 0 a 1; abajo, ampliada, la franja donde el modelo
+                  coloca al 90 % de las pacientes de entrenamiento.</figcaption>
+              </figure>
+              <p class="coincide" id="coincide" hidden></p>
+            </div>
+          </section>
+
+          <dl class="ficha" aria-label="Modelo">
+            <div><dt>Huella del modelo</dt><dd id="ficha-huella">—</dd></div>
+            <div><dt>Umbral</dt><dd id="ficha-umbral">—</dd></div>
+            <div><dt>Dispositivo de inferencia</dt><dd id="dato-dispositivo">—</dd></div>
+            <div><dt>Tiempo de respuesta</dt><dd id="dato-tiempo">—</dd></div>
+            <div class="ficha__estado"><dt>Estado</dt><dd id="ficha-estado">Cargando…</dd></div>
+          </dl>
+          <a class="enlace-elegir" href="#elegir">Elegir otro corte o subir los tuyos</a>
         </div>
       </div>
-      <p class="caja-luz__vacia" id="fases-vacio">Las fases aparecerán aquí cuando elijas un corte.</p>
+
+      <div class="escalas" aria-hidden="true">
+        <div class="escala-realce">
+          <span>Realce: nada</span><span class="escala-realce__barra"></span><span>mucho</span>
+        </div>
+        <div class="escala-realce">
+          <span>Qué empuja: hacia no pCR</span><span class="escala-realce__barra escala-realce__barra--mapa"></span><span>hacia pCR</span>
+        </div>
+      </div>
     </section>
 
-    <div class="trabajo">
-      <section class="panel" aria-labelledby="titulo-corte">
-        <h2 id="titulo-corte">Elige un corte</h2>
-        <div class="pestanas" role="tablist" aria-label="Origen del corte">
-          <button role="tab" id="pestana-subir" aria-selected="true" aria-controls="vista-subir">Subir tres PNG</button>
-          <button role="tab" id="pestana-ejemplo" aria-selected="false" aria-controls="vista-ejemplo" tabindex="-1">Usar un ejemplo</button>
+    <section class="elegir" id="elegir" aria-labelledby="titulo-corte">
+      <h2 id="titulo-corte">Elige un corte</h2>
+      <div class="elegir__rejilla">
+        <div>
+          <p class="nota">Seis cortes de pacientes de entrenamiento, con su etiqueta real. Sirven para comprobar que la
+            página da lo mismo que el pipeline de Python.</p>
+          <ul class="ejemplos" id="ejemplos"></ul>
         </div>
-
-        <div id="vista-subir" role="tabpanel" aria-labelledby="pestana-subir">
+        <div>
           <label class="soltar" id="soltar">
             <input type="file" id="ficheros" accept=".png,image/png" multiple>
-            <span class="soltar__titulo">Arrastra aquí los tres PNG del corte</span>
-            <span class="soltar__texto">o haz clic para elegirlos</span>
+            <span class="soltar__titulo">Sube los tres PNG de un corte</span>
+            <span class="soltar__texto">Arrástralos aquí o haz clic para elegirlos</span>
           </label>
           <ul class="requisitos">
             <li>PNG en gris de 8 bits, de 256 × 256 píxeles y 2 MB como máximo cada uno.</li>
@@ -103,48 +144,14 @@
             <li>Las imágenes no salen de tu ordenador: el modelo se ejecuta en este navegador.</li>
           </ul>
         </div>
+      </div>
+      <div class="mensajes" id="mensajes" aria-live="polite"></div>
+    </section>
 
-        <div id="vista-ejemplo" role="tabpanel" aria-labelledby="pestana-ejemplo" hidden>
-          <p class="nota">Cortes de pacientes de entrenamiento, con su etiqueta real. Sirven para ver que la página da
-            lo mismo que el pipeline de Python.</p>
-          <ul class="ejemplos" id="ejemplos"></ul>
-        </div>
-
-        <div class="mensajes" id="mensajes" aria-live="polite"></div>
-      </section>
-
-      <section class="panel resultado" aria-labelledby="titulo-resultado" id="resultado" data-estado="vacio">
-        <h2 id="titulo-resultado">Resultado</h2>
-        <p class="resultado__vacio">Aquí aparecerá la probabilidad cuando elijas un corte.</p>
-
-        <div class="resultado__lleno">
-          <div class="cifra">
-            <p class="cifra__valor" id="probabilidad">—</p>
-            <p class="cifra__texto">probabilidad de pCR de este corte</p>
-          </div>
-          <p class="clase" id="clase"></p>
-
-          <figure class="regla" aria-labelledby="regla-pie">
-            <svg id="regla" viewBox="0 0 600 150" role="img" aria-label="Dónde cae este corte"></svg>
-            <figcaption id="regla-pie">Arriba, la escala entera de 0 a 1; el recuadro es la parte que se amplía
-              debajo. La franja gris es donde el modelo coloca al 90 % de las pacientes de entrenamiento.</figcaption>
-          </figure>
-
-          <dl class="datos">
-            <div><dt>Umbral</dt><dd id="dato-umbral">—</dd></div>
-            <div><dt>Huella del modelo</dt><dd id="dato-huella">—</dd></div>
-            <div><dt>Dispositivo de inferencia</dt><dd id="dato-dispositivo">—</dd></div>
-            <div><dt>Tiempo de respuesta</dt><dd id="dato-tiempo">—</dd></div>
-          </dl>
-          <p class="coincide" id="coincide" hidden></p>
-        </div>
-
-        <div class="incertidumbre" id="incertidumbre">
-          <h3>Cómo de fiable es</h3>
-          <p id="texto-incertidumbre">Cargando las métricas del modelo…</p>
-        </div>
-      </section>
-    </div>
+    <section class="fiable" id="incertidumbre" aria-labelledby="titulo-fiable">
+      <h2 id="titulo-fiable">Cómo de fiable es</h2>
+      <p id="texto-incertidumbre">Cargando las métricas del modelo…</p>
+    </section>
 
     <section class="modelo" aria-labelledby="titulo-modelo">
       <h2 id="titulo-modelo">El modelo</h2>
@@ -175,10 +182,12 @@
   </main>
 
   <footer class="pie">
-    <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
-      <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
-    <p>Imágenes de ejemplo del dataset docente derivado de BreastDCEDL (Fridman et al., <cite>Scientific Data</cite>,
-      2026), con licencia CC BY-NC 4.0. Ninguna es de test ni de la validación privada.</p>
+    <div class="pie__dentro">
+      <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
+        <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
+      <p>Imágenes de ejemplo del dataset docente derivado de BreastDCEDL (Fridman et al., <cite>Scientific Data</cite>,
+        2026), con licencia CC BY-NC 4.0. Ninguna es de test ni de la validación privada.</p>
+    </div>
   </footer>
 </body>
 </html>

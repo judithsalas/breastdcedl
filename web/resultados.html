@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>Resultados del modelo</title>
   <meta name="description" content="La CNN solo con imagen frente a un modelo clínico y frente a los dos juntos: discriminación, calibración, utilidad clínica, umbral, subgrupos, entrenamiento y bibliografía.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1318'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23f0a33a'/%3E%3C/svg%3E">
@@ -40,8 +41,10 @@
     <section class="cifras" id="cifras" aria-label="AUC de cada modelo"></section>
 
     <div class="filtros" role="group" aria-label="Modelos que se muestran en las gráficas">
-      <span class="filtros__texto">Mostrar</span>
-      <div class="filtros__chips" id="filtros"></div>
+      <div class="filtros__dentro">
+        <span class="filtros__texto">Mostrar</span>
+        <div class="filtros__chips" id="filtros"></div>
+      </div>
     </div>
 
     <p class="aviso-datos" id="aviso-datos" hidden></p>
@@ -163,10 +166,12 @@
   <div class="tooltip" id="tooltip" role="status" hidden></div>
 
   <footer class="pie">
-    <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
-      <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
-    <p>Datos: predicciones fuera de fold de las pacientes de entrenamiento, sin identificadores. Los datos clínicos solo
-      se usan para comparar; no entran en la CNN ni en la predicción de la app.</p>
+    <div class="pie__dentro">
+      <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
+        <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
+      <p>Datos: predicciones fuera de fold de las pacientes de entrenamiento, sin identificadores. Los datos clínicos solo
+        se usan para comparar; no entran en la CNN ni en la predicción de la app.</p>
+    </div>
   </footer>
 </body>
 </html>

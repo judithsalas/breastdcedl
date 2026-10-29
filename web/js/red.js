@@ -322,7 +322,7 @@ function detalleMedia() {
     const h = (m / max) * alto;
     s.append(svg("rect", { x: 4 + i * 4, y: alto - h, width: 3, height: Math.max(0.5, h), fill: "#3b8fa3", rx: 1 }));
   });
-  s.append(svg("line", { x1: 0, x2: ancho, y1: alto + 0.5, y2: alto + 0.5, stroke: "#c3ccd3" }));
+  s.append(svg("line", { x1: 0, x2: ancho, y1: alto + 0.5, y2: alto + 0.5, stroke: "#3a4954" }));
   s.append(svg("text", { x: 4, y: alto + 18, class: "barras__texto" }, "las 128 medias de este corte, de mayor a menor"));
   $("detalle-visual").replaceChildren(figura(s, "Este vector es todo lo que la red sabe del corte cuando decide."));
 }
@@ -335,12 +335,12 @@ function detalleLineal() {
   $("detalle-titulo").textContent = "Una neurona: de 128 números a un logit";
   explicacion([
     "Multiplica los 128 valores por 128 pesos, los suma y añade un sesgo: 129 parámetros. Sale el logit, un número sin límites; si es positivo, la red se inclina hacia pCR.",
-    `Esta red, con este corte, da un logit de ${num(logit, 2)}. Como antes hay una media, el logit se reparte exactamente entre las 16 × 16 zonas del corte: es el mapa de la derecha (ámbar, empuja hacia pCR; azul, hacia no pCR).`,
+    `Esta red, con este corte, da un logit de ${num(logit, 2)}. Como antes hay una media, el logit se reparte exactamente entre las 16 × 16 zonas del corte: es el mapa de la derecha (rojo, sube la probabilidad de pCR; azul, la baja).`,
     dropout ? `En ${dropout.version}, durante el entrenamiento se apaga al azar el 30 % de los 128 valores (dropout) y los pesos se frenan con weight decay, para que no memorice.` : "",
   ].filter(Boolean));
   parametros([["Entra", "vector de 128"], ["Sale", "1 logit"], ["Parámetros", "128 pesos + 1 sesgo = 129"], ["Logit de esta red", num(logit, 3)]]);
   const lienzo = lienzoContribucion(mapa.data, mapa.dims[1], plano(1));
-  $("detalle-visual").replaceChildren(figura(lienzo, "Qué zonas suben (ámbar) o bajan (azul) el logit de esta red. Su suma más el sesgo es el logit.", "fig--grande"));
+  $("detalle-visual").replaceChildren(figura(lienzo, "Qué zonas suben (rojo) o bajan (azul) el logit de esta red. Su suma más el sesgo es el logit.", "fig--grande"));
 }
 
 function detalleConjunto() {
@@ -543,7 +543,7 @@ async function usarEjemplo(e) {
 function selector() {
   $("selector").replaceChildren(...estado.ejemplos.map((e) => {
     const li = nodo("li");
-    const b = nodo("button", null, "selector__boton");
+    const b = nodo("button", null, "ejemplo");
     b.type = "button";
     b.dataset.corte = e.corte;
     b.setAttribute("aria-pressed", "false");
@@ -551,7 +551,8 @@ function selector() {
     const img = document.createElement("img");
     img.alt = "";
     img.src = `ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(e.ficheros[1])}`;
-    b.append(img, nodo("span", COHORTES[e.cohorte] || e.cohorte));
+    const etiqueta = e.pcr == null ? "" : e.pcr ? "etiqueta real: pCR" : "etiqueta real: no\u00a0pCR";
+    b.append(img, nodo("span", COHORTES[e.cohorte] || e.cohorte, "ejemplo__cohorte"), nodo("span", etiqueta, "ejemplo__etiqueta"));
     b.addEventListener("click", () => usarEjemplo(e).catch((err) => { $("diagrama-estado").textContent = err.message; }));
     li.append(b);
     return li;

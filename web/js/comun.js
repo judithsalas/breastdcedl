@@ -20,7 +20,8 @@ export async function leerJSON(url) {
 }
 
 // Colores de los tres modelos de la comparación (paleta categórica validada: orden fijo, nunca por rango)
-export const COLORES = { cnn: "#eb6834", medico: "#2a78d6", combinado: "#1baf7a" };
+// Los tonos de la paleta para fondo oscuro, validados contra #04070a, el fondo de las gráficas (CVD ΔE ≥ 9,4)
+export const COLORES = { cnn: "#1b9cb1", medico: "#9085e9", combinado: "#d55181" };
 export const NOMBRES_CORTOS = { cnn: "CNN", medico: "Médico", combinado: "CNN + médico" };
 export const COHORTES = { spy1: "I-SPY1", spy2: "I-SPY2", duke: "Duke" };
 
@@ -79,7 +80,8 @@ export async function ficherosDeEjemplo(e) {
 }
 
 /**
- * Mapa de contribuciones (lado × lado) sobre una fase en gris: ámbar, la zona empuja hacia pCR; azul, hacia no pCR.
+ * Mapa de contribuciones (lado × lado) sobre una fase en gris: rojo, la zona sube la probabilidad de pCR; azul, la
+ * baja (la convención de SHAP; el ámbar queda para el caso actual).
  * La intensidad es relativa al valor más grande del mapa (en valor absoluto).
  */
 export function lienzoContribucion(mapa, lado, fondo) {
@@ -93,7 +95,7 @@ export function lienzoContribucion(mapa, lado, fondo) {
   const img = pctx.createImageData(lado, lado);
   for (let i = 0; i < lado * lado; i++) {
     const v = mapa[i] / max;
-    const [r, g, b] = v >= 0 ? [240, 163, 58] : [42, 120, 214];
+    const [r, g, b] = v >= 0 ? [239, 91, 91] : [59, 139, 235];
     img.data.set([r, g, b, Math.round(255 * 0.8 * Math.abs(v))], 4 * i);
   }
   pctx.putImageData(img, 0, 0);

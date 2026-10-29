@@ -13,7 +13,7 @@ const INFERNO = ["#000004", "#1b0c41", "#4a0c6b", "#781c6d", "#a52c60", "#cf4446
 const REALCE_MAXIMO = 0.4; // EARLY − PRE (en [0, 1]) que se pinta con el color más claro
 
 const $ = (id) => document.getElementById(id);
-const estado = { info: null, modelo: null, modeloListo: null, peticion: 0 };
+const estado = { info: null, modelo: null, modeloListo: null, peticion: 0, vista: "EARLY", corte: null, ultima: null };
 
 // ---------- Formato ----------
 const AUMENTOS = { geometrico: "geométrico", "geometrico+giros90": "geométrico y giros de 90°", "geometrico+escaner": "geométrico y de escáner" };
@@ -88,11 +88,109 @@ function pintarFases(pixeles) {
   pintarRealce(lienzos[3], planos[0], planos[1]);
   lienzos[4].getContext("2d").clearRect(0, 0, LADO, LADO);    // el mapa llega con la predicción
   estado.early = planos[1];
-  document.querySelector(".caja-luz").setAttribute("data-lleno", "");
+  estado.planos = planos;
+  $("visor").setAttribute("data-lleno", "");
+  mostrarVista(estado.vista);
 }
 function vaciarFases() {
   for (const c of document.querySelectorAll("#fases canvas")) c.getContext("2d").clearRect(0, 0, LADO, LADO);
-  document.querySelector(".caja-luz").removeAttribute("data-lleno");
+  estado.planos = null;
+  $("visor").removeAttribute("data-lleno");
+  $("fases-vacio").textContent = "Elige un corte o sube los tuyos.";
+  mostrarVista(estado.vista);
+}
+
+// ---------- El visor: lo elegido, en grande, con los datos en las esquinas como en una estación de radiología ----------
+function mostrarVista(fase) {
+  estado.vista = fase;
+  const botones = [...document.querySelectorAll("#fases .fase")];
+  const boton = botones.find((b) => b.dataset.fase === fase) || botones[1];
+  for (const b of botones) b.setAttribute("aria-pressed", String(b === boton));
+  const visor = $("visor-lienzo"), ctx = visor.getContext("2d");
+  ctx.clearRect(0, 0, LADO, LADO);
+  ctx.drawImage(boton.querySelector("canvas"), 0, 0);
+  const nombre = boton.querySelector(".fase__nombre").textContent;
+  const notas = { PRE: "antes del contraste", EARLY: "el contraste acaba de llegar", LATE: "fase tardía",
+    REALCE: "EARLY − PRE: dónde entra el contraste", MAPA: "zonas que suben (rojo) o bajan (azul) la probabilidad" };
+  $("esquina-sd").replaceChildren(nodo("strong", nombre), nodo("span", notas[fase] || ""));
+  visor.setAttribute("aria-label", `${nombre}, ampliado`);
+  $("visor").dataset.vista = fase;
+  esquinas();
+}
+function esquinas() {
+  const c = estado.corte;
+  $("esquina-si").replaceChildren(...(c ? [nodo("strong", c.titulo), nodo("span", c.subtitulo || "")] : []));
+  $("esquina-ii").replaceChildren(...(c ? [...(c.etiqueta ? [nodo("strong", c.etiqueta)] : []),
+    nodo("span", window.matchMedia("(hover: hover)").matches ? "pasa el cursor: curva de realce" : "toca la imagen: curva de realce")] : []));
+  const r = estado.ultima;
+  let abajo = [];
+  if (c && r) abajo = [nodo("span", "probabilidad de pCR"), nodo("strong", prob(r.probabilidad))];
+  else if (c) abajo = [nodo("span", "calculando…")];
+  $("esquina-id").replaceChildren(...abajo);
+}
+function prepararVisor() {
+  for (const b of document.querySelectorAll("#fases .fase")) b.addEventListener("click", () => mostrarVista(b.dataset.fase));
+  const pantalla = $("visor");
+  const mover = (e) => curvaDeRealce(e, pantalla);
+  pantalla.addEventListener("pointermove", mover);
+  pantalla.addEventListener("pointerdown", mover);
+  pantalla.addEventListener("pointerleave", () => { $("cinetica").hidden = true; $("mira").hidden = true; });
+}
+
+// ---------- La curva de realce de un punto (lo que mira un radiólogo en una DCE-MRI) ----------
+// Intensidad media de un cuadrado de 5 × 5 píxeles en PRE, EARLY y LATE. Con ella, el realce inicial
+// (EARLY − PRE) / PRE y lo que pasa después (LATE − EARLY) / EARLY: si sigue subiendo (persistente), se queda
+// (meseta) o baja (lavado). Es la clasificación de Kuhl (1999). Aquí es orientativa: los PNG están reescalados a
+// 8 bits y no son las intensidades originales de la resonancia.
+function mediaLocal(plano, x, y) {
+  let suma = 0, n = 0;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const xx = x + dx, yy = y + dy;
+    if (xx < 0 || yy < 0 || xx >= LADO || yy >= LADO) continue;
+    suma += plano[yy * LADO + xx];
+    n++;
+  }
+  return suma / n;
+}
+function curvaDeRealce(evento, pantalla) {
+  const caja = $("cinetica");
+  if (!estado.planos) { caja.hidden = true; return; }
+  const r = pantalla.getBoundingClientRect();
+  const fx = (evento.clientX - r.left) / r.width, fy = (evento.clientY - r.top) / r.height;
+  if (fx < 0 || fy < 0 || fx > 1 || fy > 1) { caja.hidden = true; return; }
+  const x = Math.min(LADO - 1, Math.floor(fx * LADO)), y = Math.min(LADO - 1, Math.floor(fy * LADO));
+  const [pre, early, late] = estado.planos.map((p) => mediaLocal(p, x, y));
+  const W = 196, H = 92, x0 = 12, x1 = W - 12, y0 = 10, y1 = H - 22;
+  const Y = (v) => y1 - (v / 255) * (y1 - y0);
+  const X = [x0, (x0 + x1) / 2, x1];
+  const puntos = [pre, early, late];
+  const hijos = [svg("line", { x1: x0, x2: x1, y1, y2: y1, class: "cinetica__base" })];
+  hijos.push(svg("polyline", { points: puntos.map((v, i) => `${X[i]},${Y(v)}`).join(" "), class: "cinetica__linea" }));
+  puntos.forEach((v, i) => hijos.push(svg("circle", { cx: X[i], cy: Y(v), r: 3.5, class: "cinetica__punto" })));
+  ["PRE", "EARLY", "LATE"].forEach((n, i) => hijos.push(svg("text", { x: X[i], y: H - 6, "text-anchor": i === 0 ? "start" : i === 2 ? "end" : "middle" }, n)));
+  $("cinetica-grafica").replaceChildren(...hijos);
+  let texto, tipo = "";
+  if (pre < 0.08 * 255 && early < 0.12 * 255) {
+    texto = "Fuera del tejido";
+  } else {
+    const subida = (early - pre) / Math.max(pre, 1), despues = (late - early) / Math.max(early, 1);
+    texto = `Realce inicial ${subida >= 0 ? "+" : "−"}${Math.round(Math.abs(subida) * 100)} %`;
+    if (subida < 0.1) tipo = "casi no capta contraste";
+    else if (despues > 0.1) tipo = "después sigue subiendo: persistente";
+    else if (despues < -0.1) tipo = "después baja: lavado";
+    else tipo = "después se mantiene: meseta";
+  }
+  $("cinetica-texto").replaceChildren(nodo("strong", texto), ...(tipo ? [nodo("span", tipo)] : []));
+  caja.hidden = false;
+  // La caja va al lado del cursor, sin salirse del visor
+  const cw = caja.offsetWidth, ch = caja.offsetHeight;
+  let left = evento.clientX - r.left + 18, top = evento.clientY - r.top + 18;
+  if (left + cw > r.width - 8) left = evento.clientX - r.left - cw - 18;
+  if (top + ch > r.height - 8) top = evento.clientY - r.top - ch - 18;
+  caja.style.transform = `translate(${Math.max(8, left)}px, ${Math.max(8, top)}px)`;
+  const mira = $("mira");
+  mira.hidden = false;
+  mira.style.transform = `translate(${evento.clientX - r.left}px, ${evento.clientY - r.top}px)`;
 }
 
 // ---------- Mensajes ----------
@@ -128,7 +226,7 @@ function dibujarRegla(p) {
   lo = Math.max(0, lo);
   hi = Math.min(1, hi);
   const abajo = (v) => X0 + ((v - lo) / (hi - lo)) * (X1 - X0);
-  const linea = "#9fb0bd", tinta = "#18232e", ambar = "#f0a33a";
+  const linea = "#4d5f6c", tinta = "#e6edf2", ambar = "#f0a33a", fondo = "#121a21";
   const hijos = [
     // Escala entera, de 0 a 1
     svg("line", { x1: X0, x2: X1, y1: 26, y2: 26, stroke: linea, "stroke-width": 2 }),
@@ -142,7 +240,7 @@ function dibujarRegla(p) {
     svg("path", { d: `M${arriba(lo)} 32 L${X0} 84 M${arriba(hi)} 32 L${X1} 84`, stroke: linea, "stroke-width": 1, fill: "none" }),
   ];
   if (franja) {
-    hijos.push(svg("rect", { x: abajo(franja[0]), y: 86, width: abajo(franja[1]) - abajo(franja[0]), height: 26, fill: "#d9e1e7", rx: 2 }));
+    hijos.push(svg("rect", { x: abajo(franja[0]), y: 86, width: abajo(franja[1]) - abajo(franja[0]), height: 26, fill: "#26333d", rx: 2 }));
   }
   hijos.push(
     svg("line", { x1: X0, x2: X1, y1: 99, y2: 99, stroke: tinta, "stroke-width": 1.5 }),
@@ -154,7 +252,7 @@ function dibujarRegla(p) {
   const aguja = svg("g", { class: "regla__aguja" });
   aguja.append(
     svg("line", { x1: 0, x2: 0, y1: 84, y2: 114, stroke: ambar, "stroke-width": 3 }),
-    svg("circle", { cx: 0, cy: 99, r: 7, fill: ambar, stroke: "#fff", "stroke-width": 2 }),
+    svg("circle", { cx: 0, cy: 99, r: 7, fill: ambar, stroke: fondo, "stroke-width": 2 }),
     svg("text", { x: 0, y: 74, "text-anchor": "middle", class: "regla__corte" }, `este corte, ${prob(p)}`),
   );
   hijos.push(aguja);
@@ -172,6 +270,8 @@ function mostrarResultado(r, esperado) {
   const { umbral } = estado.info;
   const panel = $("resultado");
   panel.dataset.estado = "lleno";
+  panel.setAttribute("data-hubo", "");
+  estado.ultima = r;
   $("probabilidad").textContent = prob(r.probabilidad);
   const clase = $("clase");
   const esPcr = r.probabilidad >= umbral;
@@ -186,8 +286,7 @@ function mostrarResultado(r, esperado) {
     const lienzo = document.querySelectorAll("#fases canvas")[4];
     lienzo.getContext("2d").drawImage(lienzoContribucion(r.mapa.datos, r.mapa.lado, estado.early), 0, 0);
   }
-  $("dato-umbral").textContent = `${num(umbral)} (${estado.info.criterio_umbral})`;
-  $("dato-huella").textContent = estado.info.huella_modelo;
+  mostrarVista(estado.vista);
   $("dato-dispositivo").textContent = estado.modelo.dispositivo;
   $("dato-tiempo").textContent = `${Math.round(r.ms)} ms`;
   const coincide = $("coincide");
@@ -201,35 +300,47 @@ function mostrarResultado(r, esperado) {
   }
 }
 
-async function analizar(ficheros, esperado = null) {
+// Si la persona eligió el corte más abajo, se le sube al visor para que vea las imágenes y el resultado
+function subirAlVisor() {
+  const sala = document.querySelector(".sala");
+  if (sala.getBoundingClientRect().top >= -40) return;
+  const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sala.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "start" });
+}
+
+async function analizar(ficheros, esperado = null, corte = null, subir = true) {
   const peticion = ++estado.peticion;
   const r = await validarCorte(ficheros);
   if (peticion !== estado.peticion) return;
   const lista = [...r.errores.map((m) => ["error", m]), ...r.avisos.map((m) => ["aviso", m])];
+  const panel = $("resultado");
   if (r.errores.length) {
     mensajes(lista);
+    estado.corte = null;
+    estado.ultima = null;
     vaciarFases();
-    $("resultado").dataset.estado = "vacio";
+    panel.dataset.estado = "vacio";
+    panel.removeAttribute("data-hubo");
+    $("resultado-espera").textContent = "Corrige los ficheros (los mensajes están en «Elige un corte») o elige un ejemplo.";
     return;
   }
+  estado.corte = corte || { titulo: "Tu corte", subtitulo: ficheros.map((f) => f.nombre).find((n) => /_PRE\.png$/i.test(n))?.replace(/_PRE\.png$/i, "") };
+  estado.ultima = null;
   pintarFases(r.pixeles);
-  const panel = $("resultado");
+  if (subir) subirAlVisor();
   if (!estado.modelo) {
     mensajes([...lista, ["info", "El modelo todavía se está descargando; la predicción saldrá en cuanto termine."]]);
+    $("resultado-espera").textContent = "Calculando… El modelo se descarga una sola vez (12 MB) y se ejecuta en este navegador.";
   } else {
     mensajes(lista);
   }
-  if (panel.dataset.estado === "lleno") panel.dataset.estado = "calculando";
+  panel.dataset.estado = "calculando";
   try {
     await estado.modeloListo;
     const resultado = await estado.modelo.predecir(r.pixeles);
     if (peticion !== estado.peticion) return;
     mensajes(lista);
     mostrarResultado(resultado, esperado);
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      panel.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "start" });
-    }
   } catch (error) {
     mensajes([...lista, ["error", `No se pudo calcular la predicción: ${error.message}`]]);
   }
@@ -267,28 +378,6 @@ function prepararSubida() {
   });
 }
 
-// ---------- Pestañas ----------
-function prepararPestanas() {
-  const pestanas = [$("pestana-subir"), $("pestana-ejemplo")];
-  const elegir = (activa) => {
-    for (const p of pestanas) {
-      const si = p === activa;
-      p.setAttribute("aria-selected", String(si));
-      p.tabIndex = si ? 0 : -1;
-      $(p.getAttribute("aria-controls")).hidden = !si;
-    }
-  };
-  pestanas.forEach((p, i) => {
-    p.addEventListener("click", () => elegir(p));
-    p.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      const otra = pestanas[(i + (e.key === "ArrowRight" ? 1 : pestanas.length - 1)) % pestanas.length];
-      elegir(otra);
-      otra.focus();
-    });
-  });
-}
-
 // ---------- Ejemplos ----------
 async function prepararEjemplos() {
   const ul = $("ejemplos");
@@ -301,25 +390,37 @@ async function prepararEjemplos() {
     ul.replaceChildren(nodo("li", "No se han podido cargar los ejemplos.", "nota"));
     return;
   }
-  ul.replaceChildren(...lista.map((e) => {
+  const botones = lista.map((e) => {
     const boton = nodo("button");
     boton.type = "button";
+    boton.className = "ejemplo";
     boton.setAttribute("aria-pressed", "false");
-    const etiqueta = e.pcr == null ? "" : e.pcr ? "etiqueta real: pCR" : "etiqueta real: no pCR";
-    boton.append(nodo("span", COHORTES[e.cohorte] || e.cohorte || "Ejemplo", "ejemplo__cohorte"),
-      nodo("span", etiqueta, "ejemplo__etiqueta"), nodo("span", e.corte, "ejemplo__corte"));
-    boton.addEventListener("click", async () => {
+    const cohorte = COHORTES[e.cohorte] || e.cohorte || "Ejemplo";
+    const etiqueta = e.pcr == null ? "" : e.pcr ? "etiqueta real: pCR" : "etiqueta real: no\u00a0pCR";
+    // La miniatura es solo para mirar: la predicción lee los PNG con su propio lector (validar.js)
+    const miniatura = nodo("img");
+    const early = e.ficheros.find((n) => /_EARLY\.png$/i.test(n)) || e.ficheros[0];
+    miniatura.src = `ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(early)}`;
+    miniatura.alt = "";
+    miniatura.loading = "lazy";
+    boton.append(miniatura, nodo("span", cohorte, "ejemplo__cohorte"), nodo("span", etiqueta, "ejemplo__etiqueta"));
+    boton.title = e.corte;
+    boton.addEventListener("click", async (evento) => {
       for (const b of ul.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === boton));
       const ficheros = await Promise.all(e.ficheros.map(async (nombre) => {
         const r = await fetch(`ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(nombre)}`);
         return { nombre, bytes: new Uint8Array(await r.arrayBuffer()) };
       }));
-      await analizar(ficheros, e.probabilidad_pipeline);
+      await analizar(ficheros, e.probabilidad_pipeline, { titulo: cohorte, subtitulo: e.corte, etiqueta },
+        evento.isTrusted);
     });
     const li = nodo("li");
     li.append(boton);
     return li;
-  }));
+  });
+  ul.replaceChildren(...botones);
+  // Al abrir la página, el primer ejemplo: que lo primero que se vea sea una resonancia de verdad
+  botones[0]?.querySelector("button").click();
 }
 
 // ---------- Datos del modelo ----------
@@ -382,7 +483,7 @@ function rellenarModelo(info) {
 
 // ---------- Arranque ----------
 async function arrancar() {
-  prepararPestanas();
+  prepararVisor();
   prepararSubida();
   prepararEjemplos();
   try {

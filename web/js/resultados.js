@@ -7,7 +7,7 @@ import { $, COLORES, NOMBRES_CORTOS, leerJSON, miles, nodo, num } from "./comun.
 const d3 = window.d3;
 const MODELOS = ["cnn", "medico", "combinado"];
 const estado = { datos: null, visibles: new Set(MODELOS), umbral: 0.3 };
-const TINTA = "#18232e", TINTA_2 = "#4f5d6a", REJILLA = "#e4e8eb", EJE = "#c3ccd3", REFERENCIA = "#9aa6b0";
+const TINTA = "#e6edf2", TINTA_2 = "#9badb9", REJILLA = "#1e2a33", EJE = "#3a4954", REFERENCIA = "#7d8f9c", FONDO = "#04070a";
 
 // ---------- Utilidades ----------
 const visibles = () => MODELOS.filter((m) => estado.visibles.has(m) && estado.datos.modelos_datos?.[m]);
@@ -86,6 +86,7 @@ function cifras() {
   caja.replaceChildren(...MODELOS.map((m) => {
     const r = d.modelos_datos[m];
     const t = nodo("div", null, "cifra-modelo");
+    t.style.setProperty("--color", COLORES[m]);
     const cab = nodo("p", null, "cifra-modelo__nombre");
     const muestra = nodo("span", null, "cifra-modelo__muestra");
     muestra.style.background = COLORES[m];
@@ -158,7 +159,7 @@ function roc(c) {
       for (const m of visibles()) {
         const puntos = estado.datos.modelos_datos[m].roc;
         const p = puntos.reduce((a, b) => (Math.abs(b[0] - fx) < Math.abs(a[0] - fx) ? b : a));
-        marcas.append("circle").attr("cx", x(p[0])).attr("cy", y(p[1])).attr("r", 4.5).attr("fill", COLORES[m]).attr("stroke", "#fff").attr("stroke-width", 2);
+        marcas.append("circle").attr("cx", x(p[0])).attr("cy", y(p[1])).attr("r", 4.5).attr("fill", COLORES[m]).attr("stroke", FONDO).attr("stroke-width", 2);
         lineas.push([COLORES[m], `${NOMBRES_CORTOS[m]}: sensibilidad ${num(p[1], 2)}, umbral ${num(p[2], 3)}`]);
       }
       mostrarTooltip(e, lineas);
@@ -250,7 +251,7 @@ function distribucion(c) {
   const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${ms.length * altoPanel - 26})`)
     .call(d3.axisBottom(x).ticks(5).tickFormat((v) => num(v, 1)).tickSizeOuter(0));
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("Probabilidad de pCR que da el modelo");
-  leyenda(c, [[TINTA_2, "con pCR (relleno, color del modelo)", "area"], [TINTA, "sin pCR (línea negra)"]]);
+  leyenda(c, [[TINTA_2, "con pCR (relleno, color del modelo)", "area"], [TINTA, "sin pCR (línea clara)"]]);
   const filas = [];
   for (const m of MODELOS) {
     const h = estado.datos.modelos_datos[m].histograma;
@@ -451,7 +452,7 @@ function sesgo(c) {
     const cy = y(f.version) + y.bandwidth() / 2;
     g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", cy + 4).attr("text-anchor", "end").text(f.version);
     g.append("line").attr("x1", x(f.fija)).attr("x2", x(f.elegida)).attr("y1", cy).attr("y2", cy).attr("stroke", EJE).attr("stroke-width", 2);
-    g.append("circle").attr("cx", x(f.elegida)).attr("cy", cy).attr("r", 5).attr("fill", "#fff").attr("stroke", TINTA_2).attr("stroke-width", 2)
+    g.append("circle").attr("cx", x(f.elegida)).attr("cy", cy).attr("r", 5).attr("fill", FONDO).attr("stroke", TINTA_2).attr("stroke-width", 2)
       .on("pointermove", (e) => mostrarTooltip(e, [[null, f.version, true], [null, `Con la época elegida: ${num(f.elegida)}`], [null, `Con 6 épocas fijas: ${num(f.fija)}`]]))
       .on("pointerleave", ocultarTooltip);
     g.append("circle").attr("class", "marca").attr("cx", x(f.fija)).attr("cy", cy).attr("r", 5).attr("fill", COLORES.cnn)
@@ -524,7 +525,7 @@ function bibliografia(c) {
     if (f.auc_min != null) {
       g.append("line").attr("x1", x(f.auc_min)).attr("x2", x(f.auc)).attr("y1", cy).attr("y2", cy).attr("stroke", color).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-opacity", 0.5);
     }
-    g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio ? color : "#fff").attr("stroke", color).attr("stroke-width", 2);
+    g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio ? color : FONDO).attr("stroke", color).attr("stroke-width", 2);
     g.append("text").attr("class", "etiqueta-serie").attr("x", x(f.auc) + 10).attr("y", cy + 4)
       .text(f.auc_min != null ? `${num(f.auc_min, 2)}–${num(f.auc, 2)}` : num(f.auc, f.propio ? 3 : 2));
   });
