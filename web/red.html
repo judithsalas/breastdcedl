@@ -6,41 +6,41 @@
   <meta name="color-scheme" content="dark">
   <title>Por dentro de la red</title>
   <meta name="description" content="La arquitectura de la CNN, pieza a pieza, con un corte de resonancia de mama atravesándola: mapas de características reales, parámetros, conjunto de 30 redes, calibración y entrenamiento.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1318'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23f0a33a'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305080b'/%3E%3Cellipse cx='16' cy='17.5' rx='10' ry='8.5' fill='%233a4954'/%3E%3Ccircle cx='19.5' cy='19.5' r='3.6' fill='%23f2a541'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700;800&family=Schibsted+Grotesk:wght@700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Schibsted+Grotesk:wght@700;800&display=swap">
   <link rel="stylesheet" href="estilos.css">
   <script type="module" src="js/red.js"></script>
 </head>
 <body>
-  <p class="aviso" role="note">
-    <strong>Uso educativo, sin validez clínica.</strong>
-    No es un dispositivo médico. La pCR solo la confirma la anatomía patológica.
-  </p>
-  <nav class="navegacion" aria-label="Secciones">
-    <a class="navegacion__marca" href="index.html">pCR en RM de mama</a>
-    <a href="index.html">Predicción</a>
-    <a href="red.html" aria-current="page">La red</a>
-    <a href="resultados.html">Resultados</a>
-  </nav>
-
-  <header class="cabecera cabecera--red">
-    <div class="cabecera__texto">
-      <h1>Por dentro de la red</h1>
-      <p class="entradilla">
-        Elige un corte y míralo atravesar la red. Cada bloque lo convierte en más mapas, más pequeños y más
-        abstractos, hasta quedarse en un solo número. Pincha en cualquier pieza para ver qué hace, qué tamaño tiene
-        y cuántos parámetros aprende.
-      </p>
-    </div>
-    <div class="selector" aria-labelledby="selector-titulo">
-      <p class="selector__titulo" id="selector-titulo">Corte que atraviesa la red</p>
-      <ul class="ejemplos" id="selector"></ul>
+  <header class="barra">
+    <div class="barra__dentro">
+      <a class="marca" href="index.html"><svg class="marca__icono" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#05080b"/><rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#33424d"/><ellipse cx="16" cy="17.5" rx="10" ry="8.5" fill="#3a4954"/><circle cx="19.5" cy="19.5" r="3.6" fill="#f2a541"/></svg><span>pCR en RM de mama</span></a>
+      <nav class="navegacion" aria-label="Secciones">
+        <a href="index.html">Predicción</a>
+        <a href="red.html" aria-current="page">La red</a>
+        <a href="resultados.html">Resultados</a>
+      </nav>
+      <a class="pastilla" href="#aviso"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Uso educativo, sin validez clínica</a>
     </div>
   </header>
 
   <main>
+  <div class="cabecera cabecera--red">
+    <div class="cabecera__texto">
+      <h1>Por dentro de la red</h1>
+      <p class="entradilla">
+        Elige un corte y míralo atravesar la red. Cada bloque lo convierte en más mapas, más pequeños y más
+        abstractos, hasta quedarse en un solo número. Pincha en cualquier pieza, o avanza paso a paso, para ver qué
+        hace, qué tamaño tiene y cuántos parámetros aprende.
+      </p>
+    </div>
+    <div class="selector" role="group" aria-labelledby="selector-titulo">
+      <p class="selector__titulo" id="selector-titulo">Corte que atraviesa la red, con su etiqueta real</p>
+      <ul class="ejemplos" id="selector"></ul>
+    </div>
+  </div>
     <section class="caja-luz caja-luz--diagrama" aria-labelledby="titulo-diagrama">
       <h2 id="titulo-diagrama" class="oculto">Diagrama de la arquitectura</h2>
       <div class="diagrama-envoltorio">
@@ -55,6 +55,10 @@
         <h2 id="detalle-titulo">—</h2>
         <div id="detalle-explicacion"></div>
         <dl class="lista lista--parametros" id="detalle-parametros"></dl>
+        <div class="detalle__pasos">
+          <button type="button" class="boton boton--secundario" id="paso-anterior">Anterior</button>
+          <button type="button" class="boton" id="paso-siguiente">Siguiente</button>
+        </div>
       </div>
       <div class="detalle__visual" id="detalle-visual"></div>
     </section>
@@ -62,9 +66,9 @@
     <section class="seccion" aria-labelledby="titulo-versiones">
       <h2 id="titulo-versiones">Seis versiones, una idea cada una</h2>
       <p class="seccion__texto">El modelo final es un conjunto de seis versiones de esta red. Todas comparten el mismo
-        esqueleto de cuatro bloques; cada una cambia una sola cosa. Pasa el ratón por una fila para ver en el diagrama
-        qué pieza cambia.</p>
-      <div class="tabla-envoltorio">
+        esqueleto de cuatro bloques; cada una cambia una sola cosa. Pincha en el nombre de una versión para ver en el
+        diagrama qué pieza cambia.</p>
+      <div class="tabla-envoltorio" tabindex="0" role="region" aria-label="Tabla: Seis versiones">
         <table class="tabla tabla--versiones" id="tabla-versiones">
           <thead><tr><th scope="col">Versión</th><th scope="col">Qué cambia</th><th scope="col">Dónde</th>
             <th scope="col">Parámetros</th><th scope="col">AUC validación</th></tr></thead>
@@ -85,8 +89,8 @@
         </div>
         <figure class="folds" aria-labelledby="folds-pie">
           <div class="folds__rejilla" id="folds"></div>
-          <figcaption id="folds-pie">Cada fila es una red de cada versión. En gris, los folds con los que aprende; en
-            blanco, el que se reserva para medirla.</figcaption>
+          <figcaption id="folds-pie">Cada fila es una red de cada versión. En gris, los folds con los que aprende;
+            recuadrado, el que se reserva para medirla.</figcaption>
         </figure>
       </div>
     </section>
@@ -99,20 +103,32 @@
             general, en cada época ve cada corte un poco distinto: girado hasta 10°, desplazado hasta un 4 %, con un
             5 % más o menos de zoom y, la mitad de las veces, en espejo. El mismo cambio se aplica a las tres fases a la
             vez, para no romper el realce. cnn_v10 añade giros de 90°.</p>
-          <button type="button" class="boton" id="otra-vez">Otro sorteo</button>
+          <button type="button" class="boton boton--secundario" id="otra-vez">Otro sorteo</button>
         </div>
         <div class="aumento" id="aumento"></div>
       </div>
     </section>
   </main>
 
-  <footer class="pie">
+  <footer class="pie" id="aviso">
     <div class="pie__dentro">
-      <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García. Código en
-        <a href="https://github.com/judithsalas/breastdcedl">github.com/judithsalas/breastdcedl</a>.</p>
-      <p>Los mapas de características salen de la primera red del conjunto (cnn_v3, fold 0), ejecutada en este
-        navegador. Imágenes del dataset docente derivado de BreastDCEDL (Fridman et al., <cite>Scientific Data</cite>,
-        2026), CC BY-NC 4.0.</p>
+      <div>
+        <h2 class="pie__titulo"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Uso educativo, sin validez clínica</h2>
+        <p>No es un dispositivo médico. La probabilidad sale de un modelo entrenado con datos retrospectivos y puede
+          equivocarse en los dos sentidos. Nunca sirve para evitar la cirugía ni para cambiar un tratamiento: la pCR
+          solo la confirma la anatomía patológica.</p>
+      </div>
+      <div>
+        <h2 class="pie__titulo">El proyecto</h2>
+        <p>Caso BreastDCEDL, Aprendizaje Automático (UAX). Modelo y app de Judith M.ª Salas García.</p>
+        <p><a href="https://github.com/judithsalas/breastdcedl">Código en GitHub</a></p>
+      </div>
+      <div>
+        <h2 class="pie__titulo">Los datos</h2>
+        <p>Dataset docente derivado de BreastDCEDL (Fridman et al., <cite>Scientific Data</cite>, 2026), con licencia
+          CC BY-NC 4.0. Los ejemplos son de pacientes de entrenamiento; ninguno es de test ni de la validación privada.</p>
+        <p>Los mapas de características salen de la primera red del conjunto (cnn_v3, fold 0), ejecutada en este navegador.</p>
+      </div>
     </div>
   </footer>
 </body>

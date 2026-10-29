@@ -7,7 +7,7 @@ import { $, COLORES, NOMBRES_CORTOS, leerJSON, miles, nodo, num } from "./comun.
 const d3 = window.d3;
 const MODELOS = ["cnn", "medico", "combinado"];
 const estado = { datos: null, visibles: new Set(MODELOS), umbral: 0.3 };
-const TINTA = "#e6edf2", TINTA_2 = "#9badb9", REJILLA = "#1e2a33", EJE = "#3a4954", REFERENCIA = "#7d8f9c", FONDO = "#04070a";
+const TINTA = "#e6edf2", TINTA_2 = "#9badb9", REJILLA = "#1e2a33", EJE = "#3a4954", REFERENCIA = "#7d8f9c", FONDO = "#05080b";
 
 // ---------- Utilidades ----------
 const visibles = () => MODELOS.filter((m) => estado.visibles.has(m) && estado.datos.modelos_datos?.[m]);
@@ -33,18 +33,33 @@ function mostrarTooltip(evento, lineas) {
 }
 const ocultarTooltip = () => { tooltip.hidden = true; };
 
+// Los «Ver los datos» llevan oculto el nombre de su gráfica, para quien navega por la lista de controles
+function nombrarDatos() {
+  for (const s of document.querySelectorAll(".tarjeta__datos summary")) {
+    if (s.querySelector(".solo-lector")) continue;
+    const titulo = s.closest(".tarjeta")?.querySelector("h3")?.textContent;
+    if (titulo) s.append(nodo("span", `: ${titulo}`, "solo-lector"));
+  }
+}
+
 function lienzo(contenedor, alto, margen = { arriba: 16, derecha: 18, abajo: 44, izquierda: 52 }) {
   const ancho = Math.max(280, contenedor.clientWidth);
+  const titulo = contenedor.closest(".tarjeta")?.querySelector("h3")?.textContent || "Gráfica";
+  const panel = contenedor.querySelector(".multiples__titulo")?.textContent;
   const s = d3.select(contenedor).append("svg").attr("width", ancho).attr("height", alto).attr("viewBox", `0 0 ${ancho} ${alto}`)
-    .attr("role", "img");
+    .attr("role", "img").attr("aria-label", `${titulo}${panel ? `, ${panel}` : ""}.`
+      + (contenedor.closest(".tarjeta")?.querySelector(".tarjeta__datos") ? " Los valores están en «Ver los datos»." : ""));
   const g = s.append("g").attr("transform", `translate(${margen.izquierda},${margen.arriba})`);
   return { s, g, ancho: ancho - margen.izquierda - margen.derecha, alto: alto - margen.arriba - margen.abajo, margen };
 }
 
+// Tantas marcas en el eje x como quepan sin pisarse: una cada ~56 px, como mucho «max»
+const marcasX = (ancho, max) => Math.max(3, Math.min(max, Math.floor(ancho / 56)));
+
 function ejes(g, x, y, ancho, alto, { titx, tity, fx = (v) => num(v, 1), fy = (v) => num(v, 1), nx = 5, ny = 5 } = {}) {
   g.append("g").attr("class", "rejilla").selectAll("line").data(y.ticks(ny)).join("line")
     .attr("x1", 0).attr("x2", ancho).attr("y1", (d) => y(d)).attr("y2", (d) => y(d));
-  const ex = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(nx).tickFormat(fx).tickSizeOuter(0));
+  const ex = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(marcasX(ancho, nx)).tickFormat(fx).tickSizeOuter(0));
   const ey = g.append("g").attr("class", "eje").call(d3.axisLeft(y).ticks(ny).tickFormat(fy).tickSizeOuter(0));
   ey.select(".domain").remove();
   if (titx) ex.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text(titx);
@@ -65,6 +80,11 @@ function tabla(contenedor, cabecera, filas) {
   }
   t.append(thead, tbody);
   contenedor.replaceChildren(t);
+  // Si la tabla no cabe, el contenedor se desplaza: tiene que poder enfocarse para moverlo con el teclado
+  contenedor.classList.add("tabla-envoltorio");
+  contenedor.tabIndex = 0;
+  contenedor.setAttribute("role", "region");
+  contenedor.setAttribute("aria-label", `Datos: ${contenedor.closest(".tarjeta")?.querySelector("h3")?.textContent || "tabla"}`);
 }
 
 function leyenda(contenedor, elementos) {
@@ -103,14 +123,17 @@ function cifras() {
   const cruza = c.ic95[0] <= 0 && c.ic95[1] >= 0;
   const suma = (c.por_fold || []).filter((v) => v > 0).length;
   const nota = nodo("div", null, "cifra-nota");
+  const veredicto = cruza ? "Con estas pacientes no se puede afirmar que añada algo."
+    : c.diferencia > 0 ? "Con estas pacientes, la imagen añade algo." : "Con estas pacientes, la imagen empeora al médico.";
   nota.append(
     nodo("p", "Lo que añade la imagen al médico", "cifra-nota__titulo"),
     nodo("p", signo(c.diferencia), "cifra-nota__valor"),
-    nodo("p", `${num(d.modelos_datos.combinado.auc_val)} − ${num(d.modelos_datos.medico.auc_val)}. IC 95 % ${signo(c.ic95[0])} a ${signo(c.ic95[1])}`
-      + `${cruza ? ": incluye el 0, así que no se puede afirmar que añada algo" : ""}. Suma en ${suma} de ${(c.por_fold || []).length} folds. `
-      + `Saber solo la cohorte da ${num(d.auc_solo_hospital)}; el azar, 0,5.`, "cifra-nota__texto"),
+    nodo("p", veredicto, "cifra-nota__veredicto"),
+    nodo("p", `${num(d.modelos_datos.combinado.auc_val)} − ${num(d.modelos_datos.medico.auc_val)}, IC 95 % ${signo(c.ic95[0])} a ${signo(c.ic95[1])}. `
+      + `Suma en ${suma} de ${(c.por_fold || []).length} folds. Saber solo la cohorte da ${num(d.auc_solo_hospital)}; el azar, 0,5.`, "cifra-nota__texto"),
   );
-  caja.append(nota);
+  // El veredicto va primero: es la respuesta a la pregunta de la página
+  caja.prepend(nota);
 }
 
 function filtros() {
@@ -144,7 +167,7 @@ function roc(c) {
     g.append("path").attr("d", linea(r.roc)).attr("fill", "none").attr("stroke", COLORES[m]).attr("stroke-width", 2).attr("stroke-linejoin", "round");
     if (r.con_umbral) {
       const fx = 1 - r.con_umbral.especificidad, fy = r.con_umbral.sensibilidad;
-      g.append("circle").attr("class", "marca").attr("cx", x(fx)).attr("cy", y(fy)).attr("r", 5).attr("fill", COLORES[m]);
+      g.append("circle").attr("class", "marca-dato").attr("cx", x(fx)).attr("cy", y(fy)).attr("r", 5).attr("fill", COLORES[m]);
     }
   }
   // Pasar el ratón: para cada modelo, el punto de su curva a esa altura de falsos positivos
@@ -197,7 +220,7 @@ function calibracion(c) {
     grupo.selectAll("line.ic").data(puntos).join("line").attr("class", "ic")
       .attr("x1", (p) => x(p.predicha) + desplaza).attr("x2", (p) => x(p.predicha) + desplaza)
       .attr("y1", (p) => y(p.ic95[0])).attr("y2", (p) => y(Math.min(max, p.ic95[1]))).attr("stroke", COLORES[m]).attr("stroke-width", 1.5).attr("stroke-opacity", 0.6);
-    grupo.selectAll("circle").data(puntos).join("circle").attr("class", "marca")
+    grupo.selectAll("circle").data(puntos).join("circle").attr("class", "marca-dato")
       .attr("cx", (p) => x(p.predicha) + desplaza).attr("cy", (p) => y(p.observada)).attr("r", 5).attr("fill", COLORES[m])
       .on("pointermove", (e, p) => mostrarTooltip(e, [[COLORES[m], NOMBRES_CORTOS[m], true],
         [null, `Decía ${num(p.predicha)}; lograron pCR ${num(p.observada)} (IC ${num(p.ic95[0], 2)}–${num(p.ic95[1], 2)})`],
@@ -308,6 +331,7 @@ function matrices(usarPropio = false) {
   const caja = $("matrices");
   const u = estado.umbral;
   $("valor-umbral").textContent = usarPropio ? "el de cada modelo" : num(u);
+  $("deslizador").setAttribute("aria-valuetext", usarPropio ? "el umbral de cada modelo" : num(u));
   caja.replaceChildren(...visibles().map((m) => {
     const r = estado.datos.modelos_datos[m];
     const umbral = usarPropio && r.umbral != null ? r.umbral : u;
@@ -355,24 +379,32 @@ function subgrupos(c) {
   const d = estado.datos;
   const filas = [...d.por_subtipo.map((f) => ({ ...f, tipo: "Subtipo" })), ...d.por_hospital.map((f) => ({ ...f, tipo: "Cohorte" }))];
   const ms = visibles();
-  const altoFila = 18 + ms.length * 9;
-  const { g, ancho, alto } = lienzo(c, filas.length * altoFila + 70, { arriba: 10, derecha: 18, abajo: 44, izquierda: 150 });
+  const estrecho = c.clientWidth < 480;
+  const cabeza = estrecho ? 32 : 0;
+  const altoFila = 18 + ms.length * 9 + cabeza;
+  const { g, ancho, alto } = lienzo(c, filas.length * altoFila + 70, { arriba: 10, derecha: 18, abajo: 44, izquierda: estrecho ? 8 : 150 });
   const x = d3.scaleLinear([0.3, 0.95], [0, ancho]);
-  g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(6)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
+  const nx = marcasX(ancho, 6);
+  g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(nx)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
   g.append("line").attr("class", "referencia").attr("x1", x(0.5)).attr("x2", x(0.5)).attr("y1", 0).attr("y2", alto);
   g.append("text").attr("class", "anotacion").attr("x", x(0.5) + 4).attr("y", alto - 4).text("azar");
-  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(6).tickFormat((v) => num(v, 1)).tickSizeOuter(0));
+  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(nx).tickFormat((v) => num(v, 1)).tickSizeOuter(0));
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("AUC dentro del grupo (IC 95 %)");
   filas.forEach((f, i) => {
     const y0 = i * altoFila + 8;
-    if (i === d.por_subtipo.length) g.append("line").attr("class", "separador").attr("x1", -140).attr("x2", ancho).attr("y1", y0 - 6).attr("y2", y0 - 6);
-    g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", y0 + (ms.length * 9) / 2 + 2).attr("text-anchor", "end").text(f.grupo);
-    g.append("text").attr("class", "fila-detalle").attr("x", -12).attr("y", y0 + (ms.length * 9) / 2 + 15).attr("text-anchor", "end").text(`${f.pacientes} pacientes, ${f.pcr} pCR`);
+    if (i === d.por_subtipo.length) g.append("line").attr("class", "separador").attr("x1", estrecho ? -8 : -140).attr("x2", ancho).attr("y1", y0 - 6).attr("y2", y0 - 6);
+    if (estrecho) {
+      g.append("text").attr("class", "fila-titulo").attr("x", 0).attr("y", y0 + 10).text(f.grupo);
+      g.append("text").attr("class", "fila-detalle").attr("x", 0).attr("y", y0 + 24).text(`${f.pacientes} pacientes, ${f.pcr} pCR`);
+    } else {
+      g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", y0 + (ms.length * 9) / 2 + 2).attr("text-anchor", "end").text(f.grupo);
+      g.append("text").attr("class", "fila-detalle").attr("x", -12).attr("y", y0 + (ms.length * 9) / 2 + 15).attr("text-anchor", "end").text(`${f.pacientes} pacientes, ${f.pcr} pCR`);
+    }
     ms.forEach((m, k) => {
       const v = f[m];
-      const y = y0 + k * 9 + 4;
+      const y = y0 + cabeza + k * 9 + 4;
       g.append("line").attr("x1", x(v.ic95[0])).attr("x2", x(v.ic95[1])).attr("y1", y).attr("y2", y).attr("stroke", COLORES[m]).attr("stroke-width", 2).attr("stroke-linecap", "round");
-      g.append("circle").attr("class", "marca").attr("cx", x(v.auc)).attr("cy", y).attr("r", 4.5).attr("fill", COLORES[m])
+      g.append("circle").attr("class", "marca-dato").attr("cx", x(v.auc)).attr("cy", y).attr("r", 4.5).attr("fill", COLORES[m])
         .on("pointermove", (e) => mostrarTooltip(e, [[COLORES[m], `${NOMBRES_CORTOS[m]}, ${f.grupo}`, true],
           [null, `AUC ${num(v.auc)} (IC ${num(v.ic95[0])}–${num(v.ic95[1])})`], [null, `${f.pacientes} pacientes, ${f.pcr} con pCR`]]))
         .on("pointerleave", ocultarTooltip);
@@ -395,7 +427,7 @@ function folds(c) {
   for (const m of visibles()) {
     const v = estado.datos.modelos_datos[m].auc_por_fold;
     g.append("path").attr("d", d3.line().x((_, k) => x(k + 1)).y((a) => y(a))(v)).attr("fill", "none").attr("stroke", COLORES[m]).attr("stroke-width", 2);
-    g.selectAll(null).data(v).join("circle").attr("class", "marca").attr("cx", (_, k) => x(k + 1)).attr("cy", (a) => y(a)).attr("r", 4.5).attr("fill", COLORES[m])
+    g.selectAll(null).data(v).join("circle").attr("class", "marca-dato").attr("cx", (_, k) => x(k + 1)).attr("cy", (a) => y(a)).attr("r", 4.5).attr("fill", COLORES[m])
       .on("pointermove", (e, a) => mostrarTooltip(e, [[COLORES[m], NOMBRES_CORTOS[m], true], [null, `AUC ${num(a)}`]]))
       .on("pointerleave", ocultarTooltip);
   }
@@ -410,8 +442,10 @@ function odds(c) {
   const variables = o.combinado.map((v) => v.clave);
   const fila = (m, clave) => o[m].find((v) => v.clave === clave);
   const ms = ["medico", "combinado"].filter((m) => estado.visibles.has(m));
-  const altoFila = 16 + Math.max(1, ms.length) * 10;
-  const { g, ancho, alto } = lienzo(c, variables.length * altoFila + 64, { arriba: 10, derecha: 18, abajo: 44, izquierda: Math.min(230, c.clientWidth * 0.42) });
+  const estrecho = c.clientWidth < 480;
+  const cabeza = estrecho ? 18 : 0;
+  const altoFila = 16 + Math.max(1, ms.length) * 10 + cabeza;
+  const { g, ancho, alto } = lienzo(c, variables.length * altoFila + 64, { arriba: 10, derecha: 18, abajo: 44, izquierda: estrecho ? 8 : Math.min(230, c.clientWidth * 0.42) });
   const x = d3.scaleLog([0.15, 6], [0, ancho]);
   g.append("g").attr("class", "rejilla").selectAll("line").data([0.25, 0.5, 1, 2, 4]).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
   g.append("line").attr("class", "referencia").attr("x1", x(1)).attr("x2", x(1)).attr("y1", 0).attr("y2", alto);
@@ -419,13 +453,14 @@ function odds(c) {
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("Razón de odds de pCR (escala logarítmica)");
   variables.forEach((clave, i) => {
     const y0 = i * altoFila + 8;
-    g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", y0 + (ms.length * 10) / 2 + 3).attr("text-anchor", "end").text(fila("combinado", clave).variable);
+    if (estrecho) g.append("text").attr("class", "fila-titulo").attr("x", 0).attr("y", y0 + 8).text(fila("combinado", clave).variable);
+    else g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", y0 + (ms.length * 10) / 2 + 3).attr("text-anchor", "end").text(fila("combinado", clave).variable);
     ms.forEach((m, k) => {
       const v = fila(m, clave);
       if (!v) return;
-      const y = y0 + k * 10 + 4;
+      const y = y0 + cabeza + k * 10 + 4;
       g.append("line").attr("x1", x(Math.max(0.15, v.ic95[0]))).attr("x2", x(Math.min(6, v.ic95[1]))).attr("y1", y).attr("y2", y).attr("stroke", COLORES[m]).attr("stroke-width", 2).attr("stroke-linecap", "round");
-      g.append("circle").attr("class", "marca").attr("cx", x(v.or)).attr("cy", y).attr("r", 4.5).attr("fill", COLORES[m])
+      g.append("circle").attr("class", "marca-dato").attr("cx", x(v.or)).attr("cy", y).attr("r", 4.5).attr("fill", COLORES[m])
         .on("pointermove", (e) => mostrarTooltip(e, [[COLORES[m], `${NOMBRES_CORTOS[m]}: ${v.variable}`, true], [null, `Razón de odds ${num(v.or, 2)} (IC ${num(v.ic95[0], 2)}–${num(v.ic95[1], 2)})`]]))
         .on("pointerleave", ocultarTooltip);
     });
@@ -445,8 +480,9 @@ function sesgo(c) {
   const { g, ancho, alto } = lienzo(c, filas.length * 30 + 70, { arriba: 10, derecha: 24, abajo: 44, izquierda: 80 });
   const x = d3.scaleLinear([0.52, 0.61], [0, ancho]);
   const y = d3.scaleBand(filas.map((f) => f.version), [0, alto]).padding(0.4);
-  g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(5)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
-  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(5).tickFormat((v) => num(v, 2)).tickSizeOuter(0));
+  const nx = marcasX(ancho, 5);
+  g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(nx)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
+  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(nx).tickFormat((v) => num(v, 2)).tickSizeOuter(0));
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("AUC de validación (media de 5 folds)");
   for (const f of filas) {
     const cy = y(f.version) + y.bandwidth() / 2;
@@ -455,7 +491,7 @@ function sesgo(c) {
     g.append("circle").attr("cx", x(f.elegida)).attr("cy", cy).attr("r", 5).attr("fill", FONDO).attr("stroke", TINTA_2).attr("stroke-width", 2)
       .on("pointermove", (e) => mostrarTooltip(e, [[null, f.version, true], [null, `Con la época elegida: ${num(f.elegida)}`], [null, `Con 6 épocas fijas: ${num(f.fija)}`]]))
       .on("pointerleave", ocultarTooltip);
-    g.append("circle").attr("class", "marca").attr("cx", x(f.fija)).attr("cy", cy).attr("r", 5).attr("fill", COLORES.cnn)
+    g.append("circle").attr("class", "marca-dato").attr("cx", x(f.fija)).attr("cy", cy).attr("r", 5).attr("fill", COLORES.cnn)
       .on("pointermove", (e) => mostrarTooltip(e, [[null, f.version, true], [null, `Con 6 épocas fijas: ${num(f.fija)}`], [null, `Bajó ${num(f.elegida - f.fija)}`]]))
       .on("pointerleave", ocultarTooltip);
   }
@@ -509,26 +545,85 @@ function bibliografia(c) {
     { estudio: "Nuestra CNN + médico", que: "validación cruzada en train, media de folds", auc: d.modelos_datos.combinado.auc_val, propio: "combinado" },
     ...d.bibliografia,
   ];
+  tabla(document.querySelector('[data-tabla="bibliografia"]'), ["Estudio", "Qué se midió", "AUC"],
+    filas.map((f) => [f.estudio, f.que, f.auc_min != null ? `${num(f.auc_min, 2)}–${num(f.auc, 2)}` : num(f.auc, f.propio ? 3 : 2)]));
+  if (c.clientWidth < 480) { bibliografiaEstrecha(c, filas); return; }
   const { g, ancho, alto, margen } = lienzo(c, filas.length * 34 + 64, { arriba: 10, derecha: 24, abajo: 44, izquierda: Math.min(330, c.clientWidth * 0.45) });
   const x = d3.scaleLinear([0.45, 0.95], [0, ancho]);
   const y = d3.scaleBand(filas.map((_, i) => i), [0, alto]).padding(0.35);
-  g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(6)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
-  g.append("line").attr("class", "referencia").attr("x1", x(0.5)).attr("x2", x(0.5)).attr("y1", 0).attr("y2", alto);
-  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(6).tickFormat((v) => num(v, 2)).tickSizeOuter(0));
-  eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("AUC");
+  ejeBibliografia(g, x, ancho, alto);
   filas.forEach((f, i) => {
     const cy = y(i) + y.bandwidth() / 2;
     if (i === 3) g.append("line").attr("class", "separador").attr("x1", -margen.izquierda + 8).attr("x2", ancho).attr("y1", y(i) - 6).attr("y2", y(i) - 6);
     g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", cy).attr("text-anchor", "end").text(f.estudio);
     g.append("text").attr("class", "fila-detalle").attr("x", -12).attr("y", cy + 13).attr("text-anchor", "end").text(f.que);
-    const color = f.propio ? COLORES[f.propio] : TINTA_2;
-    if (f.auc_min != null) {
-      g.append("line").attr("x1", x(f.auc_min)).attr("x2", x(f.auc)).attr("y1", cy).attr("y2", cy).attr("stroke", color).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-opacity", 0.5);
-    }
-    g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio ? color : FONDO).attr("stroke", color).attr("stroke-width", 2);
-    g.append("text").attr("class", "etiqueta-serie").attr("x", x(f.auc) + 10).attr("y", cy + 4)
-      .text(f.auc_min != null ? `${num(f.auc_min, 2)}–${num(f.auc, 2)}` : num(f.auc, f.propio ? 3 : 2));
+    puntoBibliografia(g, x, f, cy);
   });
+}
+
+function ejeBibliografia(g, x, ancho, alto) {
+  const nx = marcasX(ancho, 6);
+  const fondo = g.insert("g", ":first-child");
+  fondo.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(nx)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
+  fondo.append("line").attr("class", "referencia").attr("x1", x(0.5)).attr("x2", x(0.5)).attr("y1", 0).attr("y2", alto);
+  const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${alto})`).call(d3.axisBottom(x).ticks(nx).tickFormat((v) => num(v, 2)).tickSizeOuter(0));
+  eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("AUC");
+}
+
+function puntoBibliografia(g, x, f, cy) {
+  const color = f.propio ? COLORES[f.propio] : TINTA_2;
+  if (f.auc_min != null) {
+    g.append("line").attr("x1", x(f.auc_min)).attr("x2", x(f.auc)).attr("y1", cy).attr("y2", cy).attr("stroke", color).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-opacity", 0.5);
+  }
+  g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio ? color : FONDO).attr("stroke", color).attr("stroke-width", 2);
+  g.append("text").attr("class", "etiqueta-serie").attr("x", x(f.auc) + 10).attr("y", cy + 4)
+    .text(f.auc_min != null ? `${num(f.auc_min, 2)}–${num(f.auc, 2)}` : num(f.auc, f.propio ? 3 : 2));
+}
+
+// Parte un texto SVG en líneas que quepan en «ancho»; devuelve cuántas líneas salen
+function envolver(texto, ancho, interlinea) {
+  const palabras = texto.text().split(/\s+/);
+  const x = texto.attr("x");
+  texto.text(null);
+  let linea = [];
+  let tspan = texto.append("tspan").attr("x", x).attr("dy", 0);
+  let lineas = 1;
+  for (const palabra of palabras) {
+    linea.push(palabra);
+    tspan.text(linea.join(" "));
+    if (linea.length > 1 && tspan.node().getComputedTextLength() > ancho) {
+      linea.pop();
+      tspan.text(linea.join(" "));
+      linea = [palabra];
+      tspan = texto.append("tspan").attr("x", x).attr("dy", interlinea).text(palabra);
+      lineas += 1;
+    }
+  }
+  return lineas;
+}
+
+// En el móvil: el estudio y su detalle encima de su punto, partidos en líneas si no caben
+function bibliografiaEstrecha(c, filas) {
+  const margen = { arriba: 10, derecha: 24, abajo: 44, izquierda: 8 };
+  const { s, g, ancho } = lienzo(c, 100, margen);
+  const x = d3.scaleLinear([0.45, 0.95], [0, ancho]);
+  const anchoTexto = ancho + margen.derecha;
+  let y = 0;
+  filas.forEach((f, i) => {
+    if (i === 3) {
+      g.append("line").attr("class", "separador").attr("x1", -margen.izquierda).attr("x2", ancho).attr("y1", y + 2).attr("y2", y + 2);
+      y += 6;
+    }
+    const titulo = g.append("text").attr("class", "fila-titulo").attr("x", 0).attr("y", y + 14).text(f.estudio);
+    y += 14 + (envolver(titulo, anchoTexto, 16) - 1) * 16;
+    const detalle = g.append("text").attr("class", "fila-detalle").attr("x", 0).attr("y", y + 14).text(f.que);
+    y += 14 + (envolver(detalle, anchoTexto, 14) - 1) * 14;
+    puntoBibliografia(g, x, f, y + 14);
+    y += 30;
+  });
+  ejeBibliografia(g, x, ancho, y);
+  const total = y + margen.arriba + margen.abajo;
+  s.attr("height", total).attr("viewBox", `0 0 ${ancho + margen.izquierda + margen.derecha} ${total}`);
 }
 
 // ---------- Todo ----------
@@ -556,6 +651,7 @@ async function arrancar() {
     $("aviso-datos").textContent = `No se pudieron leer los resultados: ${error.message}`;
     return;
   }
+  nombrarDatos();
   if (!estado.datos.modelos_datos) {
     $("aviso-datos").hidden = false;
     $("aviso-datos").textContent = `Faltan las predicciones de la comparación: ${estado.datos.aviso || "vuelve a exportar la app"}.`;

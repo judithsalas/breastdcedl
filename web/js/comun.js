@@ -20,7 +20,7 @@ export async function leerJSON(url) {
 }
 
 // Colores de los tres modelos de la comparación (paleta categórica validada: orden fijo, nunca por rango)
-// Los tonos de la paleta para fondo oscuro, validados contra #04070a, el fondo de las gráficas (CVD ΔE ≥ 9,4)
+// Los tonos de la paleta para fondo oscuro, validados contra el fondo de las gráficas (--monitor) (CVD ΔE ≥ 9,4)
 export const COLORES = { cnn: "#1b9cb1", medico: "#9085e9", combinado: "#d55181" };
 export const NOMBRES_CORTOS = { cnn: "CNN", medico: "Médico", combinado: "CNN + médico" };
 export const COHORTES = { spy1: "I-SPY1", spy2: "I-SPY2", duke: "Duke" };

@@ -173,7 +173,7 @@ function dibujarDiagrama() {
     for (let i = 0; i < 12; i++) g.append(svg("line", { x1: X.media + 6, y1: yPunto(i), x2: x - 18, y2: CENTRO, class: "dg-conexion" }));
     g.append(svg("circle", { cx: x, cy: CENTRO, r: 18, class: "dg-nodo" }));
     g.append(svg("text", { x, y: CENTRO + 5, "text-anchor": "middle", class: "dg-nodo-texto" }, "Σ"));
-    etiquetas(g, x - 22, BASE, "Lineal", "129 pesos\n→ 1 logit");
+    etiquetas(g, x - 22, BASE, "Lineal", "129 pesos,\nsale 1 logit");
     zona(g, x - 32, 76);
   }
   // El conjunto: 6 versiones × 5 folds; la red dibujada es la primera
@@ -262,7 +262,7 @@ function detalleBloque(k) {
   explicacion([
     `Convolución 3 × 3 con ${conv.filtros} filtros. Cada filtro es una plantilla de 3 × 3 × ${conv.entra} = ${9 * conv.entra} pesos que recorre la imagen y se enciende donde encuentra su patrón. Al principio son bordes y contrastes; más adentro, combinaciones de los anteriores.`,
     "BatchNorm reescala cada mapa para que el entrenamiento sea estable, y ReLU deja pasar solo lo positivo. Después, el máximo de cada cuadrado de 2 × 2 reduce el mapa a la mitad: se pierde detalle y se gana campo de visión.",
-    `Cada punto de estos mapas depende, como mucho, de un cuadrado de ${b.campo_receptivo} × ${b.campo_receptivo} píxeles del corte original (su campo receptivo teórico). En la práctica pesa más el centro del cuadrado que los bordes. Pasa el ratón por un mapa para verlo.`,
+    `Cada punto de estos mapas depende, como mucho, de un cuadrado de ${b.campo_receptivo} × ${b.campo_receptivo} píxeles del corte original (su campo receptivo teórico). En la práctica pesa más el centro del cuadrado que los bordes. Pasa el cursor por un mapa, o tócalo, para verlo.`,
   ]);
   parametros([
     ["Entra", `${ce} × ${he} × ${he}`], ["Sale", `${c} × ${h} × ${w}`],
@@ -285,16 +285,19 @@ function detalleBloque(k) {
   for (const [ci] of mostrados) {
     const lienzo = lienzoCanal(datos, ci);
     lienzo.title = `Filtro ${ci + 1}`;
-    lienzo.addEventListener("pointermove", (e) => {
+    // Con el ratón, al pasar; en el móvil, al tocar
+    const marcar = (e) => {
       const r = lienzo.getBoundingClientRect();
       const x = Math.floor(((e.clientX - r.left) / r.width) * w), y = Math.floor(((e.clientY - r.top) / r.height) * h);
       const centroX = (x + 0.5) * b.salto, centroY = (y + 0.5) * b.salto;
       const ctx = capa.getContext("2d");
       ctx.clearRect(0, 0, 256, 256);
-      ctx.strokeStyle = "#f0a33a";
+      ctx.strokeStyle = "#f2a541";
       ctx.lineWidth = 2;
       ctx.strokeRect(centroX - b.campo_receptivo / 2, centroY - b.campo_receptivo / 2, b.campo_receptivo, b.campo_receptivo);
-    });
+    };
+    lienzo.addEventListener("pointermove", marcar);
+    lienzo.addEventListener("pointerdown", marcar);
     rejilla.append(lienzo);
   }
   const nota = c > 64 ? `Los 64 filtros que más se activan con este corte, de ${c}.` : `Los ${c} filtros, de más a menos activos con este corte.`;
@@ -441,13 +444,47 @@ const DETALLES = {
   umbral: ["Paso 10 de 10", detalleUmbral],
 };
 
+// Los nombres cortos de las piezas, como en el diagrama, para los botones de paso
+const NOMBRE_PIEZA = {
+  entrada: "Entrada", b1: "Bloque 1", b2: "Bloque 2", b3: "Bloque 3", b4: "Bloque 4", media: "Media",
+  lineal: "Lineal", conjunto: "Conjunto", calibracion: "Probabilidad", umbral: "Clase",
+};
+
 function elegirPieza(id) {
   estado.pieza = id;
   marcarPieza();
   const [paso, rellenar] = DETALLES[id];
   $("detalle-paso").textContent = paso;
   rellenar();
+  const i = PIEZAS.indexOf(id);
+  for (const [boton, otra, texto] of [[$("paso-anterior"), PIEZAS[i - 1], "Anterior"], [$("paso-siguiente"), PIEZAS[i + 1], "Siguiente"]]) {
+    boton.disabled = !otra;
+    boton.textContent = otra ? `${texto}: ${NOMBRE_PIEZA[otra]}` : texto;
+    boton.dataset.pieza = otra || "";
+  }
 }
+
+// Centra la pieza elegida en el diagrama cuando este se desplaza de lado (en el móvil), sin mover la página
+function centrarPieza() {
+  const envoltorio = document.querySelector(".diagrama-envoltorio");
+  const pieza = document.querySelector(".pieza--elegida");
+  if (!envoltorio || !pieza || envoltorio.scrollWidth <= envoltorio.clientWidth) return;
+  const caja = pieza.getBoundingClientRect(), marco = envoltorio.getBoundingClientRect();
+  envoltorio.scrollLeft += caja.left + caja.width / 2 - (marco.left + marco.width / 2);
+}
+
+function pasos() {
+  for (const id of ["paso-anterior", "paso-siguiente"]) {
+    $(id).addEventListener("click", (e) => {
+      const otra = e.currentTarget.dataset.pieza;
+      if (!otra) return;
+      elegirPieza(otra);
+      centrarPieza();
+    });
+  }
+}
+
+const sinMovimiento = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- Versiones, folds y aumento ----------
 const DONDE = {
@@ -463,9 +500,18 @@ function tablaVersiones() {
   cuerpo.replaceChildren(...estado.info.entrenamiento.versiones.map((v) => {
     const [donde, piezas] = DONDE[v.version] || ["—", []];
     const tr = nodo("tr");
-    tr.tabIndex = 0;
-    const th = nodo("th", v.version);
+    const th = nodo("th");
     th.scope = "row";
+    // El nombre de la versión es un botón: elige en el diagrama la pieza que cambia y lo trae a la vista
+    const boton = nodo("button", v.version, "boton boton--discreto");
+    boton.type = "button";
+    boton.addEventListener("click", () => {
+      if (!piezas.length) return;
+      elegirPieza(piezas[0]);
+      document.querySelector(".caja-luz--diagrama").scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "start" });
+      centrarPieza();
+    });
+    th.append(boton);
     tr.append(th, nodo("td", v.que_cambia || "—"), nodo("td", donde), nodo("td", miles(v.parametros)),
       nodo("td", v.auc_val == null ? "—" : `${num(v.auc_val)} ± ${num(v.auc_val_desviacion)}`));
     const resaltar = (si) => {
@@ -473,8 +519,8 @@ function tablaVersiones() {
     };
     tr.addEventListener("pointerenter", () => resaltar(true));
     tr.addEventListener("pointerleave", () => resaltar(false));
-    tr.addEventListener("focus", () => resaltar(true));
-    tr.addEventListener("blur", () => resaltar(false));
+    boton.addEventListener("focus", () => resaltar(true));
+    boton.addEventListener("blur", () => resaltar(false));
     return tr;
   }));
 }
@@ -505,10 +551,11 @@ function aumento() {
   const caja = $("aumento");
   const original = lienzoFase(1);
   const sorteos = [{ nombre: "original" }];
-  for (let i = 0; i < 6; i++) {
+  // Siete sorteos y el original: dos filas completas de cuatro (o cuatro de dos en el móvil)
+  for (let i = 0; i < 7; i++) {
     sorteos.push({
       grados: (Math.random() * 2 - 1) * 10, dx: (Math.random() * 2 - 1) * 0.04 * 256, dy: (Math.random() * 2 - 1) * 0.04 * 256,
-      escala: 0.95 + Math.random() * 0.1, espejo: Math.random() < 0.5, giro90: i === 5 ? 90 * (1 + Math.floor(Math.random() * 3)) : 0,
+      escala: 0.95 + Math.random() * 0.1, espejo: Math.random() < 0.5, giro90: i === 6 ? 90 * (1 + Math.floor(Math.random() * 3)) : 0,
     });
   }
   caja.replaceChildren(...sorteos.map((s) => {
@@ -547,11 +594,12 @@ function selector() {
     b.type = "button";
     b.dataset.corte = e.corte;
     b.setAttribute("aria-pressed", "false");
-    b.setAttribute("aria-label", `${COHORTES[e.cohorte] || e.cohorte}, ${e.corte}`);
+    b.setAttribute("aria-label", `${COHORTES[e.cohorte] || e.cohorte}, ${e.corte}${e.pcr == null ? "" : e.pcr ? ", etiqueta real: pCR" : ", etiqueta real: no pCR"}`);
     const img = document.createElement("img");
     img.alt = "";
     img.src = `ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(e.ficheros[1])}`;
-    const etiqueta = e.pcr == null ? "" : e.pcr ? "etiqueta real: pCR" : "etiqueta real: no\u00a0pCR";
+    // Bajo la miniatura, solo la clase: el título del selector ya dice que es la etiqueta real
+    const etiqueta = e.pcr == null ? "" : e.pcr ? "pCR" : "no\u00a0pCR";
     b.append(img, nodo("span", COHORTES[e.cohorte] || e.cohorte, "ejemplo__cohorte"), nodo("span", etiqueta, "ejemplo__etiqueta"));
     b.addEventListener("click", () => usarEjemplo(e).catch((err) => { $("diagrama-estado").textContent = err.message; }));
     li.append(b);
@@ -565,6 +613,7 @@ async function arrancar() {
     selector();
     tablaVersiones();
     folds();
+    pasos();
     $("otra-vez").addEventListener("click", aumento);
     estado.ejecutar = await cargarUnaRed(estado.info.una_red);
     await usarEjemplo(estado.ejemplos[0]);

@@ -226,7 +226,7 @@ function dibujarRegla(p) {
   lo = Math.max(0, lo);
   hi = Math.min(1, hi);
   const abajo = (v) => X0 + ((v - lo) / (hi - lo)) * (X1 - X0);
-  const linea = "#4d5f6c", tinta = "#e6edf2", ambar = "#f0a33a", fondo = "#121a21";
+  const linea = "#4d5f6c", tinta = "#e6edf2", ambar = "#f2a541", fondo = "#10181f";   // los tokens de DESIGN.md
   const hijos = [
     // Escala entera, de 0 a 1
     svg("line", { x1: X0, x2: X1, y1: 26, y2: 26, stroke: linea, "stroke-width": 2 }),
@@ -281,6 +281,10 @@ function mostrarResultado(r, esperado) {
       ? `: está por encima del umbral (${num(umbral)}), así que el modelo lo clasifica como respuesta completa.`
       : `: está por debajo del umbral (${num(umbral)}), así que el modelo lo clasifica como enfermedad residual.`),
   );
+  const chip = $("clase-chip");
+  chip.hidden = false;
+  chip.textContent = esPcr ? "pCR" : "no pCR";
+  chip.dataset.clase = esPcr ? "pcr" : "no";
   dibujarRegla(r.probabilidad);
   if (r.mapa && estado.early) {
     const lienzo = document.querySelectorAll("#fases canvas")[4];
@@ -296,7 +300,9 @@ function mostrarResultado(r, esperado) {
     const ok = Math.abs(esperado - r.probabilidad) < 1e-5;
     coincide.hidden = false;
     coincide.dataset.ok = ok ? "si" : "no";
-    coincide.textContent = `${ok ? "✓ Coincide" : "✗ No coincide"} con el pipeline de Python: ${num(r.probabilidad, 6)} aquí y ${num(esperado, 6)} en el pipeline.`;
+    coincide.replaceChildren(nodo("span", ok ? "✓" : "✗", "coincide__marca"),
+      document.createTextNode(ok ? ` Igual que el pipeline de Python (${num(esperado, 6)})`
+        : ` Distinto del pipeline de Python: ${num(r.probabilidad, 6)} aquí y ${num(esperado, 6)} allí`));
   }
 }
 
@@ -321,6 +327,7 @@ async function analizar(ficheros, esperado = null, corte = null, subir = true) {
     vaciarFases();
     panel.dataset.estado = "vacio";
     panel.removeAttribute("data-hubo");
+    $("clase-chip").hidden = true;
     $("resultado-espera").textContent = "Corrige los ficheros (los mensajes están en «Elige un corte») o elige un ejemplo.";
     return;
   }
@@ -403,8 +410,11 @@ async function prepararEjemplos() {
     miniatura.src = `ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(early)}`;
     miniatura.alt = "";
     miniatura.loading = "lazy";
-    boton.append(miniatura, nodo("span", cohorte, "ejemplo__cohorte"), nodo("span", etiqueta, "ejemplo__etiqueta"));
+    // Bajo la miniatura, solo la clase: la entradilla de la sección ya dice que es la etiqueta real
+    boton.append(miniatura, nodo("span", cohorte, "ejemplo__cohorte"),
+      nodo("span", e.pcr == null ? "" : e.pcr ? "pCR" : "no\u00a0pCR", "ejemplo__etiqueta"));
     boton.title = e.corte;
+    boton.setAttribute("aria-label", [cohorte, e.corte, etiqueta].filter(Boolean).join(", "));
     boton.addEventListener("click", async (evento) => {
       for (const b of ul.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === boton));
       const ficheros = await Promise.all(e.ficheros.map(async (nombre) => {
@@ -470,13 +480,20 @@ function rellenarModelo(info) {
     + `exportado de PyTorch ${o.torch} con la división entre 255 dentro. Antes de publicarlo se comprobó que da lo mismo que `
     + `PyTorch en ${o.comprobacion.cortes} cortes (diferencia máxima ${cientifica(o.comprobacion.diferencia_maxima)}).`;
 
-  const partes = [`En validación cruzada, el modelo puntúa más alto a la paciente con pCR en ${pct(m.auc_val)} de las parejas `
-    + `(AUC ${num(m.auc_val)} ± ${num(m.auc_val_desviacion)}; 0,5 sería el azar).`,
-  `Con el umbral detecta ${Math.round(100 * m.sensibilidad)} de cada 100 pCR y acierta ${Math.round(100 * m.especificidad)} de cada 100 «no pCR»; `
-    + `de cada 100 pacientes que marca como pCR, ${Math.round(100 * m.precision_pcr)} lo son. Son cifras internas; con pacientes nuevas pueden ser peores.`];
-  if (ref.medico_auc != null) partes.push(`Un médico que solo sabe la edad, la menopausia y el subtipo (HR, HER2) llega a ${num(ref.medico_auc)}.`);
-  if (ref.franja_90) partes.push(`Al 90 % de las pacientes las sitúa entre ${num(ref.franja_90[0], 2)} y ${num(ref.franja_90[1], 2)}: `
-    + `la probabilidad apenas se aparta de la tasa de pCR de entrenamiento (${pct(ref.tasa_pcr)}).`);
+  // Las cuatro cifras que lo resumen, y debajo el detalle
+  const cifras = [[num(m.auc_val), `AUC de la CNN por paciente, ± ${num(m.auc_val_desviacion)} (0,5 sería el azar)`]];
+  if (ref.medico_auc != null) cifras.push([num(ref.medico_auc), "AUC de un médico que solo sabe la edad, la menopausia y el subtipo"]);
+  cifras.push([`${Math.round(100 * m.precision_pcr)} de 100`, "de las pacientes que marca como pCR, lo son"]);
+  if (ref.franja_90) cifras.push([`${num(ref.franja_90[0], 2)}–${num(ref.franja_90[1], 2)}`, "probabilidad que da al 90 % de las pacientes"]);
+  $("fiable-cifras").replaceChildren(...cifras.map(([valor, texto]) => {
+    const d = nodo("div");
+    d.append(nodo("dt", texto), nodo("dd", valor));
+    return d;
+  }));
+  const partes = [`Son cifras internas, de validación cruzada; con pacientes nuevas pueden ser peores. El AUC dice en qué proporción `
+    + `de las parejas de pacientes (una con pCR y otra sin ella) el modelo puntúa más alto a la que logró la pCR: ${pct(m.auc_val)}.`,
+  `Con el umbral detecta ${Math.round(100 * m.sensibilidad)} de cada 100 pCR y acierta ${Math.round(100 * m.especificidad)} de cada 100 «no pCR».`];
+  if (ref.franja_90) partes.push(`La probabilidad apenas se aparta de la tasa de pCR de entrenamiento (${pct(ref.tasa_pcr)}).`);
   partes.push("Esta predicción usa un solo corte; el modelo se evaluó por paciente, con la media de sus cortes.");
   $("texto-incertidumbre").textContent = partes.join(" ");
 }
