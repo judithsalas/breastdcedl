@@ -222,39 +222,37 @@ __marimo__/
 # Imágenes del dataset: ~38.000 PNG, se descargan con breastdcedl/descargar_datos.py
 breastdcedl/dataset/
 
-# Pesos y checkpoints: no se versionan salvo el modelo final.
-# Para subir el modelo final: guardarlo en models/final/ (excepción de abajo).
-models/**
-!models/**/
-!models/**/.gitkeep
-!models/final/**
-# El modelo clínico de comparación (D25) es un JSON pequeño: también se versiona.
-!models/clinico/**
+# Modelos y ejecuciones: se quedan en local. Lo que se sube está en experimentos/: una copia
+# exacta de las ejecuciones del modelo final (configuración, gráficas y pesos), el modelo final
+# y el modelo clínico de comparación.
+/models/
+/runs/
 *.ckpt
 *.pt
 *.pth
-!models/final/**/*.pt
+!experimentos/**/*.pt
 *.onnx
-# Excepción: el modelo final en ONNX de la app web (D38) y la red de la página «La red» (D39), que se publican.
+# Excepción: el modelo final en ONNX de la app web y la red de la página «La red», que se publican.
 !web/modelo/*.onnx
 *.pkl
 *.joblib
 
-# Resultados de cada ejecución (métricas, logs, curvas): se generan en local.
-# Los que vayan al informe se copiarán a docs/ a propósito.
-# Excepción: runs/historico.csv (una fila por ejecución) sí se versiona (D13).
-runs/*
-!runs/historico.csv
-# Paquetes de resultados (src/utils/exportar_resultados.py): no se suben.
-resultados_*.zip
+# Tests: solo en local (también los de la app web, que usan node).
+/tests/
+/web/pruebas/
+/web/package.json
+
+# Zips: ni los paquetes de resultados (src/utils/exportar_resultados.py) ni ningún otro.
+*.zip
 # Ficheros para probar la app (app/casos_prueba.py): se regeneran cuando hace falta.
-pruebas_app/
+/pruebas_app/
 logs/
 outputs/
 wandb/
 mlruns/
 
-# Sistema operativo y editor
+# Sistema operativo y editor (la configuración de VS Code, solo en local)
+.vscode/
 .DS_Store
 Thumbs.db
 desktop.ini
