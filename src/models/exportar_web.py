@@ -45,7 +45,7 @@ from src.models.versiones import NOMBRES
 
 WEB = RAIZ_REPO / "web"
 EJEMPLOS_APP = RAIZ_REPO / "app" / "ejemplos"
-CLINICO = RAIZ_REPO / "models" / "clinico" / "modelo_clinico.json"
+CLINICO = RAIZ_REPO / "experimentos" / "modelo_clinico" / "modelo_clinico.json"
 TOLERANCIA = 1e-5
 LADO = 256
 
@@ -298,7 +298,7 @@ def referencia_medico(manifiesto: dict, ruta: Path = CLINICO) -> dict:
 def anatomia(red: CNN) -> dict:
     """Capa a capa, lo que hace la red con un corte: formas, parámetros y campo receptivo (para «La red»)."""
     canales = red.preparar_entrada(torch.zeros(1, 3, LADO, LADO)).shape[1]
-    lado, salto, campo = LADO // red.reduccion, 1, 1
+    lado, salto, campo = LADO, 1, 1
     bloques, actual = [], None
     for capa in red.extractor:
         if actual is None:
@@ -412,7 +412,8 @@ def copiar_ejemplos(ejemplos: list[dict], comprobacion: dict, destino: Path, ori
 
 
 def exportar(carpeta_final: Path = CARPETA_FINAL, web: Path = WEB, ejemplos_app: Path = EJEMPLOS_APP,
-             resultados: Path = RESULTADOS, clinico: Path = CLINICO, runs: Path = RAIZ_REPO / "runs") -> dict:
+             resultados: Path = RESULTADOS, clinico: Path = CLINICO,
+             runs: Path = RAIZ_REPO / "experimentos") -> dict:
     """Todo lo que necesita la página. Devuelve info.json."""
     modelo, manifiesto = cargar_modelo_final(carpeta_final)
     modelo.eval()

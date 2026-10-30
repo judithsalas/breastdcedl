@@ -1,20 +1,19 @@
-"""Empaqueta los resultados en un zip pequeño, sin imágenes ni pesos.
+"""Junta en un zip pequeño los resultados, sin imágenes ni pesos.
 
     python -m src.utils.exportar_resultados
 
-Sirve para revisar los resultados sin copiar las imágenes del dataset (son ~38.000 PNG y no hacen falta: los
-entrenamientos se hacen en el PC de la uni). Lo que hace falta para leer resultados y decidir son
-ficheros pequeños, y este script los junta en un zip en la carpeta del repo:
+Sirve para revisar los resultados en otro ordenador sin copiar el dataset (~38.000 PNG) ni los
+pesos. El zip lleva:
 
 - runs/historico.csv y, de cada ejecución de runs/, todo menos los pesos (*.pt): configuración y
   métricas (resultados.json, resumen.json), épocas (historial.csv), predicciones y gráficas;
-- docs/resultados/ entero (auditoría, cierre, médico y test, si ya existen);
-- los manifiestos de models/final/ y models/clinico/ (sin pesos);
+- docs/resultados/ entero (auditoría, cierre, médico y test);
+- los manifiestos de experimentos/modelo_final/ y experimentos/modelo_clinico/ (sin pesos);
 - estado_git.txt: los últimos commits y lo que está sin subir, para saber en qué punto está el
   repo.
 
 Nunca mete breastdcedl/ (ni imágenes ni metadatos) ni ficheros .pt. El zip
-(resultados_<fecha>.zip) está en .gitignore: no se sube a GitHub.
+(resultados_<fecha>.zip) se crea en la raíz del repo y no se sube a GitHub (está en .gitignore).
 """
 
 from __future__ import annotations
@@ -38,7 +37,9 @@ def ficheros_a_exportar(raiz: Path = RAIZ_REPO) -> list[Path]:
     resultados = raiz / "docs" / "resultados"
     if resultados.is_dir():
         elegidos += [p for p in resultados.rglob("*") if p.is_file()]
-    for manifiesto in (raiz / "models" / "final" / "manifiesto.json", raiz / "models" / "clinico" / "modelo_clinico.json"):
+    experimentos = raiz / "experimentos"
+    for manifiesto in (experimentos / "modelo_final" / "manifiesto.json",
+                       experimentos / "modelo_clinico" / "modelo_clinico.json"):
         if manifiesto.exists():
             elegidos.append(manifiesto)
     return sorted({p.relative_to(raiz) for p in elegidos if "__pycache__" not in p.parts})

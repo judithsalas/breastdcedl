@@ -26,7 +26,7 @@ Cómo:
   imagen a lo que ya sabe el médico?).
 - Test no se toca aquí: se evalúa una sola vez, junto con la CNN, en evaluar_test.
 
-Salida: models/clinico/modelo_clinico.json (parámetros en JSON, sin pickle; lo usa evaluar_test) y
+Salida: experimentos/modelo_clinico/modelo_clinico.json (parámetros en JSON, sin pickle; lo usa evaluar_test) y
 docs/resultados/3_clinico/ (MODELO_CLINICO.md con sus figuras al lado).
 """
 
@@ -86,12 +86,12 @@ NOMBRE_MODELO = {"cohorte": "Solo la cohorte (R0)", "subtipo": "Solo el subtipo 
 C_REGULARIZACION = 1.0        # L2 suave; con ~1.000 pacientes y 4 variables casi no influye
 EPS = 1e-6
 
-CARPETA_MODELO = RAIZ_REPO / "models" / "clinico"
+CARPETA_MODELO = RAIZ_REPO / "experimentos" / "modelo_clinico"
 MODELO_JSON = CARPETA_MODELO / "modelo_clinico.json"
 FIGURAS = RESULTADOS / "3_clinico"
 INFORME = FIGURAS / "MODELO_CLINICO.md"
 OOF_CNN = RESULTADOS / "2_cierre" / "oof_pacientes.csv"
-MANIFIESTO_CNN = RAIZ_REPO / "models" / "final" / "manifiesto.json"
+MANIFIESTO_CNN = RAIZ_REPO / "experimentos" / "modelo_final" / "manifiesto.json"
 AZUL, NARANJA, VERDE, GRIS = "#2a78d6", "#eb6834", "#2f9e6b", "#8a8984"
 TINTA, TINTA_SUAVE, REJILLA = "#0b0b0b", "#52514e", "#e4e3df"
 
@@ -204,16 +204,16 @@ def cnn_cerrada(oof: Path = OOF_CNN, manifiesto: Path = MANIFIESTO_CNN) -> tuple
     """Probabilidad fuera de fold de la CNN por paciente (calibrada, media de cortes), si ya está cerrada.
 
     Devuelve (probabilidades, huella del modelo final, motivo). La tabla la deja cerrar_modelo en
-    docs/resultados/2_cierre/oof_pacientes.csv; se comprueba que corresponde al modelo de models/final/.
+    docs/resultados/2_cierre/oof_pacientes.csv; se comprueba que corresponde al modelo de experimentos/modelo_final/.
     """
     if not manifiesto.exists():
-        return None, None, "la CNN aún no está cerrada (falta models/final/manifiesto.json)"
+        return None, None, "la CNN aún no está cerrada (falta experimentos/modelo_final/manifiesto.json)"
     huella_cnn = json.loads(manifiesto.read_text(encoding="utf-8"))["huella_modelo"]
     cierre = oof.parent / "cierre.json"
     if not oof.exists() or not cierre.exists():
         return None, huella_cnn, f"faltan {oof.name} o cierre.json en docs/resultados/2_cierre: vuelve a ejecutar cerrar_modelo"
     if json.loads(cierre.read_text(encoding="utf-8")).get("huella_modelo") != huella_cnn:
-        return None, huella_cnn, "docs/resultados/2_cierre no corresponde al modelo de models/final: vuelve a ejecutar cerrar_modelo"
+        return None, huella_cnn, "docs/resultados/2_cierre no corresponde al modelo de experimentos/modelo_final: vuelve a ejecutar cerrar_modelo"
     return pd.read_csv(oof, index_col="patient_id").prob, huella_cnn, "ok"
 
 
@@ -460,7 +460,7 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
          "Solo train, con"),
         ("los mismos 5 folds que la CNN; test no se ha usado (se evalúa una sola vez, junto con la CNN, en "
          "`evaluar_test`)."),
-        "Por qué y cómo: D25 en [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md#25-el-modelo-del-médico-sin-imagen-d25).", "",
+        "",
         ("**Para qué sirve.** Es lo que sabría un médico antes de la quimioterapia sin mirar la resonancia. "
          "Si la CNN no lo"),
         ("supera, la imagen (tal como la usamos) aporta menos que la biopsia. **No entra en la CNN ni en la app**: "
@@ -570,7 +570,7 @@ def informe(analisis: dict, guardado: dict, motivo_cnn: str) -> str:
                 "mejor que otro."),
                ("- En la bibliografía pasa lo mismo: en Joo et al. 2021 la clínica sola daba 0,83 y la imagen la subía "
                 "a 0,89."),
-               (f"- Modelo guardado en `models/clinico/modelo_clinico.json` (huella `{guardado['huella']}`"
+               (f"- Modelo guardado en `experimentos/modelo_clinico/modelo_clinico.json` (huella `{guardado['huella']}`"
                 + (f", hecho con la CNN `{guardado['huella_cnn']}`" if guardado.get("huella_cnn") else "")
                 + "): lo usa `evaluar_test`."), ""]
     return "\n".join(lineas)

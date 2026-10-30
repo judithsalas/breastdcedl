@@ -1,4 +1,4 @@
-"""Cierre del modelo (F4, D21, D36): de las validaciones cruzadas al modelo final en models/final/.
+"""Cierre del modelo (F4, D21, D36): de las validaciones cruzadas al modelo final en experimentos/modelo_final/.
 
     python -m src.evaluation.cerrar_modelo                          # conjunto de versiones (D36)
     python -m src.evaluation.cerrar_modelo --una                    # solo la versión ganadora (D21)
@@ -23,7 +23,7 @@ Pasos:
 3. **Agregación por paciente:** la media de los cortes (lo que indica el profesor). Las demás se
    calculan solo para enseñar que la elección no cambia mucho las cosas.
 4. **Umbral:** la mayor sensibilidad con especificidad ≥ 0,80 (src/evaluation/umbral.py).
-5. **Exportar** a models/final/<versión>/ los 5 modelos de cada versión (uno por fold) y
+5. **Exportar** a experimentos/modelo_final/<versión>/ los 5 modelos de cada versión (uno por fold) y
    manifiesto.json con todo lo necesario: arquitecturas, sha256 de cada fichero, calibración, umbral
    y métricas internas.
 6. **Informe** en docs/resultados/2_cierre/CIERRE_MODELO.md, con sus figuras al lado. Ahí queda
@@ -78,7 +78,7 @@ def elegir_validacion(modo: str = "completo", historico: Path = HISTORICO) -> tu
     tabla = leer_historico(historico, modo)
     mejor = elegir_mejor(tabla)
     if mejor is None:
-        raise SystemExit("No hay validaciones cruzadas completas para elegir. Lanza antes: python -m src.training.plan")
+        raise SystemExit("No hay validaciones cruzadas completas para elegir. Lanza antes: python -m src.training.experimento")
     normal = validaciones_validas(tabla, "normal").set_index("modelo").loc[mejor["version"]]
     ponderadas = validaciones_validas(tabla, "ponderada")
     eleccion = {"version": mejor["version"], "motivo_version": mejor["motivo"], "perdida": "normal",
@@ -101,7 +101,7 @@ def elegir_conjunto_cv(modo: str = "completo", historico: Path = HISTORICO) -> t
     """Carpetas de las validaciones cruzadas del conjunto (D36) y el porqué."""
     conjunto = elegir_conjunto(leer_historico(historico, modo))
     if conjunto is None:
-        raise SystemExit("No hay validaciones cruzadas completas para el conjunto. Lanza antes: python -m src.training.plan")
+        raise SystemExit("No hay validaciones cruzadas completas para el conjunto. Lanza antes: python -m src.training.experimento")
     versiones = conjunto["versiones"]
     eleccion = {"version": f"conjunto de {len(versiones)} CNN" if len(versiones) > 1 else versiones[0],
                 "versiones": versiones, "motivo_version": conjunto["motivo"], "excluidas": conjunto["excluidas"],
@@ -387,8 +387,7 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
     lineas = [
         "# Cierre del modelo", "",
         f"Generado por `python -m src.evaluation.cerrar_modelo` el {manifiesto['fecha'][:16].replace('T', ' ')}.",
-        "Todo con predicciones **fuera de fold** de train; test no se ha usado. Explicación de cada",
-        "decisión: [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).", "",
+        "Todo con predicciones **fuera de fold** de train; test no se ha usado.", "",
         "## 1. Qué modelo", "",
         f"- **Modelo:** {eleccion['version']}. Motivo: {eleccion['motivo_version']}.",
         f"- **Pérdida:** {eleccion['perdida']}. Motivo: {eleccion['motivo_perdida']}.",
@@ -428,12 +427,12 @@ def informe(eleccion: dict, analisis: dict, manifiesto: dict, diferencia: float 
         lineas.append("")
     lineas += ["## 6. Exportación", "",
                "| Fichero | Época | AUC del fold | sha256 |", "|---|---|---|---|"]
-    # (un fichero por fold y versión, en models/final/<versión>/)
+    # (un fichero por fold y versión, en experimentos/modelo_final/<versión>/)
     for f in manifiesto["pesos"]:
-        lineas.append(f"| `models/final/{f['fichero']}` | {f['epoca']} | {coma(f['auc_val_fold'], 3)} | "
+        lineas.append(f"| `experimentos/modelo_final/{f['fichero']}` | {f['epoca']} | {coma(f['auc_val_fold'], 3)} | "
                       f"`{f['sha256'][:16]}…` |")
     if diferencia is not None:
-        lineas += ["", ("Comprobación: cada modelo recargado desde `models/final/` reproduce las predicciones "
+        lineas += ["", ("Comprobación: cada modelo recargado desde `experimentos/modelo_final/` reproduce las predicciones "
                         f"del entrenamiento con una diferencia máxima de {diferencia:.1e}.")]
     if len(manifiesto["miembros"]) > 1:
         lineas += ["", "![Las redes del conjunto y lo que da cada una](conjunto.png)"]
@@ -470,7 +469,7 @@ def cerrar(carpetas: Path | list[Path], eleccion: dict, destino: Path = CARPETA_
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Cierra el modelo: calibración, umbral y exportación a models/final/.")
+    p = argparse.ArgumentParser(description="Cierra el modelo: calibración, umbral y exportación a experimentos/modelo_final/.")
     p.add_argument("--cv", nargs="+", help="carpetas de validaciones cruzadas concretas (por defecto, el conjunto)")
     p.add_argument("--una", action="store_true", help="solo la versión ganadora del criterio (D21), no el conjunto")
     p.add_argument("--modo", choices=list(MODOS), default="completo",
@@ -490,8 +489,8 @@ def main() -> None:
         carpetas, eleccion = elegir_conjunto_cv(args.modo)
     for version in eleccion["versiones"]:
         if not desplegable(version):
-            raise SystemExit(f"{version} se entrenó recortando con la caja del tumor, que la app y la "
-                             "validación privada no tienen: no puede estar en el modelo final (D33).")
+            raise SystemExit(f"{version} no es una versión definida en src/models/versiones.py: no puede "
+                             "estar en el modelo final.")
     if len(set(eleccion["versiones"])) != len(eleccion["versiones"]):
         raise SystemExit("Hay una versión repetida: cada versión entra una sola vez en el conjunto.")
     manifiesto = cerrar(carpetas, eleccion)

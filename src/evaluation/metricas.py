@@ -8,7 +8,7 @@ la misma matriz, así que se calcula aquí sin repetir la agregación.
 
     m = uc.evaluar_por_paciente(probs, filas, umbral=0.5, metodo="mean")
     m.update(metricas_por_clase(m["matriz_confusion"]))
-    dibujar_matriz_confusion(m["matriz_confusion"], "matriz.png", "cnn_v1 · fold 0")
+    dibujar_matriz_confusion(m["matriz_confusion"], "matriz.png", "cnn_v3 · fold 0")
 
 Convención: la clase positiva es pCR = 1. Para la clase pCR = 0 los papeles se
 invierten: su recall es la especificidad y su precision es el valor predictivo

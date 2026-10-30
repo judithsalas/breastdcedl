@@ -15,7 +15,7 @@ Así, cada paciente recibe una probabilidad y una clase como las recibirá una p
 con la referencia que cualquier probabilidad tiene que batir: decir a todas la tasa de pCR (Brier de la
 probabilidad constante). Con el modelo del médico se hace lo mismo con el umbral, para comparar igual.
 
-No cambia el modelo final (models/final queda como está) ni toca test. Escribe
+No cambia el modelo final (experimentos/modelo_final queda como está) ni toca test. Escribe
 docs/resultados/2_cierre/VALIDACION_INTERNA.md y validacion_interna.json.
 """
 
@@ -156,7 +156,7 @@ def informe(r: dict, huella: str) -> str:
     lineas = [
         "# Validación interna de la calibración y del umbral", "",
         (f"Generado por `python -m src.evaluation.validacion_interna` para el modelo `{huella}`. Solo train; test no "
-         "se toca."), "Por qué: D40 en [`REGISTRO.md`](../../REGISTRO.md) y `COMO_SE_HIZO.md` §5.8.", "",
+         "se toca."), "",
         ("En el cierre, Platt y el umbral se eligieron con todas las pacientes de train (fuera de fold) y se midieron "
          "con esas mismas."), "Aquí, cada fold recibe un Platt y un umbral elegidos sin él, como una paciente nueva.", "",
         f"## 1. ¿Sirve la probabilidad? Brier ({r['pacientes']} pacientes, {r['pacientes_pcr']} con pCR)", "",

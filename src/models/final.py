@@ -8,7 +8,7 @@ Qué es:
 - Una **calibración de Platt**: logit_calibrado = a · logit_medio + b, con a y b ajustados con las
   predicciones fuera de fold (nunca con test). Así la probabilidad que se muestra se parece más a
   la frecuencia real de pCR.
-- Todo lo necesario para reconstruirlo está en `models/final/manifiesto.json`: la arquitectura de
+- Todo lo necesario para reconstruirlo está en `experimentos/modelo_final/manifiesto.json`: la arquitectura de
   cada versión, los pesos (un fichero por fold y versión, con su sha256), a y b, el umbral, la
   agregación y las métricas internas. No depende de `versiones.py`, así que la app funciona aunque
   se añadan versiones.
@@ -29,7 +29,7 @@ from torch import nn
 
 from src.models.cnn import CNN
 
-CARPETA_FINAL = Path(__file__).resolve().parents[2] / "models" / "final"
+CARPETA_FINAL = Path(__file__).resolve().parents[2] / "experimentos" / "modelo_final"
 
 
 def sha256(ruta: Path) -> str:

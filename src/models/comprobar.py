@@ -1,6 +1,6 @@
 """Comprueba una arquitectura sin entrenar: forma de cada capa y parámetros.
 
-    python -m src.models.comprobar cnn_v1
+    python -m src.models.comprobar cnn_v3
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def resumen(modelo: nn.Module, tamano_lote: int = 2) -> torch.Tensor:
 
 
 def main() -> None:
-    nombre = sys.argv[1] if len(sys.argv) > 1 else "cnn_v1"
+    nombre = sys.argv[1] if len(sys.argv) > 1 else "cnn_v3"
     print(f"Versiones disponibles: {sorted(VERSIONES)}\n")
     modelo = crear_modelo(nombre)
     salida = resumen(modelo)

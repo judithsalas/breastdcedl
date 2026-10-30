@@ -1,6 +1,6 @@
 """Construir la red de una versión y saber cosas de ella.
 
-- `crear_modelo("cnn_v2")`: la CNN de esa versión, sin entrenar.
+- `crear_modelo("cnn_v3")`: la CNN de esa versión, sin entrenar.
 - `arquitectura` y `receta`: los parámetros de la red y cómo se entrena.
 - `contar_parametros`: parámetros entrenables (diapositiva 3).
 - `huella`: 8 caracteres que identifican la definición; si cambia, la versión se tocó después

@@ -47,7 +47,7 @@ def _leer(ruta: Path) -> dict:
 
 
 def _fecha(nombre: str) -> str:
-    """'20261007-211625_cnn_v1...' -> '2026-10-07 21:16'."""
+    """'20261028-195129_cv_cnn_v3_fijo' -> '2026-10-28 19:51'."""
     m = re.match(r"(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})", nombre)
     return f"{m[1]}-{m[2]}-{m[3]} {m[4]}:{m[5]}" if m else ""
 
@@ -166,11 +166,7 @@ def actualizar(raiz: Path = CARPETA_RUNS) -> Path:
 
 
 def main() -> None:
-    from src.models.historial import actualizar_documento  # tablas de docs/ARQUITECTURAS.md
-
     ruta = actualizar()
-    if actualizar_documento():
-        print("Tablas de docs/ARQUITECTURAS.md actualizadas.")
     tabla = pd.read_csv(ruta)
     print(f"{len(tabla)} ejecuciones en {ruta.relative_to(RAIZ_REPO)}\n")
     if len(tabla):

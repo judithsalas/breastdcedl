@@ -1,28 +1,15 @@
-"""Historial de arquitecturas: rellena las partes automáticas de docs/ARQUITECTURAS.md.
+"""El histórico de ejecuciones (runs/historico.csv) y las reglas que eligen con él.
 
-    python -m src.models.historial                            # regenera tablas y genealogía
-    python -m src.models.historial --figuras runs/<carpeta>   # copia sus gráficas a docs/figuras/
+- `validaciones_validas`: la última validación cruzada de 5 folds de cada versión que cuenta.
+- `elegir_mejor`: el criterio de comparación (D16), para quedarse con una versión.
+- `elegir_conjunto`: la regla del conjunto (D36), con la que entraron las 6 versiones del modelo
+  final.
 
-Lo escrito a mano (hipótesis, lectura y decisión de cada ficha) no se toca. Solo se reescribe lo
-que hay entre las marcas `<!-- auto:NOMBRE:inicio -->` y `<!-- auto:NOMBRE:fin -->`:
-
-    auto:resumen      una fila por versión: origen, qué cambia, parámetros, estado y el AUC de su
-                      última ejecución completa de cada tipo (1 fold / 5 folds, normal / ponderada)
-    auto:genealogia   árbol de versiones: de cuál sale cada una
-    auto:ejecuciones  todas las ejecuciones en modo completo, con su huella
-
-Los números salen de runs/historico.csv (D13); el modo rápido no cuenta. Se ejecuta solo al
-terminar cada entrenamiento. A mano, tras un `git pull` que traiga filas nuevas del histórico.
-
-Se muestra la ÚLTIMA ejecución de cada tipo, no la mejor, para no escoger a posteriori. Todas
-están en la tabla de ejecuciones.
+Los números salen de runs/historico.csv (D13), que se queda en local; el modo rápido no cuenta.
 """
 
 from __future__ import annotations
 
-import argparse
-import re
-import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -30,12 +17,10 @@ import pandas as pd
 from src.config import COMPARACION, es_estandar
 from src.data.caso import RAIZ_REPO
 from src.evaluation.metricas import coma
-from src.models.construir import cambios, contar_parametros, crear_modelo, huella, receta
-from src.models.versiones import ESTADO, ORIGEN, VERSIONES
+from src.models.construir import contar_parametros, crear_modelo, huella, receta
+from src.models.versiones import VERSIONES
 
-DOCUMENTO = RAIZ_REPO / "docs" / "ARQUITECTURAS.md"
 HISTORICO = RAIZ_REPO / "runs" / "historico.csv"
-FIGURAS = RAIZ_REPO / "docs" / "figuras" / "ejecuciones"
 
 
 def leer_historico(ruta: Path = HISTORICO, modo: str = "completo") -> pd.DataFrame:
@@ -67,15 +52,15 @@ def validaciones_validas(historico: pd.DataFrame, perdida: str = "normal") -> pd
 
 
 def desplegable(modelo: str) -> bool:
-    """¿Puede ser el modelo final? No si necesita algo que la app no tiene, como la caja del tumor (D33)."""
-    return modelo in VERSIONES and receta(modelo).get("recorte") != "caja"
+    """¿Puede ser el modelo final? Solo si es una versión definida: todas usan solo las 3 fases, lo
+    mismo que tiene la app."""
+    return modelo in VERSIONES
 
 
 def elegir_mejor(historico: pd.DataFrame) -> dict | None:
-    """Aplica el criterio de comparación de docs/ARQUITECTURAS.md (D16).
+    """Aplica el criterio de comparación (D16).
 
-    1. Validaciones cruzadas completas de 5 folds, pérdida normal, huella ✓, de versiones
-       desplegables (las que necesitan la caja del tumor solo sirven para comparar, D33).
+    1. Validaciones cruzadas completas de 5 folds, pérdida normal y huella ✓.
     2. La de mayor AUC medio en validación es la referencia.
     3. Empatan con ella las que quedan a menos de una desviación (la de la referencia).
     4. Entre las empatadas, primero las que no sobreajustan (diferencia train − val ≤ 0,15);
@@ -144,168 +129,8 @@ def elegir_conjunto(historico: pd.DataFrame) -> dict | None:
                        f"(diferencia ≤ {coma(SOBREAJUSTE, 2)}): {', '.join(entran.modelo)}")}
 
 
-def _num(valor, decimales: int = 3) -> str:
-    return "—" if pd.isna(valor) else coma(float(valor), decimales)
-
-
-def _auc(fila: pd.Series) -> str:
-    texto = _num(fila.auc_val)
-    if fila.tipo == "cv" and not pd.isna(fila.get("auc_val_desv")):
-        texto += f" ± {_num(fila.auc_val_desv)}"
-    return texto + ("" if _huella_ok(fila) is not False else " ⚠")
-
-
 def _huella_ok(fila: pd.Series) -> bool | None:
     """True si la ejecución usó la definición actual, False si no, None si no se sabe."""
     if fila.modelo not in VERSIONES or pd.isna(fila.get("huella")):
         return None
     return fila.huella == huella(fila.modelo)
-
-
-def _cv_completa(fila: pd.Series) -> bool:
-    """¿Es una validación cruzada con los 5 folds? Una prueba de un fold (D30, D31) no lo es."""
-    return fila.tipo == "cv" and str(fila.folds) == TODOS_LOS_FOLDS
-
-
-def _ultima(historico: pd.DataFrame, modelo: str, cinco_folds: bool, perdida: str) -> pd.Series | None:
-    """Última ejecución de una versión con esa pérdida: de 5 folds, o de menos (un entrenamiento suelto
-    o una validación cruzada a medias)."""
-    if historico.empty:
-        return None
-    filas = historico[(historico.modelo == modelo) & (historico.perdida == perdida)]
-    filas = filas[filas.apply(_cv_completa, axis=1) == cinco_folds] if len(filas) else filas
-    return None if filas.empty else filas.iloc[-1]
-
-
-def tabla_resumen(historico: pd.DataFrame) -> str:
-    """Una fila por versión, en el orden en que se definieron."""
-    lineas = [
-        ("| Versión | Origen | Qué cambia | Parámetros | Estado | 1 fold · normal | 1 fold · ponderada "
-         "| 5 folds · normal | 5 folds · ponderada | Train − val |"),
-        "|---|---|---|---|---|---|---|---|---|---|",
-    ]
-    for nombre in VERSIONES:
-        celdas = []
-        for cinco in (False, True):
-            for perdida in ("normal", "ponderada"):
-                fila = _ultima(historico, nombre, cinco, perdida)
-                celdas.append("—" if fila is None else _auc(fila))
-        # Diferencia train − val de la ejecución más informativa: 5 folds si la hay.
-        referencia = next((f for f in (_ultima(historico, nombre, c, p) for c in (True, False)
-                                       for p in ("normal", "ponderada")) if f is not None), None)
-        diferencia = "—" if referencia is None else _num(referencia.diferencia_auc)
-        origen = ORIGEN.get(nombre)
-        parametros = f"{contar_parametros(crear_modelo(nombre)):,}".replace(",", ".")
-        lineas.append(
-            f"| [{nombre}](#{nombre}) | {origen or '—'} | {'; '.join(cambios(nombre)) or 'primera versión'} "
-            f"| {parametros} | {ESTADO.get(nombre, '¿?')} | " + " | ".join(celdas) + f" | {diferencia} |"
-        )
-    mejor = elegir_mejor(historico)
-    lineas.append("")
-    if mejor is None:
-        lineas.append("**Según el criterio de comparación:** todavía no hay validaciones cruzadas completas "
-                      "con pérdida normal para comparar.")
-    else:
-        lineas.append(f"**Según el criterio de comparación:** la mejor es **{mejor['version']}**: "
-                      f"{mejor['motivo']}. Empatadas: {', '.join(mejor['empatadas'])}.")
-    return "\n".join(lineas)
-
-
-def genealogia() -> str:
-    """Árbol de versiones a partir de ORIGEN."""
-    hijos: dict[str | None, list[str]] = {}
-    for nombre in VERSIONES:
-        hijos.setdefault(ORIGEN.get(nombre), []).append(nombre)
-
-    lineas: list[str] = []
-
-    def rama(nombre: str, prefijo: str, ultimo: bool, raiz: bool) -> None:
-        conector = "" if raiz else ("└── " if ultimo else "├── ")
-        lineas.append(f"{prefijo}{conector}{nombre} · {ESTADO.get(nombre, '¿?')}")
-        siguiente = prefijo if raiz else prefijo + ("    " if ultimo else "│   ")
-        for i, hijo in enumerate(hijos.get(nombre, [])):
-            rama(hijo, siguiente, i == len(hijos[nombre]) - 1, False)
-
-    for raiz in hijos.get(None, []):
-        rama(raiz, "", True, True)
-    return "```\n" + "\n".join(lineas) + "\n```"
-
-
-def tabla_ejecuciones(historico: pd.DataFrame) -> str:
-    """Todas las ejecuciones en modo completo, de la más antigua a la más reciente."""
-    if historico.empty:
-        return "_Todavía no hay ejecuciones en modo completo en `runs/historico.csv`._"
-    lineas = [
-        ("| Fecha | Ejecución | Versión | Pérdida | Folds | Época elegida | AUC val | AUC train "
-         "| Train − val | F1 macro | Huella |"),
-        "|---|---|---|---|---|---|---|---|---|---|---|",
-    ]
-    for _, f in historico.iterrows():
-        ok = _huella_ok(f)
-        marca = {True: f"`{f.huella}` ✓", False: f"`{f.huella}` ⚠ cambió", None: "—"}[ok]
-        epoca = _num(f.epoca_elegida, 1 if f.tipo == "cv" else 0)
-        lineas.append(
-            f"| {f.fecha} | `{f.ejecucion}` | {f.modelo} | {f.perdida} | {f.folds} | {epoca} | {_auc(f)} "
-            f"| {_num(f.auc_train)} | {_num(f.diferencia_auc)} | {_num(f.f1_macro)} | {marca} |"
-        )
-    return "\n".join(lineas)
-
-
-def reemplazar_bloque(texto: str, nombre: str, contenido: str) -> str:
-    """Sustituye lo que hay entre las marcas de un bloque automático."""
-    patron = re.compile(rf"(<!-- auto:{nombre}:inicio -->).*?(<!-- auto:{nombre}:fin -->)", re.DOTALL)
-    if not patron.search(texto):
-        raise ValueError(f"Faltan las marcas del bloque auto:{nombre} en el documento")
-    return patron.sub(lambda m: f"{m.group(1)}\n{contenido}\n{m.group(2)}", texto)
-
-
-def actualizar_documento(documento: Path = DOCUMENTO, historico: Path = HISTORICO) -> bool:
-    """Regenera los bloques automáticos. Devuelve True si el documento ha cambiado."""
-    documento = Path(documento)
-    if not documento.exists():
-        return False
-    datos = leer_historico(historico)
-    texto = documento.read_text(encoding="utf-8")
-    nuevo = texto
-    for nombre, contenido in (("resumen", tabla_resumen(datos)), ("genealogia", genealogia()),
-                              ("ejecuciones", tabla_ejecuciones(datos))):
-        nuevo = reemplazar_bloque(nuevo, nombre, contenido)
-    if nuevo != texto:
-        documento.write_text(nuevo, encoding="utf-8")
-    return nuevo != texto
-
-
-def copiar_figuras(carpeta: Path, destino: Path = FIGURAS) -> list[Path]:
-    """Copia graficas/*.png de una ejecución a docs/figuras/ejecuciones/<ejecución>/ (sí se versiona)."""
-    carpeta = Path(carpeta)
-    origen = carpeta / "graficas"
-    if not origen.is_dir():
-        raise SystemExit(f"{carpeta} no tiene graficas/. Créalas con: python -m src.training.graficas {carpeta}")
-    salida = Path(destino) / carpeta.name
-    salida.mkdir(parents=True, exist_ok=True)
-    copiadas = []
-    for png in sorted(origen.glob("*.png")):
-        shutil.copy2(png, salida / png.name)
-        copiadas.append(salida / png.name)
-    return copiadas
-
-
-def main() -> None:
-    p = argparse.ArgumentParser(description="Partes automáticas del historial de arquitecturas.")
-    p.add_argument("--figuras", nargs="+", metavar="CARPETA",
-                   help="ejecuciones de runs/ cuyas gráficas se copian a docs/figuras/ejecuciones/")
-    args = p.parse_args()
-
-    for carpeta in args.figuras or []:
-        print(f"Gráficas de {Path(carpeta).name} (enlaces para su ficha en docs/ARQUITECTURAS.md):")
-        for ruta in copiar_figuras(Path(carpeta)):
-            relativa = ruta.relative_to(RAIZ_REPO / "docs").as_posix()
-            print(f"  ![{ruta.stem}]({relativa})")
-
-    cambiado = actualizar_documento()
-    print(f"docs/ARQUITECTURAS.md {'actualizado' if cambiado else 'ya estaba al día'}.")
-    print(genealogia())
-
-
-if __name__ == "__main__":
-    main()

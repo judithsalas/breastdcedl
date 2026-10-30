@@ -1,8 +1,8 @@
 """Validación cruzada por paciente: la misma arquitectura entrenada en los 5 folds.
 
-    python -m src.training.validacion_cruzada --modo completo --modelo cnn_v2
-    python -m src.training.validacion_cruzada --modo completo --modelo cnn_v2 --ponderada
-    python -m src.training.validacion_cruzada --modo rapido   --modelo cnn_v1 --folds 0 1
+    python -m src.training.validacion_cruzada --modo fijo     --modelo cnn_v3
+    python -m src.training.validacion_cruzada --modo completo --modelo cnn_v3 --ponderada
+    python -m src.training.validacion_cruzada --modo rapido   --modelo cnn_v3 --folds 0 1
 
 Cada fold es un entrenamiento normal de src/training/entrenar.py, con un fold distinto
 reservado para validar y la misma configuración y semilla en todos. Todo queda en:
@@ -18,8 +18,7 @@ reservado para validar y la misma configuración y semilla en todos. Todo queda 
                                          (F4), estudiar la calibración y mirar resultados por cohorte
         graficas/                        curvas_folds.png (curvas de todos los folds superpuestas) y
                                          matriz_confusion_oof.png (todas las pacientes, fuera de fold)
-y una sola fila en runs/historico.csv con la media de los folds (los folds no van sueltos), que
-pasa también a las tablas automáticas de docs/ARQUITECTURAS.md.
+y una sola fila en runs/historico.csv con la media de los folds (los folds no van sueltos).
 
 Cómo leerlo:
 - La cifra que se reporta es la media ± desviación de los 5 folds (lo que pide la rúbrica).

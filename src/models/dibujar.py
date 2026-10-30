@@ -1,6 +1,6 @@
 """Diagrama de bloques de una versión de la CNN, generado desde src/models/versiones.py.
 
-    python -m src.models.dibujar cnn_v1
+    python -m src.models.dibujar cnn_v3
 
 Guarda docs/figuras/<version>.png y .svg. La altura de cada caja es proporcional
 al lado del mapa (256, 128, ...) y su anchura crece con el número de canales.
@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 from src.data.caso import RAIZ_REPO
-from src.data.recorte import LADO_RECORTE
 from src.models.cnn import CANALES_POR_ENTRADA, LADO_ENTRADA
 from src.models.construir import contar_parametros, crear_modelo, receta
 from src.models.versiones import POR_DEFECTO, VERSIONES
@@ -49,14 +48,7 @@ def etapas(nombre: str) -> list[dict]:
         lineas_entrada += ["÷ media del PRE en el tejido", "(intensidad relativa, dentro)"]
     if v["entrada"] == "fases+realce":
         lineas_entrada += ["+ EARLY−PRE, LATE−EARLY", "(calculados dentro)"]
-    if v["entrada"] == "fases+cinetica":
-        lineas_entrada += ["+ realce relativo y SER", "(mapas cinéticos, dentro)"]
-    lado = LADO_ENTRADA // v["reduccion"]
-    if v["reduccion"] > 1:                                  # D35: la red trabaja a menos resolución
-        lineas_entrada += [f"recibe {LADO_ENTRADA}×{LADO_ENTRADA}; dentro, media", f"de {v['reduccion']}×{v['reduccion']} → {lado}×{lado}"]
-    if receta(nombre).get("recorte") == "caja":            # D33: la red ve un recorte alrededor del tumor
-        lado = LADO_RECORTE
-        lineas_entrada += [f"recorte {LADO_RECORTE}×{LADO_RECORTE} en el tumor", "(con la caja; no desplegable)"]
+    lado = LADO_ENTRADA
     lista = [{"tipo": "entrada", "titulo": "Entrada", "lineas": lineas_entrada,
               "forma": f"{canales_entrada} @ {lado}×{lado}", "lado": lado,
               "canales": canales_entrada, "params": 0}]
@@ -80,10 +72,6 @@ def etapas(nombre: str) -> list[dict]:
                       "lineas": [f"un peso por posición ({lado}×{lado})", "media ponderada"],
                       "forma": f"vector {n}", "lado": 24, "canales": filtros[-1],
                       "params": sum(p.numel() for p in modelo.resumen.parameters())})
-    elif v["resumen"] == "media+max":
-        n = 2 * filtros[-1]
-        lista.append({"tipo": "resumen", "titulo": "Media + máximo", "lineas": ["media de cada canal", "+ máximo de cada canal"],
-                      "forma": f"vector {n}", "lado": 24, "canales": filtros[-1], "params": 0})
     else:
         n = filtros[-1] * lado * lado
         lista.append({"tipo": "resumen", "titulo": "Flatten", "lineas": ["todos los valores"],
@@ -147,17 +135,12 @@ def dibujar(nombre: str) -> list:
     como = receta(nombre)
     aumento = como["aumento"]
     nombre_aumento = {"geometrico": "geométrico",
-                      "geometrico+giros90": "geométrico con giros de 90°",
-                      "geometrico+escaner": "geométrico de escáner (zoom, brillo y ruido)"}.get(aumento, aumento)
+                      "geometrico+giros90": "geométrico con giros de 90°"}.get(aumento, aumento)
     nota_receta = f" Entrenada con aumento {nombre_aumento} (solo en entrenamiento)." if aumento else ""
     if como.get("optimizador") == "adamw":
         nota_receta += f" Optimizador AdamW, weight decay {como['weight_decay']:g}."
     if como.get("learning_rate"):
         nota_receta += f" Learning rate {como['learning_rate']:g}."
-    if como.get("cortes_por_paciente"):
-        nota_receta += f" {como['cortes_por_paciente']} cortes por paciente y época."
-    if como.get("programador") == "meseta":
-        nota_receta += " Learning rate a la mitad si se estanca."
     fig.text(0.5, 0.015, "Los 3 canales de entrada son instantes de la DCE-MRI, no colores. "
              "Altura de cada caja según el tamaño del mapa; anchura según los canales." + nota_receta,
              ha="center", fontsize=8.5, color=SUAVE)
@@ -173,5 +156,5 @@ def dibujar(nombre: str) -> list:
 
 
 if __name__ == "__main__":
-    for ruta in dibujar(sys.argv[1] if len(sys.argv) > 1 else "cnn_v1"):
+    for ruta in dibujar(sys.argv[1] if len(sys.argv) > 1 else "cnn_v3"):
         print(f"Guardado {ruta.relative_to(RAIZ_REPO)}")

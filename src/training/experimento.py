@@ -16,10 +16,12 @@ Es reanudable (D35): una prueba que ya terminó tiene su carpeta en runs/ con `c
 igual a ella, y no se repite. Si la tarjeta se cuelga a mitad, se vuelve a lanzar el mismo comando
 y sigue por la que falló.
 
-El plan de experimentos (`src.training.plan`) no usa esta sección: siempre entrena los 5 folds con
-los valores estándar del modo, que son los que cuentan para comparar versiones (D16). Las pruebas
-de un fold o con cambios en el batch, el learning rate o la semilla quedan en el histórico, pero
-no cuentan para el criterio.
+Así se entrenó el modelo final: la sección `experimento` de config.json lanza las 6 versiones en
+modo `fijo` (6 épocas, D37) en los 5 folds. Sus ejecuciones están en experimentos/.
+
+Para comparar versiones (D16) solo cuentan las validaciones cruzadas de 5 folds con los valores
+estándar del modo. Las pruebas de un fold o con cambios en el batch, el learning rate o la semilla
+quedan en el histórico, pero no cuentan para el criterio.
 """
 
 from __future__ import annotations

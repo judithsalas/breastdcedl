@@ -11,12 +11,12 @@ se puede comparar con la referencia mientras entrena. Este script no carga torch
 Guarda <carpeta de la nueva>/graficas/comparacion_fold<k>_con_<referencia>.png, con cuatro paneles
 (AUC y pérdida, en validación y en entrenamiento) y en cada uno una línea por versión. Imprime además
 la época elegida de cada una y, si el fold ha terminado alguna época buena, el AUC dentro de cada
-hospital y si la puntuación delata el hospital, en las pacientes de ese fold.
+cohorte y si la puntuación delata la cohorte, en las pacientes de ese fold.
 
 Cuidado al leerlo. Un fold tiene ~220 pacientes y su AUC baila unas ±0,04 de una ejecución a otra.
 Solo dice algo una diferencia grande y que se mantiene varias épocas (≥ 0,05). Para decidir
-cuentan los 5 folds (D16). Sirve para la regla de trabajo: una versión se descarta si en 5–10
-épocas no mejora el AUC por paciente en validación.
+cuentan los 5 folds (D16). Regla de trabajo: una versión se descarta si en 5–10 épocas no mejora
+el AUC por paciente en validación.
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
 """Entrenamiento de una arquitectura con evaluación por paciente.
 
-    python -m src.training.entrenar --modo rapido   --modelo cnn_v1
-    python -m src.training.entrenar --modo completo --modelo cnn_v1
-    python -m src.training.entrenar --modo completo --modelo cnn_v1 --ponderada   # pos_weight = N0/N1
+    python -m src.training.entrenar --modo rapido   --modelo cnn_v3
+    python -m src.training.entrenar --modo completo --modelo cnn_v3
+    python -m src.training.entrenar --modo completo --modelo cnn_v3 --ponderada   # pos_weight = N0/N1
 
 Para entrenar en los 5 folds de una vez: `python -m src.training.validacion_cruzada`
 (mismas opciones).
@@ -19,8 +19,7 @@ Cada ejecución crea una carpeta en runs/ (no se versiona) con:
     graficas/                        curvas.png (pérdida y AUC por época, entrenamiento y
                                      validación) y matriz_confusion.png (época elegida); ver
                                      src/training/graficas.py
-y añade o actualiza su fila en runs/historico.csv (ver src/training/historico.py) y las tablas
-automáticas de docs/ARQUITECTURAS.md (ver src/models/historial.py).
+y añade o actualiza su fila en runs/historico.csv (ver src/training/historico.py).
 
 Qué se mide tras cada época:
 - Validación: se predice cada corte, se agrega por paciente (media de probabilidades,
@@ -54,11 +53,8 @@ from torch.utils.data import DataLoader
 from src.config import EVALUACION, MODOS, Config, obtener_config
 from src.data.aumento import crear_aumento
 from src.data.caso import RAIZ_DATOS, RAIZ_REPO, uc
-from src.data.muestreo import MuestreoPorPaciente
-from src.data.recorte import crear_dataset
 from src.evaluation.metricas import metricas_por_clase
 from src.models.construir import contar_parametros, crear_modelo, receta
-from src.models.historial import actualizar_documento
 from src.models.versiones import VERSIONES
 from src.training import historico
 from src.training.graficas import dibujar_graficas
@@ -193,7 +189,7 @@ def evaluar(probabilidades: np.ndarray, filas: pd.DataFrame) -> dict:
 def crear_optimizador(modelo: nn.Module, lr: float, receta_version: dict) -> torch.optim.Optimizer:
     """El optimizador que pide la receta de la versión.
 
-    - "adam": Adam sin weight decay (cnn_v1 a cnn_v4).
+    - "adam": Adam sin weight decay (todas las versiones menos cnn_v7).
     - "adamw": AdamW (Loshchilov y Hutter, 2019), que aplica el weight decay aparte del paso de
       Adam. El weight decay empuja los pesos hacia 0 en cada paso: la red no puede apoyarse en
       pesos muy grandes para memorizar detalles de unas pocas pacientes. Solo se aplica a los
@@ -208,24 +204,6 @@ def crear_optimizador(modelo: nn.Module, lr: float, receta_version: dict) -> tor
     sin_decay = [p for p in modelo.parameters() if p.requires_grad and p.ndim <= 1]
     return torch.optim.AdamW([{"params": con_decay, "weight_decay": receta_version["weight_decay"]},
                               {"params": sin_decay, "weight_decay": 0.0}], lr=lr)
-
-
-PROGRAMADORES = (None, "meseta")
-
-
-def crear_programador(optimizador: torch.optim.Optimizer, nombre: str | None):
-    """El programador del learning rate que pide la receta (D34).
-
-    - None: el learning rate no cambia en todo el entrenamiento (cnn_v1 a cnn_v15).
-    - "meseta": ReduceLROnPlateau sobre el AUC por paciente en validación: si en 3 épocas no
-      mejora, el learning rate se reduce a la mitad. La parada temprana espera 10 épocas, así que
-      da tiempo a probar 2–3 pasos más pequeños antes de parar.
-    """
-    if nombre is None:
-        return None
-    if nombre == "meseta":
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizador, mode="max", factor=0.5, patience=3)
-    raise ValueError(f"Programador desconocido: {nombre!r}. Opciones: {PROGRAMADORES}")
 
 
 def entrenar_una_epoca(modelo, cargador, criterio, optimizador, dispositivo) -> float:
@@ -250,7 +228,7 @@ def entrenar_una_epoca(modelo, cargador, criterio, optimizador, dispositivo) -> 
 
 def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimizador,
                     dispositivo, cfg: Config, carpeta: Path, resultados: dict,
-                    eval_train: tuple[DataLoader, pd.DataFrame] | None = None, programador=None) -> dict:
+                    eval_train: tuple[DataLoader, pd.DataFrame] | None = None) -> dict:
     """Bucle de épocas con parada temprana por AUC por paciente en validación.
 
     `eval_train` = (cargador con shuffle=False, filas) de la muestra de entrenamiento
@@ -273,9 +251,7 @@ def entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimiza
         segundos = time.perf_counter() - t0
 
         auc = m["auc"]
-        lr_epoca = optimizador.param_groups[0]["lr"]          # el de esta época, antes de que el programador lo baje
-        if programador is not None and not math.isnan(auc):
-            programador.step(auc)
+        lr_epoca = optimizador.param_groups[0]["lr"]          # el learning rate de esta época
         mejora = ultima or (not math.isnan(auc) and auc > mejor_auc)
         if mejora:
             mejor_auc, sin_mejora = auc, 0
@@ -367,16 +343,10 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
     usa_gpu = dispositivo.type == "cuda"
     opciones = {"batch_size": cfg.batch_size, "num_workers": cfg.num_workers, "pin_memory": usa_gpu,
                 "persistent_workers": cfg.num_workers > 0}
-    recorte = como_entrenar["recorte"]                  # None = el corte entero; "caja" = alrededor del tumor (D33)
-    if como_entrenar["cortes_por_paciente"]:             # muestreo equilibrado por paciente (D34)
-        muestreo = MuestreoPorPaciente(entrena, como_entrenar["cortes_por_paciente"], cfg.semilla)
-        cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), sampler=muestreo, **opciones)
-    else:
-        cargador_tr = DataLoader(crear_dataset(entrena, recorte, transform=aumento), shuffle=True,
-                                 generator=torch.Generator().manual_seed(cfg.semilla), **opciones)
-    programador = crear_programador(optimizador, como_entrenar["programador"])
-    cargador_va = DataLoader(crear_dataset(valida, recorte), shuffle=False, **opciones)
-    cargador_tr_eval = DataLoader(crear_dataset(muestra_tr, recorte), shuffle=False, **opciones)
+    cargador_tr = DataLoader(uc.BreastDCEDataset(entrena, RAIZ_DATOS, transform=aumento), shuffle=True,
+                             generator=torch.Generator().manual_seed(cfg.semilla), **opciones)
+    cargador_va = DataLoader(uc.BreastDCEDataset(valida, RAIZ_DATOS), shuffle=False, **opciones)
+    cargador_tr_eval = DataLoader(uc.BreastDCEDataset(muestra_tr, RAIZ_DATOS), shuffle=False, **opciones)
 
     if carpeta is None:
         sufijo = "_ponderada" if ponderada else ""
@@ -413,17 +383,13 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
           f"{len(valida)} cortes | AUC de entrenamiento sobre {resultados['datos']['pacientes_auc_train']} pacientes")
     optim_texto = (f"AdamW, weight decay {como_entrenar['weight_decay']:g}"
                    if como_entrenar["optimizador"] == "adamw" else "Adam")
-    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | "
-          f"recorte {como_entrenar['recorte'] or 'no'} | "
-          f"cortes por paciente {como_entrenar['cortes_por_paciente'] or 'todos'} | "
-          f"programador {como_entrenar['programador'] or 'no'} | {optim_texto} | "
+    print(f"Pérdida {resultados['perdida']} | aumento {como_entrenar['aumento'] or 'no'} | {optim_texto} | "
           f"batch {cfg.batch_size} | lr {cfg.learning_rate} | "
           + (f"{cfg.epocas_max} épocas fijas, se usa la última (D37)\n" if cfg.eleccion_epoca == "ultima"
              else f"hasta {cfg.epocas_max} épocas, paciencia {cfg.paciencia}\n"))
 
     entrenar_modelo(modelo, cargador_tr, cargador_va, valida, criterio, optimizador,
-                    dispositivo, cfg, carpeta, resultados, eval_train=(cargador_tr_eval, muestra_tr),
-                    programador=programador)
+                    dispositivo, cfg, carpeta, resultados, eval_train=(cargador_tr_eval, muestra_tr))
 
     e = resultados.get("mejor_epoca")
     if e:
@@ -441,13 +407,8 @@ def ejecutar(cfg: Config, nombre_modelo: str, ponderada: bool = False, nota: str
 
 
 def registrar_ejecucion() -> None:
-    """Actualiza runs/historico.csv y las tablas automáticas de docs/ARQUITECTURAS.md."""
+    """Actualiza runs/historico.csv."""
     print(f"Histórico actualizado: {historico.actualizar(CARPETA_RUNS).relative_to(RAIZ_REPO)}")
-    try:
-        if actualizar_documento():
-            print("Tablas de docs/ARQUITECTURAS.md actualizadas: completa la ficha de la versión.")
-    except ValueError as error:      # el documento no tiene las marcas: no se toca
-        print(f"Aviso: no se actualizó docs/ARQUITECTURAS.md ({error})")
 
 
 # --------------------------------------------------------------------------- #
@@ -457,7 +418,7 @@ def registrar_ejecucion() -> None:
 def anadir_argumentos(p: argparse.ArgumentParser, con_fold: bool = True) -> argparse.ArgumentParser:
     """Argumentos comunes a entrenar.py y validacion_cruzada.py."""
     p.add_argument("--modo", choices=list(MODOS), required=True)
-    p.add_argument("--modelo", required=True, help="nombre registrado en src/models (p. ej. cnn_v1)")
+    p.add_argument("--modelo", required=True, help="nombre registrado en src/models (p. ej. cnn_v3)")
     p.add_argument("--ponderada", action="store_true", help="BCEWithLogitsLoss con pos_weight = N0/N1")
     p.add_argument("--nota", default="", help="comentario libre que se guarda con los resultados")
     # Sobrescribir valores del modo (si no se indican, se usan los de src/config.py)

@@ -1,6 +1,6 @@
 """Gráficas de una ejecución, guardadas aparte en <ejecución>/graficas/.
 
-    python -m src.training.graficas runs/20261007-211625_cnn_v1_completo
+    python -m src.training.graficas runs/20261028-195129_cv_cnn_v3_fijo
     python -m src.training.graficas runs/<carpeta_de_validacion_cruzada>
     python -m src.training.graficas runs/*            # todas las ejecuciones
 
@@ -20,7 +20,7 @@ Modelo final (D36), con `python -m src.training.graficas --conjunto` (y solo al 
                                             frente al del conjunto (y al del médico, si ya está hecho)
     graficas/matriz_confusion_oof.png  matriz fuera de fold (todas las pacientes de train)
 
-Las gráficas que vayan al informe se copian a docs/figuras/ (runs/ no se versiona).
+runs/ se queda en local; las ejecuciones del modelo final se copian tal cual a experimentos/.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 from src.evaluation.metricas import coma, dibujar_matriz_confusion
 
 # Dos series: entrenamiento (azul) y validación (naranja), como en las figuras del profesor.
-# Son los dos primeros colores de la paleta validada para daltonismo.
+# Son los dos primeros colores de una paleta validada para daltonismo.
 COLOR_TR, COLOR_VA = "#2a78d6", "#eb6834"
 TINTA, TINTA_SUAVE, REJILLA, REFERENCIA, FONDO = "#0b0b0b", "#52514e", "#e4e3df", "#9a9893", "#ffffff"
 SOMBRA = 0.13          # opacidad de la banda de ± 1 desviación entre folds
@@ -213,8 +213,8 @@ def _curvas(historiales: list[tuple[pd.DataFrame, int]], ruta: Path, titulo: str
 
 GRIS_MIEMBRO = "#8d8b85"       # las redes sueltas, en gris: el color lo lleva el conjunto
 RAIZ = Path(__file__).resolve().parents[2]
-CARPETA_FINAL = RAIZ / "models" / "final"
-CLINICO_JSON = RAIZ / "models" / "clinico" / "modelo_clinico.json"
+CARPETA_FINAL = RAIZ / "experimentos" / "modelo_final"
+CLINICO_JSON = RAIZ / "experimentos" / "modelo_clinico" / "modelo_clinico.json"
 FIGURA_CONJUNTO = RAIZ / "docs" / "resultados" / "2_cierre" / "conjunto.png"
 
 
@@ -363,9 +363,9 @@ def auc_medico(manifiesto: dict, ruta: Path = CLINICO_JSON) -> float | None:
     return clinico.get("validacion", {}).get("medico", {}).get("auc_val")
 
 
-def figura_del_modelo_final(carpeta_final: Path = CARPETA_FINAL, carpeta_runs: Path = RAIZ / "runs",
+def figura_del_modelo_final(carpeta_final: Path = CARPETA_FINAL, carpeta_runs: Path = RAIZ / "experimentos",
                             ruta: Path = FIGURA_CONJUNTO) -> Path | None:
-    """La figura del conjunto a partir de models/final/manifiesto.json (y el médico, si ya está hecho)."""
+    """La figura del conjunto a partir de experimentos/modelo_final/manifiesto.json (y el médico, si ya está hecho)."""
     manifiesto = _leer_json(carpeta_final / "manifiesto.json")
     miembros = manifiesto.get("miembros") or []
     if len(miembros) < 2:
