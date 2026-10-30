@@ -10,6 +10,7 @@ Aprendizaje Automático (UAX).
 - Enunciado oficial: [`breastdcedl/documentation/caso_breastdcedl.pdf`](breastdcedl/documentation/caso_breastdcedl.pdf)
 - Guía del caso: [`breastdcedl/GUIA.md`](breastdcedl/GUIA.md)
 - **App web:** <https://huggingface.co/spaces/judithsalas/breastdcedl-pcr> (cómo se publica: [App web](#app-web))
+- **Diapositivas:** [`presentacion/`](presentacion/): portada, las 5 de contenido y «gracias» (PPTX con notas del orador, y PDF)
 
 ## Por dónde empezar
 
@@ -47,6 +48,7 @@ generan desde el código (`python -m src.models.dibujar cnn_v2`):
 ├── tests/              comprobaciones automáticas (`pytest -q`)
 ├── web/                la app web publicada: página estática con el modelo en ONNX (Hugging Face, D38)
 ├── app/                ejemplos y pruebas de la app, y una versión local en Python (Streamlit)
+├── presentacion/       las diapositivas de la exposición (PPTX con notas del orador, y PDF)
 ├── docs/
 │   ├── COMO_SE_HIZO.md   las decisiones, explicadas
 │   ├── ARQUITECTURAS.md  la historia de la red

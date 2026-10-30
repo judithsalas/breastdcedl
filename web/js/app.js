@@ -315,6 +315,11 @@ function fiabilidad() {
   const auc = t ? t.auc : estado.info?.metricas?.auc_val;
   if (auc == null) return "";
   const donde = t ? "En test, con pacientes nuevas," : "En validación cruzada,";
+  // Si el intervalo de test incluye el azar, se dice tal cual (D51)
+  if (t?.ic95 && t.ic95[0] <= 0.5) {
+    return `${donde} su AUC es ${num(auc, 2)} (IC 95 % ${num(t.ic95[0], 2)}–${num(t.ic95[1], 2)}): no se puede afirmar `
+      + "que acierte más que el azar (0,5). Tómalo como un ejemplo de cómo funciona, no como una predicción.";
+  }
   return auc < 0.6
     ? `${donde} su AUC es ${num(auc, 2)}: acierta poco más que el azar (0,5). Tómalo como un ejemplo de cómo funciona, no como una predicción.`
     : `${donde} su AUC es ${num(auc, 2)} (0,5 es el azar y 1, acertar siempre). Es un modelo educativo: no sirve para decidir nada.`;
