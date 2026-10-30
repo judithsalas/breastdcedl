@@ -1,4 +1,4 @@
-"""Lectura y validación de las 3 fases de un corte que llegan de fuera (app y predicción por línea de comandos).
+"""Lectura y validación de las 3 fases de un corte que llegan de fuera (la app web repite las reglas en web/js/validar.js).
 
 La app web no puede fiarse de lo que le suben. Antes de pasar nada a la red se comprueba
 (enunciado §9 y guía C6):

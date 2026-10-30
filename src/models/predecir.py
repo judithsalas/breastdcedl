@@ -1,10 +1,11 @@
-"""Predicción del pipeline para un corte suelto, por línea de comandos (misma lectura y modelo que la app).
+"""Predicción del pipeline para un corte suelto, por línea de comandos (misma lectura y modelo que la app web).
 
     python -m src.models.predecir carpeta/ISPY1_1001_z012_PRE.png carpeta/ISPY1_1001_z012_EARLY.png \\
                                   carpeta/ISPY1_1001_z012_LATE.png
 
-Sirve para comprobar en la defensa que la app da exactamente lo mismo que el pipeline: aquí y en
-la app se usan src/data/entrada.py (lectura y validación) y src/models/final.py (modelo final).
+Sirve para comprobar en la defensa que la app da exactamente lo mismo que el pipeline: aquí se usan
+src/data/entrada.py (la validación que repite web/js/validar.js) y src/models/final.py (el modelo final,
+el mismo que la app ejecuta en ONNX).
 """
 
 from __future__ import annotations

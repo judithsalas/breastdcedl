@@ -103,7 +103,7 @@ modelo clínico de comparación. Qué hay en cada carpeta:
 │   ├── figuras/          diagramas de las 6 versiones
 │   └── resultados/       lo que generan los scripts: 1_auditoria, 2_cierre, 3_clinico, 4_test
 ├── web/                la app web publicada: página estática con el modelo en ONNX (Hugging Face)
-├── app/                ejemplos y pruebas de la app, y una versión local en Python (Streamlit)
+├── app/                ejemplos de la app web y ficheros para probarla
 ├── presentacion/       las diapositivas (PPTX con notas del orador, y PDF)
 ├── config.json         parámetros de ejecución y lo que lanza src.training.experimento
 └── requirements.txt    librerías con versión fija (sin PyTorch)
@@ -310,7 +310,7 @@ Publicada el 2026-10-29 en <https://huggingface.co/spaces/judithsalas/breastdced
 válidas e inválidas: `python -m app.casos_prueba` y la lista de `pruebas_app/LEEME.md`.
 
 **Probarla en local** (opcional): `python -m http.server -d web 8000` y abrir <http://localhost:8000>.
-La versión en Python, también en local: `streamlit run app/app.py` (ver [`app/README.md`](app/README.md)).
+Los ejemplos y la lista de pruebas están en [`app/README.md`](app/README.md).
 
 ## Licencias y atribución
 

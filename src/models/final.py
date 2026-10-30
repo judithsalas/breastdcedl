@@ -1,4 +1,4 @@
-"""El modelo final (D21): lo que usan la evaluación de test y la app, con el MISMO código.
+"""El modelo final (D21): lo que usan la evaluación de test y la app web (exportado a ONNX), con el MISMO código.
 
 Qué es:
 - Un **conjunto** de CNN propias, todas desde cero (D36). Cada versión que entra (un «miembro»)
@@ -10,8 +10,8 @@ Qué es:
   la frecuencia real de pCR.
 - Todo lo necesario para reconstruirlo está en `experimentos/modelo_final/manifiesto.json`: la arquitectura de
   cada versión, los pesos (un fichero por fold y versión, con su sha256), a y b, el umbral, la
-  agregación y las métricas internas. No depende de `versiones.py`, así que la app funciona aunque
-  se añadan versiones.
+  agregación y las métricas internas. No depende de `versiones.py`, así que se carga igual aunque
+  cambien las versiones.
 
     from src.models.final import cargar_modelo_final
     modelo, manifiesto = cargar_modelo_final()

@@ -3,8 +3,8 @@
     python -m src.evaluation.evaluar_test
 
 Reglas del caso que hace cumplir este script:
-- Usa el modelo final tal cual está en experimentos/modelo_final/ (el mismo código que la app,
-  src/models/final.py), con el umbral y la agregación decididos en el cierre. No ajusta nada.
+- Usa el modelo final tal cual está en experimentos/modelo_final/ (el mismo código del que sale la app
+  web, src/models/final.py), con el umbral y la agregación decididos en el cierre. No ajusta nada.
 - **Se bloquea después de la primera vez.** Si ya existe docs/resultados/4_test/resultado_test.json, se niega
   a repetir. Solo se puede repetir con `--repetir "motivo"`, y el motivo queda escrito en el
   informe: si se vuelve atrás a tocar el modelo después de mirar test, los resultados dejan de
