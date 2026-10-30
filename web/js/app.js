@@ -619,7 +619,8 @@ function rellenarModelo(info) {
     + `b = ${num(info.calibracion.b)}), y el umbral es el de ${info.criterio_umbral}, elegido con validación cruzada.`;
   lista($("modelo-entrenamiento"), [
     ["Entrada", String(info.entrada).replace(/\s*→\s*\[0, 1\]/, " (de 0 a 1)")],
-    ["Parámetros", `${miles(e.parametros)} en ${e.redes} redes`],
+    // e.parametros suma una red de cada versión; las 30 redes del conjunto tienen 5 veces más (D50)
+    ["Parámetros", `${miles(e.parametros)} por cada fold (una red de cada versión); ${miles(e.parametros * e.redes / e.versiones.length)} en las ${e.redes} redes`],
     ["Optimizador", `${e.optimizador}, learning rate ${String(e.learning_rate).replace(".", ",")}, batch ${e.batch}`],
     ["Épocas", e.eleccion_epoca === "ultima" ? `${e.epocas}, fijadas de antemano; se usa la última` : `${e.epocas} como máximo`],
     ["Pérdida", e.perdida === "normal" ? "entropía cruzada binaria, sin pesos" : e.perdida],

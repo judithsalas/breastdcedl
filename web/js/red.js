@@ -354,7 +354,9 @@ function detalleConjunto() {
     "Ninguna versión sola ganaba a las demás, y cada una se equivoca en pacientes distintas. Juntas, la predicción depende menos de cómo salió un entrenamiento concreto.",
     "Las seis versiones entran por una regla fijada antes de ver el resultado: todas las que tienen validación cruzada completa y no sobreajustan.",
   ]);
-  parametros([["Redes", String(estado.info.entrenamiento.redes)], ["Parámetros en total", miles(estado.info.entrenamiento.parametros)],
+  const ent = estado.info.entrenamiento;
+  parametros([["Redes", String(ent.redes)], ["Parámetros en total", miles(ent.parametros * ent.redes / ent.versiones.length)],
+    ["Por fold (una red de cada versión)", miles(ent.parametros)],
     ["Agregación", "media de logits por versión y luego entre versiones"]]);
   // Visual: AUC de validación de cada una de las 30 redes
   const tabla = nodo("table", null, "tabla tabla--treinta");
