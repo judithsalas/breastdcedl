@@ -9,6 +9,7 @@ Aprendizaje Automático (UAX).
 
 - Enunciado oficial: [`breastdcedl/documentation/caso_breastdcedl.pdf`](breastdcedl/documentation/caso_breastdcedl.pdf)
 - Guía del caso: [`breastdcedl/GUIA.md`](breastdcedl/GUIA.md)
+- **Informe:** [`informe/breastdcedl_informe.pdf`](informe/breastdcedl_informe.pdf) (y en Word, `.docx`, en la misma carpeta)
 - **App web:** <https://huggingface.co/spaces/judithsalas/breastdcedl-pcr> (cómo se publica: [App web](#app-web))
 - **Diapositivas:** [`presentacion/`](presentacion/): portada, las 5 de contenido y «gracias» (PPTX con notas del orador, y PDF)
 - **Experimentos del modelo final:** [`experimentos/`](experimentos/)
@@ -104,6 +105,7 @@ modelo clínico de comparación. Qué hay en cada carpeta:
 │   └── resultados/       lo que generan los scripts: 1_auditoria, 2_cierre, 3_clinico, 4_test
 ├── web/                la app web publicada: página estática con el modelo en ONNX (Hugging Face)
 ├── app/                ejemplos de la app web y ficheros para probarla
+├── informe/            el informe (PDF y Word)
 ├── presentacion/       las diapositivas (PPTX con notas del orador, y PDF)
 ├── configs/            config.json: parámetros de ejecución y lo que lanza src.training.experimento
 └── requirements.txt    librerías con versión fija (sin PyTorch)
