@@ -4,7 +4,7 @@
 
 import { lienzoContribucion } from "./comun.js";
 import { cargarModelo } from "./modelo.js";
-import { FASES, LADO, TAMANO_MAXIMO, validarCorte } from "./validar.js";
+import { FASES, LADO, TAMANO_MAXIMO, identificar, validarCorte } from "./validar.js";
 
 const LECTURA_MAXIMA = 50 * 1024 * 1024; // ficheros más grandes ni se leen: se rechazan por tamaño
 const COHORTES = { spy1: "I-SPY1", spy2: "I-SPY2", duke: "Duke" };
@@ -278,9 +278,10 @@ function mostrarResultado(r, esperado) {
   clase.replaceChildren(
     nodo("strong", esPcr ? "pCR" : "no pCR"),
     document.createTextNode(esPcr
-      ? `: está por encima del umbral (${num(umbral)}), así que el modelo lo clasifica como respuesta completa.`
-      : `: está por debajo del umbral (${num(umbral)}), así que el modelo lo clasifica como enfermedad residual.`),
+      ? `: la probabilidad está por encima del umbral (${num(umbral)}). Si el modelo acertara, tras la quimioterapia no quedaría cáncer invasivo.`
+      : `: la probabilidad está por debajo del umbral (${num(umbral)}). Si el modelo acertara, tras la quimioterapia quedaría cáncer invasivo.`),
   );
+  $("fiabilidad-corte").textContent = fiabilidad();
   const chip = $("clase-chip");
   chip.hidden = false;
   chip.textContent = esPcr ? "pCR" : "no pCR";
@@ -301,9 +302,20 @@ function mostrarResultado(r, esperado) {
     coincide.hidden = false;
     coincide.dataset.ok = ok ? "si" : "no";
     coincide.replaceChildren(nodo("span", ok ? "✓" : "✗", "coincide__marca"),
-      document.createTextNode(ok ? ` Igual que el pipeline de Python (${num(esperado, 6)})`
-        : ` Distinto del pipeline de Python: ${num(r.probabilidad, 6)} aquí y ${num(esperado, 6)} allí`));
+      document.createTextNode(ok ? ` Igual que en el código de Python del proyecto (${num(esperado, 6)})`
+        : ` Distinto del código de Python del proyecto: ${num(r.probabilidad, 6)} aquí y ${num(esperado, 6)} allí`));
   }
+}
+
+// Cuánto acierta el modelo, junto al resultado: con la cifra de test si ya se evaluó, si no con la de validación
+function fiabilidad() {
+  const t = estado.info?.test?.modelos?.cnn;
+  const auc = t ? t.auc : estado.info?.metricas?.auc_val;
+  if (auc == null) return "";
+  const donde = t ? "En test, con pacientes nuevas," : "En validación cruzada,";
+  return auc < 0.6
+    ? `${donde} su AUC es ${num(auc, 2)}: acierta poco más que el azar (0,5). Tómalo como un ejemplo de cómo funciona, no como una predicción.`
+    : `${donde} su AUC es ${num(auc, 2)} (0,5 es el azar y 1, acertar siempre). Es un modelo educativo: no sirve para decidir nada.`;
 }
 
 // Si la persona eligió el corte más abajo, se le sube al visor para que vea las imágenes y el resultado
@@ -314,11 +326,12 @@ function subirAlVisor() {
   sala.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "start" });
 }
 
-async function analizar(ficheros, esperado = null, corte = null, subir = true) {
+async function analizar(ficheros, esperado = null, corte = null, subir = true, { traducir = (m) => m, avisos = [] } = {}) {
   const peticion = ++estado.peticion;
   const r = await validarCorte(ficheros);
   if (peticion !== estado.peticion) return;
-  const lista = [...r.errores.map((m) => ["error", m]), ...r.avisos.map((m) => ["aviso", m])];
+  const lista = [...r.errores.map((m) => ["error", traducir(m)]), ...avisos.map((m) => ["aviso", m]),
+    ...r.avisos.map((m) => ["aviso", traducir(m)])];
   const panel = $("resultado");
   if (r.errores.length) {
     mensajes(lista);
@@ -337,7 +350,9 @@ async function analizar(ficheros, esperado = null, corte = null, subir = true) {
   if (subir) subirAlVisor();
   if (!estado.modelo) {
     mensajes([...lista, ["info", "El modelo todavía se está descargando; la predicción saldrá en cuanto termine."]]);
-    $("resultado-espera").textContent = "Calculando… El modelo se descarga una sola vez (12 MB) y se ejecuta en este navegador.";
+    const mb = estado.info?.onnx?.bytes ? ` (${num(estado.info.onnx.bytes / 1e6, 0)} MB)` : "";
+    $("resultado-espera").textContent = `Calculando… La primera vez el navegador descarga el modelo${mb} y el motor que lo ejecuta; `
+      + "después quedan guardados y todo se calcula aquí.";
   } else {
     mensajes(lista);
   }
@@ -365,23 +380,135 @@ async function leerFicheros(lista) {
   await analizar(ficheros);
 }
 
+// ---------- Subir un corte propio: un hueco por fase (D47) ----------
+// La fase la marca el hueco, no el nombre del fichero. Para validar, cada fichero se nombra por dentro como en el
+// dataset (<corte>_<FASE>.png) y pasa por la MISMA validación que en Python (validar.js = entrada.py); los mensajes
+// se devuelven con el nombre que puso la persona.
+const huecos = { PRE: null, EARLY: null, LATE: null };
+const iconosHueco = {};
+
+function pintarHueco(fase) {
+  const caja = document.querySelector(`.hueco[data-fase="${fase}"]`);
+  const f = huecos[fase];
+  caja.toggleAttribute("data-lleno", Boolean(f));
+  caja.querySelector(".hueco__fichero").textContent = f ? f.nombre : "Elige o arrastra";
+  const vista = caja.querySelector(".hueco__vista");
+  if (f) {
+    const img = nodo("img");
+    img.alt = "";
+    img.src = f.url;
+    vista.replaceChildren(img);
+  } else {
+    vista.innerHTML = iconosHueco[fase];
+  }
+  caja.querySelector(".hueco__quitar").hidden = !f;
+  $("vaciar-huecos").hidden = !FASES.some((x) => huecos[x]);
+}
+
+function quitarDeHueco(fase) {
+  if (huecos[fase]) URL.revokeObjectURL(huecos[fase].url);
+  huecos[fase] = null;
+  pintarHueco(fase);
+}
+
+async function ponerEnHueco(fase, fichero) {
+  if (fichero.size > LECTURA_MAXIMA) {
+    mensajes([["error", `${fichero.name}: ocupa ${(fichero.size / 1e6).toFixed(1)} MB; el máximo es ${(TAMANO_MAXIMO / 1e6).toFixed(0)} MB.`]]);
+    return;
+  }
+  const bytes = new Uint8Array(await fichero.arrayBuffer());
+  quitarDeHueco(fase);
+  huecos[fase] = { nombre: fichero.name, bytes, url: URL.createObjectURL(new Blob([bytes], { type: "image/png" })) };
+  pintarHueco(fase);
+}
+
+// Con las tres fases puestas, se calcula; si falta alguna, se dice cuál
+async function despuesDeColocar() {
+  const faltan = FASES.filter((f) => !huecos[f]);
+  if (faltan.length) {
+    mensajes([["info", `Falta${faltan.length > 1 ? "n" : ""} ${faltan.join(" y ")}: pon ${faltan.length > 1 ? "esas imágenes" : "esa imagen"} en su hueco.`]]);
+    return;
+  }
+  const ids = FASES.map((f) => identificar(huecos[f].nombre));
+  const base = ids.find(Boolean)?.[0] || "tu_corte";
+  const avisos = [];
+  const internos = FASES.map((fase, i) => {
+    const id = ids[i];
+    if (id && id[1] !== fase) avisos.push(`${huecos[fase].nombre} está en el hueco ${fase}, pero su nombre dice ${id[1]}: se usa como ${fase}.`);
+    return { nombre: `${id ? id[0] : base}_${fase}.png`, bytes: huecos[fase].bytes, original: huecos[fase].nombre, fase };
+  });
+  // Los mensajes de la validación hablan del nombre interno: se cambia, de una pasada, por el que puso la persona
+  const porNombre = new Map(internos.map((f) => [f.nombre, f.original === f.nombre ? f.nombre : `${f.original} (${f.fase})`]));
+  const patron = new RegExp([...porNombre.keys()].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  const traducir = (m) => m.replace(patron, (n) => porNombre.get(n));
+  for (const b of document.querySelectorAll(".ejemplos button")) b.setAttribute("aria-pressed", "false");
+  await analizar(internos.map(({ nombre, bytes }) => ({ nombre, bytes })), null,
+    { titulo: "Tu corte", subtitulo: base === "tu_corte" ? "" : base }, true, { traducir, avisos });
+}
+
+// Varios ficheros a la vez: si sus nombres dicen la fase (una de cada), se colocan solos; si no, se validan tal cual
+// llegan, con los mismos mensajes que en Python (fase que falta, duplicada, nombre sin fase…)
+async function leerVarios(lista) {
+  const fases = lista.map((f) => identificar(f.name)?.[1]);
+  const colocables = lista.length <= 3 && fases.every(Boolean) && new Set(fases).size === fases.length;
+  if (!colocables) {
+    await leerFicheros(lista);
+    return;
+  }
+  for (let i = 0; i < lista.length; i++) await ponerEnHueco(fases[i], lista[i]);
+  await despuesDeColocar();
+}
+
 function prepararSubida() {
-  const entrada = $("ficheros"), zona = $("soltar");
-  entrada.addEventListener("change", () => {
-    const lista = [...entrada.files];
-    entrada.value = "";
-    if (lista.length) leerFicheros(lista);
+  for (const caja of document.querySelectorAll(".hueco")) {
+    const fase = caja.dataset.fase;
+    iconosHueco[fase] = caja.querySelector(".hueco__vista").innerHTML;
+    const entrada = caja.querySelector("input");
+    entrada.addEventListener("change", async () => {
+      const lista = [...entrada.files];
+      entrada.value = "";
+      if (!lista.length) return;
+      await ponerEnHueco(fase, lista[0]);
+      await despuesDeColocar();
+    });
+    caja.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      caja.setAttribute("data-encima", "");
+    });
+    caja.addEventListener("dragleave", () => caja.removeAttribute("data-encima"));
+    caja.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      caja.removeAttribute("data-encima");
+      const lista = [...e.dataTransfer.files];
+      if (lista.length > 1) await leerVarios(lista);
+      else if (lista.length) {
+        await ponerEnHueco(fase, lista[0]);
+        await despuesDeColocar();
+      }
+    });
+    caja.querySelector(".hueco__quitar").addEventListener("click", () => {
+      quitarDeHueco(fase);
+      mensajes([]);
+    });
+  }
+  const varios = $("ficheros");
+  varios.addEventListener("change", () => {
+    const lista = [...varios.files];
+    varios.value = "";
+    if (lista.length) leerVarios(lista);
   });
-  zona.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    zona.setAttribute("data-encima", "");
-  });
-  zona.addEventListener("dragleave", () => zona.removeAttribute("data-encima"));
+  const zona = $("subir");
+  zona.addEventListener("dragover", (e) => e.preventDefault());
   zona.addEventListener("drop", (e) => {
     e.preventDefault();
-    zona.removeAttribute("data-encima");
     const lista = [...e.dataTransfer.files];
-    if (lista.length) leerFicheros(lista);
+    if (lista.length) leerVarios(lista);
+  });
+  $("vaciar-huecos").addEventListener("click", () => {
+    for (const f of FASES) quitarDeHueco(f);
+    mensajes([]);
   });
 }
 
@@ -446,7 +573,7 @@ function rellenarModelo(info) {
     + `se hace la media entre versiones. La probabilidad se calibra con Platt (a = ${num(info.calibracion.a)}, `
     + `b = ${num(info.calibracion.b)}), y el umbral es el de ${info.criterio_umbral}, elegido con validación cruzada.`;
   lista($("modelo-entrenamiento"), [
-    ["Entrada", info.entrada],
+    ["Entrada", String(info.entrada).replace(/\s*→\s*\[0, 1\]/, " (de 0 a 1)")],
     ["Parámetros", `${miles(e.parametros)} en ${e.redes} redes`],
     ["Optimizador", `${e.optimizador}, learning rate ${String(e.learning_rate).replace(".", ",")}, batch ${e.batch}`],
     ["Épocas", e.eleccion_epoca === "ultima" ? `${e.epocas}, fijadas de antemano; se usa la última` : `${e.epocas} como máximo`],
@@ -480,22 +607,61 @@ function rellenarModelo(info) {
     + `exportado de PyTorch ${o.torch} con la división entre 255 dentro. Antes de publicarlo se comprobó que da lo mismo que `
     + `PyTorch en ${o.comprobacion.cortes} cortes (diferencia máxima ${cientifica(o.comprobacion.diferencia_maxima)}).`;
 
-  // Las cuatro cifras que lo resumen, y debajo el detalle
-  const cifras = [[num(m.auc_val), `AUC de la CNN por paciente, ± ${num(m.auc_val_desviacion)} (0,5 sería el azar)`]];
-  if (ref.medico_auc != null) cifras.push([num(ref.medico_auc), "AUC de un médico que solo sabe la edad, la menopausia y el subtipo"]);
-  cifras.push([`${Math.round(100 * m.precision_pcr)} de 100`, "de las pacientes que marca como pCR, lo son"]);
-  if (ref.franja_90) cifras.push([`${num(ref.franja_90[0], 2)}–${num(ref.franja_90[1], 2)}`, "probabilidad que da al 90 % de las pacientes"]);
+  // Las cuatro cifras que lo resumen, y debajo el detalle. Con test evaluado (D44), van primero las de test
+  const t = info.test;
+  const tc = t?.modelos?.cnn, tm = t?.modelos?.medico;
+  const cifras = [];
+  if (tc) {
+    cifras.push([num(tc.auc), `AUC de la CNN en test: ${t.pacientes} pacientes nuevas, una sola vez (IC 95 % ${num(tc.ic95[0], 2)}–${num(tc.ic95[1], 2)})`]);
+    cifras.push([num(m.auc_val), `AUC de la CNN en validación cruzada, ± ${num(m.auc_val_desviacion)} (0,5 sería el azar)`]);
+    if (tm) cifras.push([num(tm.auc), "AUC en test de un médico que solo sabe la edad, la menopausia y el subtipo"]);
+    const { VP: vp, FN: fn } = tc.matriz_confusion;
+    cifras.push([`${vp} de ${vp + fn}`, `pCR de test que detecta con el umbral (especificidad ${num(tc.especificidad, 2)})`]);
+  } else {
+    cifras.push([num(m.auc_val), `AUC de la CNN por paciente, ± ${num(m.auc_val_desviacion)} (0,5 sería el azar)`]);
+    if (ref.medico_auc != null) cifras.push([num(ref.medico_auc), "AUC de un médico que solo sabe la edad, la menopausia y el subtipo"]);
+    cifras.push([`${Math.round(100 * m.precision_pcr)} de 100`, "de las pacientes que marca como pCR, lo son"]);
+    if (ref.franja_90) cifras.push([`${num(ref.franja_90[0], 2)}–${num(ref.franja_90[1], 2)}`, "probabilidad que da al 90 % de las pacientes"]);
+  }
   $("fiable-cifras").replaceChildren(...cifras.map(([valor, texto]) => {
     const d = nodo("div");
     d.append(nodo("dt", texto), nodo("dd", valor));
     return d;
   }));
-  const partes = [`Son cifras internas, de validación cruzada; con pacientes nuevas pueden ser peores. El AUC dice en qué proporción `
-    + `de las parejas de pacientes (una con pCR y otra sin ella) el modelo puntúa más alto a la que logró la pCR: ${pct(m.auc_val)}.`,
-  `Con el umbral detecta ${Math.round(100 * m.sensibilidad)} de cada 100 pCR y acierta ${Math.round(100 * m.especificidad)} de cada 100 «no pCR».`];
+  const partes = [`El AUC dice en qué proporción de las parejas de pacientes (una pCR y otra no pCR) el modelo puntúa más alto `
+    + `a la pCR: 0,5 es el azar y 1, acertar siempre.`];
+  if (tc) {
+    partes.push(`En test, con pacientes que ningún modelo había visto, da ${num(tc.auc)}, casi lo mismo que en validación cruzada `
+      + `(${num(m.auc_val)}): la estimación interna se sostiene. Pero con ${t.pacientes} pacientes el intervalo incluye el 0,5, así que en test `
+      + "no se puede afirmar que acierte más que el azar.");
+  } else {
+    partes.push(`Son cifras internas, de validación cruzada; con pacientes nuevas pueden ser peores. `
+      + `Con el umbral detecta ${Math.round(100 * m.sensibilidad)} de cada 100 pCR y acierta ${Math.round(100 * m.especificidad)} de cada 100 «no pCR».`);
+  }
   if (ref.franja_90) partes.push(`La probabilidad apenas se aparta de la tasa de pCR de entrenamiento (${pct(ref.tasa_pcr)}).`);
   partes.push("Esta predicción usa un solo corte; el modelo se evaluó por paciente, con la media de sus cortes.");
   $("texto-incertidumbre").textContent = partes.join(" ");
+
+  // «El modelo»: el resultado de test, con todo lo que pide el enunciado (matriz de confusión, AUC con IC, F1)
+  if (tc) {
+    $("modelo-test-bloque").hidden = false;
+    const fecha = (t.fecha || "").slice(0, 10).split("-").reverse().join("/");
+    $("modelo-test-nota").textContent = `${t.pacientes} pacientes (${t.pacientes_pcr} pCR) que no se usaron para nada antes. Evaluado una sola vez`
+      + `${fecha ? `, el ${fecha}` : ""}, con el modelo ya cerrado.`;
+    const { VP: vp, FN: fn, FP: fp, VN: vn } = tc.matriz_confusion;
+    const filasTest = [
+      ["AUC por paciente", `${num(tc.auc)} (IC 95 % ${num(tc.ic95[0], 2)}–${num(tc.ic95[1], 2)})`],
+      ["Con el umbral", `sensibilidad ${num(tc.sensibilidad)}, especificidad ${num(tc.especificidad)}, precisión pCR ${num(tc.precision_pcr)}`],
+      ["Matriz de confusión", `de ${vp + fn} pacientes pCR, dice pCR a ${vp} y no pCR a ${fn}; de ${fp + vn} no pCR, dice pCR a ${fp} y no pCR a ${vn}`],
+      ["F1 macro", `${num(tc.f1_macro)} (decir siempre «no pCR»: ${num(t.siempre_no_pcr?.f1_macro)})`],
+      ["Error de Brier", `${num(tc.brier, 4)} (decir a todas la tasa de pCR: ${num(t.brier_constante, 4)})`],
+    ];
+    if (tm) filasTest.push(["Médico sin imagen", `${num(tm.auc)} (IC 95 % ${num(tm.ic95[0], 2)}–${num(tm.ic95[1], 2)})`]);
+    const dif = t.comparacion?.combinado_menos_medico;
+    if (dif) filasTest.push(["Lo que añade la imagen al médico", `${dif.diferencia > 0 ? "+" : ""}${num(dif.diferencia)} `
+      + `(IC 95 % ${num(dif.ic95[0])} a ${num(dif.ic95[1])})`]);
+    lista($("modelo-test"), filasTest);
+  }
 }
 
 // ---------- Arranque ----------

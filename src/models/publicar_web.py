@@ -8,7 +8,9 @@ Antes, una sola vez:
 
 Crea el Space si no existe (estático, gratis), comprueba que `web/` está completa y que el ONNX es el que
 dice `info.json`, y sube la carpeta. Un Space estático solo sirve ficheros: no hay servidor que se duerma.
-No sube `web/pruebas/` ni `web/package.json`, que solo sirven para los tests.
+No sube `web/pruebas/` ni `web/package.json`, que solo sirven para los tests, ni `web/DESIGN.md`, que es documentación
+del proyecto. Y borra del Space lo que no usa ninguna página: `style.css` (de la plantilla de Hugging Face) y un
+`DESIGN.md` subido antes (D46).
 """
 
 from __future__ import annotations
@@ -20,7 +22,8 @@ from pathlib import Path
 
 from src.models.exportar_web import WEB
 
-NO_SE_SUBEN = ["pruebas/*", "package.json"]
+NO_SE_SUBEN = ["pruebas/*", "package.json", "DESIGN.md"]
+SE_BORRAN_DEL_SPACE = ["style.css", "DESIGN.md"]
 
 
 def comprobar_carpeta(web: Path = WEB) -> dict:
@@ -47,7 +50,7 @@ def publicar(space: str, web: Path = WEB) -> str:
     api = HfApi()
     api.create_repo(space, repo_type="space", space_sdk="static", exist_ok=True)
     api.upload_folder(repo_id=space, folder_path=str(web), repo_type="space", ignore_patterns=NO_SE_SUBEN,
-                      commit_message=f"App web con el modelo {info['huella_modelo']}")
+                      delete_patterns=SE_BORRAN_DEL_SPACE, commit_message=f"App web con el modelo {info['huella_modelo']}")
     return f"https://huggingface.co/spaces/{space}"
 
 

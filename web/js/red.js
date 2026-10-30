@@ -425,7 +425,7 @@ function detalleUmbral() {
   $("detalle-titulo").textContent = "El umbral: de probabilidad a clase";
   explicacion([
     `Si la probabilidad es ${num(umbral)} o más, la clase es pCR. El umbral no sale de la red: es una decisión. Se eligió, con las predicciones fuera de fold, el que detecta más pCR sin bajar del 80 % de especificidad.`,
-    "La idea es que como mucho 1 de cada 5 pacientes sin pCR reciba un «pCR» equivocado, el error que más preocuparía si alguien pensara en relajar un tratamiento. El 80 % es una elección de este trabajo, no un criterio clínico validado.",
+    "La idea es que como mucho 1 de cada 5 pacientes no pCR reciba un «pCR» equivocado, el error que más preocuparía si alguien pensara en relajar un tratamiento. El 80 % es una elección de este trabajo, no un criterio clínico validado.",
     `Aun así, de cada 100 pacientes que marca como pCR, solo ${Math.round(100 * m.precision_pcr)} lo son. Por eso no sirve para decidir un tratamiento.`,
     `Este corte da ${num(prob)}: ${prob >= umbral ? "por encima, pCR" : "por debajo, no pCR"}.`,
   ]);
@@ -433,7 +433,9 @@ function detalleUmbral() {
   parametros([["Umbral", num(umbral, 4)], ["Criterio", estado.info.criterio_umbral],
     ["Sensibilidad", `${num(m.sensibilidad)}${vi ? `; ${num(vi.sensibilidad)} eligiendo el umbral sin el fold` : ""}`],
     ["Especificidad", `${num(m.especificidad)}${vi ? `; ${num(vi.especificidad)} sin el fold` : ""}`],
-    ["Precisión pCR", `${num(m.precision_pcr)}${vi ? `; ${num(vi.precision_pcr)} sin el fold` : ""}`]]);
+    ["Precisión pCR", `${num(m.precision_pcr)}${vi ? `; ${num(vi.precision_pcr)} sin el fold` : ""}`],
+    ...(estado.info.test?.modelos?.cnn ? [["En test, una sola vez", `sensibilidad ${num(estado.info.test.modelos.cnn.sensibilidad)}, `
+      + `especificidad ${num(estado.info.test.modelos.cnn.especificidad)}, precisión pCR ${num(estado.info.test.modelos.cnn.precision_pcr)}`]] : [])]);
   $("detalle-visual").replaceChildren(nodo("p", "La página «Resultados» deja mover el umbral y ver cómo cambian los aciertos y los errores de cada modelo.", "nota"));
 }
 

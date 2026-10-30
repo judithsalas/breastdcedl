@@ -22,12 +22,15 @@
         <a href="red.html">La red</a>
         <a href="resultados.html">Resultados</a>
       </nav>
-      <a class="pastilla" href="#aviso"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Uso educativo, sin validez clínica</a>
+      <a class="pastilla" href="#aviso"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="pastilla__larga">Uso educativo, sin validez clínica</span><span class="pastilla__corta">Sin validez clínica</span></a>
     </div>
   </header>
 
   <main>
     <section class="sala" aria-labelledby="titulo-portada">
+      <!-- En el móvil, una línea que dice qué es antes de la imagen (el título y la explicación quedan debajo) -->
+      <p class="sala__resumen" aria-hidden="true">Una red neuronal estima, con un corte de RM de mama de antes de la
+        quimioterapia, la probabilidad de respuesta patológica completa (pCR).</p>
       <div class="sala__dentro">
         <div class="visor">
           <div class="visor__pantalla caja-luz" id="visor">
@@ -85,8 +88,8 @@
           <h1 id="titulo-portada">¿Desaparecerá el tumor?</h1>
           <p class="entradilla">
             Una red neuronal entrenada desde cero mira un corte de resonancia de mama hecho <em>antes</em> de la
-            quimioterapia y estima la probabilidad de respuesta patológica completa (pCR): que tras el tratamiento
-            no quede tumor invasivo.
+            quimioterapia y estima la probabilidad de respuesta patológica completa (pCR): que tras la quimioterapia
+            no quede cáncer invasivo en la mama ni en los ganglios.
           </p>
 
           <section class="informe resultado" aria-labelledby="titulo-resultado" id="resultado" data-estado="vacio">
@@ -94,14 +97,15 @@
               <h2 id="titulo-resultado">Resultado de este corte</h2>
               <span class="estado-clase" id="clase-chip" hidden></span>
             </div>
-            <p class="resultado__vacio" id="resultado-espera">Calculando… El modelo se descarga una sola vez (12 MB)
-              y se ejecuta en este navegador.</p>
+            <p class="resultado__vacio" id="resultado-espera">Calculando… La primera vez el navegador descarga el
+              modelo y el motor que lo ejecuta; después quedan guardados y todo se calcula aquí.</p>
             <div class="resultado__lleno">
               <div class="cifra">
                 <p class="cifra__valor" id="probabilidad">—</p>
                 <p class="cifra__texto">probabilidad de pCR de este corte</p>
               </div>
               <p class="clase" id="clase"></p>
+              <p class="fiabilidad-corte"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span id="fiabilidad-corte"></span></p>
               <figure class="regla" aria-labelledby="regla-pie">
                 <svg id="regla" viewBox="0 0 600 150" role="img" aria-label="Dónde cae este corte"></svg>
                 <figcaption id="regla-pie">Arriba, la escala de 0 a 1; abajo, ampliada, la franja donde el modelo
@@ -129,19 +133,50 @@
       <div class="elegir__rejilla">
         <div>
           <p class="nota">Seis cortes de pacientes de entrenamiento, con su etiqueta real. Sirven para comprobar que la
-            página da lo mismo que el pipeline de Python.</p>
+            app calcula lo mismo que el código de Python con el que se entrenó el modelo.</p>
           <ul class="ejemplos" id="ejemplos"></ul>
         </div>
-        <div>
-          <label class="soltar" id="soltar">
-            <input type="file" id="ficheros" accept=".png,image/png" multiple>
-            <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
-            <span class="soltar__titulo">Sube los tres PNG de un corte</span>
-            <span class="soltar__texto">Arrástralos aquí o haz clic para elegirlos</span>
-          </label>
-          <ul class="requisitos">
+        <div class="subir" id="subir">
+          <p class="subir__titulo" id="subir-titulo">O sube un corte propio: una imagen por fase</p>
+          <div class="huecos" role="group" aria-labelledby="subir-titulo">
+            <div class="hueco" data-fase="PRE">
+              <label class="hueco__zona">
+                <input type="file" accept=".png,image/png" data-fase="PRE" aria-describedby="requisitos">
+                <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
+                <span class="hueco__fase">PRE</span>
+                <span class="hueco__que">antes del contraste</span>
+                <span class="hueco__fichero">Elige o arrastra</span>
+              </label>
+              <button type="button" class="hueco__quitar" data-fase="PRE" aria-label="Quitar la imagen PRE" hidden>×</button>
+            </div>
+            <div class="hueco" data-fase="EARLY">
+              <label class="hueco__zona">
+                <input type="file" accept=".png,image/png" data-fase="EARLY" aria-describedby="requisitos">
+                <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
+                <span class="hueco__fase">EARLY</span>
+                <span class="hueco__que">justo después</span>
+                <span class="hueco__fichero">Elige o arrastra</span>
+              </label>
+              <button type="button" class="hueco__quitar" data-fase="EARLY" aria-label="Quitar la imagen EARLY" hidden>×</button>
+            </div>
+            <div class="hueco" data-fase="LATE">
+              <label class="hueco__zona">
+                <input type="file" accept=".png,image/png" data-fase="LATE" aria-describedby="requisitos">
+                <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
+                <span class="hueco__fase">LATE</span>
+                <span class="hueco__que">un rato después</span>
+                <span class="hueco__fichero">Elige o arrastra</span>
+              </label>
+              <button type="button" class="hueco__quitar" data-fase="LATE" aria-label="Quitar la imagen LATE" hidden>×</button>
+            </div>
+          </div>
+          <p class="subir__todos">Si tus tres PNG se llaman como en el dataset (…_PRE.png, …_EARLY.png, …_LATE.png), puedes
+            <label class="subir__varios">elegirlos los tres a la vez<input type="file" id="ficheros" accept=".png,image/png" multiple></label>
+            o arrastrarlos juntos sobre los huecos: se colocan solos.</p>
+          <button type="button" class="boton boton--discreto" id="vaciar-huecos" hidden>Quitar las tres imágenes</button>
+          <ul class="requisitos" id="requisitos">
             <li>PNG en gris de 8 bits, de 256 × 256 píxeles y 2 MB como máximo cada uno.</li>
-            <li>Los nombres acaban en <code>_PRE.png</code>, <code>_EARLY.png</code> y <code>_LATE.png</code>, como en el dataset.</li>
+            <li>El nombre del fichero da igual: la fase la marca el hueco donde lo pones.</li>
             <li>Las imágenes no salen de tu ordenador: el modelo se ejecuta en este navegador.</li>
           </ul>
         </div>
@@ -167,9 +202,13 @@
         </div>
         <div>
           <h3>Métricas internas</h3>
-          <p class="nota">Validación cruzada de 5 folds por paciente, solo con train. El test se evalúa una sola vez,
-            aparte.</p>
+          <p class="nota">Validación cruzada de 5 folds por paciente, solo con train.</p>
           <dl class="lista" id="modelo-metricas"></dl>
+          <div id="modelo-test-bloque" hidden>
+            <h3>En test, una sola vez</h3>
+            <p class="nota" id="modelo-test-nota"></p>
+            <dl class="lista" id="modelo-test"></dl>
+          </div>
         </div>
       </div>
       <h3>Las redes del conjunto</h3>

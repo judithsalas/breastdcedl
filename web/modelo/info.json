@@ -1061,6 +1061,181 @@
     "especificidad": 0.8051612903225807,
     "precision_pcr": 0.37344398340248963
   },
+  "test": {
+    "fecha": "2026-10-29 14:36",
+    "pacientes": 176,
+    "pacientes_pcr": 53,
+    "repeticion": null,
+    "modelos": {
+      "cnn": {
+        "umbral": 0.306916,
+        "auc": 0.539807,
+        "sensibilidad": 0.188679,
+        "especificidad": 0.804878,
+        "precision_pcr": 0.294118,
+        "f1_macro": 0.488527,
+        "accuracy": 0.619318,
+        "brier": 0.209538,
+        "ic95": [
+          0.449793,
+          0.630375
+        ],
+        "sensibilidad_ic95": [
+          0.085699,
+          0.301898
+        ],
+        "especificidad_ic95": [
+          0.732759,
+          0.868222
+        ],
+        "matriz_confusion": {
+          "VP": 10,
+          "FN": 43,
+          "FP": 24,
+          "VN": 99
+        }
+      },
+      "medico": {
+        "umbral": 0.387186,
+        "auc": 0.664442,
+        "sensibilidad": 0.396226,
+        "especificidad": 0.796748,
+        "precision_pcr": 0.456522,
+        "f1_macro": 0.599473,
+        "brier": 0.193021,
+        "ic95": [
+          0.570117,
+          0.755599
+        ],
+        "matriz_confusion": {
+          "VP": 21,
+          "FN": 32,
+          "FP": 25,
+          "VN": 98
+        }
+      },
+      "combinado": {
+        "umbral": 0.384407,
+        "auc": 0.67357,
+        "sensibilidad": 0.433962,
+        "especificidad": 0.796748,
+        "precision_pcr": 0.479167,
+        "f1_macro": 0.618161,
+        "brier": 0.191441,
+        "ic95": [
+          0.581664,
+          0.761412
+        ],
+        "matriz_confusion": {
+          "VP": 23,
+          "FN": 30,
+          "FP": 25,
+          "VN": 98
+        }
+      }
+    },
+    "comparacion": {
+      "cnn_menos_medico": {
+        "diferencia": -0.124636,
+        "ic95": [
+          -0.259137,
+          0.008981
+        ]
+      },
+      "combinado_menos_medico": {
+        "diferencia": 0.009127,
+        "ic95": [
+          -0.006361,
+          0.026148
+        ]
+      }
+    },
+    "brier_constante": 0.210511,
+    "siempre_no_pcr": {
+      "accuracy": 0.698864,
+      "f1_macro": 0.411371
+    },
+    "por_cohorte": [
+      {
+        "grupo": "Duke",
+        "pacientes": 42,
+        "pcr": 9,
+        "cnn": {
+          "auc": 0.73064,
+          "ic95": [
+            0.518915,
+            0.902713
+          ]
+        },
+        "medico": {
+          "auc": 0.429293,
+          "ic95": [
+            0.184275,
+            0.697328
+          ]
+        },
+        "combinado": {
+          "auc": 0.468013,
+          "ic95": [
+            0.206241,
+            0.742871
+          ]
+        }
+      },
+      {
+        "grupo": "I-SPY1",
+        "pacientes": 35,
+        "pcr": 12,
+        "cnn": {
+          "auc": 0.347826,
+          "ic95": [
+            0.179487,
+            0.532
+          ]
+        },
+        "medico": {
+          "auc": 0.793478,
+          "ic95": [
+            0.602262,
+            0.953704
+          ]
+        },
+        "combinado": {
+          "auc": 0.76087,
+          "ic95": [
+            0.569891,
+            0.920476
+          ]
+        }
+      },
+      {
+        "grupo": "I-SPY2",
+        "pacientes": 99,
+        "pcr": 32,
+        "cnn": {
+          "auc": 0.513993,
+          "ic95": [
+            0.395057,
+            0.629956
+          ]
+        },
+        "medico": {
+          "auc": 0.711287,
+          "ic95": [
+            0.600053,
+            0.8135
+          ]
+        },
+        "combinado": {
+          "auc": 0.714086,
+          "ic95": [
+            0.604899,
+            0.811702
+          ]
+        }
+      }
+    ]
+  },
   "una_red": {
     "fichero": "una_red.onnx",
     "sha256": "c584530428d111fd2818493cb4f62544eaaa3314b42a44c0138aba8ecdc9949b",

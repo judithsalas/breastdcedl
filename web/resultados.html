@@ -23,7 +23,7 @@
         <a href="red.html">La red</a>
         <a href="resultados.html" aria-current="page">Resultados</a>
       </nav>
-      <a class="pastilla" href="#aviso"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Uso educativo, sin validez clínica</a>
+      <a class="pastilla" href="#aviso"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="pastilla__larga">Uso educativo, sin validez clínica</span><span class="pastilla__corta">Sin validez clínica</span></a>
     </div>
   </header>
 
@@ -32,15 +32,73 @@
     <div class="cabecera__texto">
       <h1>¿Cuánto aporta la imagen?</h1>
       <p class="entradilla">
-        Tres modelos y las mismas pacientes de entrenamiento, cada una predicha por un modelo que no la había visto
-        (validación cruzada de 5 folds). La <strong>CNN</strong> solo mira la resonancia. El <strong>médico</strong>
-        solo sabe la edad, la menopausia y el subtipo de la biopsia (HR y HER2). El tercero junta los dos.
+        Tres modelos, siempre con las mismas pacientes. La <strong>CNN</strong> solo mira la resonancia. El
+        <strong>médico</strong> solo sabe la edad, la menopausia y el subtipo de la biopsia (HR y HER2). El tercero
+        junta los dos. Primero, test: pacientes que ningún modelo vio, evaluadas una sola vez. Debajo, la validación
+        cruzada con las de entrenamiento, con la que se construyó el modelo.
       </p>
-      <p class="cabecera__nota">Todas las cifras son de entrenamiento, con validación cruzada. El test se evalúa una sola
-        vez, aparte.</p>
     </div>
   </div>
-    <section class="cifras" id="cifras" aria-label="AUC de cada modelo"></section>
+
+    <section class="bloque bloque--test" id="test" aria-labelledby="titulo-test" hidden>
+      <h2 id="titulo-test">En test: pacientes nuevas, evaluadas una sola vez</h2>
+      <p class="seccion__texto" id="test-texto"></p>
+      <div class="cifras-test" id="cifras-test" role="group" aria-label="AUC de cada modelo en test"></div>
+      <div class="test__rejilla">
+        <article class="tarjeta tarjeta--ancha" id="t-test-matrices">
+          <h3>Aciertos y errores en test</h3>
+          <p class="tarjeta__que">Cada modelo, con el umbral que se eligió en entrenamiento (especificidad del 80 %). Las
+            filas son lo que tenía de verdad la paciente; las columnas, lo que dijo el modelo.</p>
+          <div class="matrices" id="matrices-test"></div>
+          <p class="nota" id="test-nota-matrices"></p>
+        </article>
+        <article class="tarjeta" id="t-test-roc">
+          <h3>Curva ROC en test</h3>
+          <p class="tarjeta__que">Las mismas pacientes de test para los tres modelos. El punto marca el umbral elegido en
+            entrenamiento. La diagonal es el azar.</p>
+          <div class="grafica" data-grafica="rocTest"></div>
+          <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="rocTest"></div></details>
+        </article>
+        <article class="tarjeta" id="t-test-distribucion">
+          <h3>Distribución del riesgo en test</h3>
+          <p class="tarjeta__que">La probabilidad que da cada modelo a las pacientes de test pCR (relleno) y a las no pCR
+            (línea). Si las dos formas se separan, el modelo distingue; si se tapan, no.</p>
+          <div class="grafica" data-grafica="distribucionTest"></div>
+          <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="distribucionTest"></div></details>
+        </article>
+        <article class="tarjeta" id="t-test-calibracion">
+          <h3>Calibración en test</h3>
+          <p class="tarjeta__que">Las pacientes de test, ordenadas por la probabilidad del modelo y agrupadas en cinco (unas
+            35 por grupo). Para cada grupo, lo que decía el modelo frente a cuántas eran pCR de verdad. Sobre la
+            diagonal, la probabilidad es fiable.</p>
+          <div class="grafica" data-grafica="calibracionTest"></div>
+          <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="calibracionTest"></div></details>
+        </article>
+        <article class="tarjeta" id="t-test-decision">
+          <h3>Curva de decisión en test</h3>
+          <p class="tarjeta__que">Beneficio neto de decidir con cada modelo en las pacientes de test, para cada umbral de
+            riesgo a partir del cual se actuaría, frente a actuar con todas (gris) o con ninguna (cero).</p>
+          <div class="grafica" data-grafica="decisionTest"></div>
+          <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="decisionTest"></div></details>
+        </article>
+        <article class="tarjeta tarjeta--ancha" id="t-test-subgrupos">
+          <h3>Por subtipo y por cohorte, en test</h3>
+          <p class="tarjeta__que">AUC dentro de cada grupo de test, con su intervalo del 95 %. Son grupos de 35 a 99
+            pacientes, así que los intervalos son muy anchos: las diferencias se describen, no se afirman. Solo sirve
+            para entender; no cambia nada del modelo.</p>
+          <div class="grafica" data-grafica="subgruposTest"></div>
+          <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="subgruposTest"></div></details>
+        </article>
+      </div>
+    </section>
+
+    <section class="bloque bloque--train" aria-labelledby="titulo-train">
+      <h2 id="titulo-train">En entrenamiento, con validación cruzada</h2>
+      <p class="seccion__texto">Cada paciente de entrenamiento, predicha por un modelo que no la había visto (5 folds).
+        Es la validación interna: con ella se eligieron las versiones, la calibración y el umbral, así que puede ser algo
+        optimista.</p>
+    </section>
+    <section class="cifras" id="cifras" aria-label="AUC de cada modelo en validación cruzada"></section>
 
     <div class="filtros" role="group" aria-label="Modelos que se muestran en las gráficas">
       <div class="filtros__dentro">
@@ -52,7 +110,7 @@
     <p class="aviso-datos" id="aviso-datos" hidden></p>
 
     <section class="graficas" id="graficas" aria-label="Gráficas">
-      <h2 class="graficas__grupo" id="g-separa">¿Separa a las pacientes con pCR de las demás?</h2>
+      <h2 class="graficas__grupo" id="g-separa">¿Separa a las pacientes pCR de las no pCR?</h2>
 
       <article class="tarjeta" id="t-roc">
         <h3>Discriminación: curva ROC</h3>
@@ -64,8 +122,8 @@
 
       <article class="tarjeta" id="t-distribucion">
         <h3>Distribución del riesgo</h3>
-        <p class="tarjeta__que">La probabilidad que da cada modelo a las pacientes que lograron pCR (relleno) y a las
-          que no (línea). Si las dos formas se separan, el modelo distingue; si se tapan, no.</p>
+        <p class="tarjeta__que">La probabilidad que da cada modelo a las pacientes pCR (relleno) y a las no pCR
+          (línea). Si las dos formas se separan, el modelo distingue; si se tapan, no.</p>
         <div class="grafica" data-grafica="distribucion"></div>
         <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="distribucion"></div></details>
       </article>
@@ -90,7 +148,7 @@
       <article class="tarjeta" id="t-calibracion">
         <h3>Calibración</h3>
         <p class="tarjeta__que">Las pacientes se ordenan por la probabilidad del modelo y se agrupan en diez. Para cada
-          grupo, lo que decía el modelo frente a cuántas lograron pCR de verdad. Sobre la diagonal, la probabilidad
+          grupo, lo que decía el modelo frente a cuántas eran pCR de verdad. Sobre la diagonal, la probabilidad
           es fiable.</p>
         <div class="grafica" data-grafica="calibracion"></div>
         <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="calibracion"></div></details>
@@ -155,9 +213,9 @@
 
       <article class="tarjeta tarjeta--ancha" id="t-bibliografia">
         <h3>Nuestras cifras junto a las publicadas</h3>
-        <p class="tarjeta__que">Nuestras cifras (validación cruzada en entrenamiento) junto a las de la bibliografía y la
-          del profesor. No son el mismo experimento: cambian los pacientes, las imágenes y el tipo de evaluación. Sirve
-          para situarse, no para competir.</p>
+        <p class="tarjeta__que">Nuestras cifras, en validación cruzada y en test, junto a las publicadas y a la referencia
+          de la asignatura. Solo Fridman et al. usan el mismo test; los demás no son el mismo experimento (cambian los pacientes,
+          las imágenes y el tipo de evaluación). Sirve para situarse, no para competir.</p>
         <div class="grafica" data-grafica="bibliografia"></div>
         <details class="tarjeta__datos"><summary>Ver los datos</summary><div data-tabla="bibliografia"></div></details>
       </article>
@@ -173,6 +231,34 @@
         se calculan igual, en las mismas pacientes, con su intervalo por bootstrap pareado. Todo es validación interna: los
         folds también sirvieron para elegir las versiones y el número de épocas, así que la cifra que vale como
         evaluación independiente es la de test, medida una sola vez.</p>
+    </section>
+    <section class="seccion referencias" aria-labelledby="titulo-referencias">
+      <h2 id="titulo-referencias">Referencias</h2>
+      <ol class="referencias__lista">
+        <li>Fridman N. et al. (2026). BreastDCEDL: a standardized deep learning-ready breast DCE-MRI dataset of 2,070
+          patients. <cite>Scientific Data</cite>, 13, 264.
+          <a href="https://doi.org/10.1038/s41597-026-06589-6">doi:10.1038/s41597-026-06589-6</a>. El dataset.</li>
+        <li>Fridman N. et al. (2025). BreastDCEDL: a comprehensive breast cancer DCE-MRI dataset and transformer
+          implementation for treatment response prediction. Preprint,
+          <a href="https://arxiv.org/abs/2506.12190">arXiv:2506.12190</a>. El ViT preentrenado de la gráfica.</li>
+        <li>Onishi N. et al. (2023). Effect of longitudinal variation in tumor volume estimation for MRI-guided
+          personalization of breast cancer neoadjuvant treatment. <cite>Radiology: Imaging Cancer</cite>, 5(4), e220126.
+          <a href="https://doi.org/10.1148/rycan.220126">doi:10.1148/rycan.220126</a>.</li>
+        <li>Joo S., Ko E. S., Kwon S. et al. (2021). Multimodal deep learning models for the prediction of pathologic
+          response to neoadjuvant chemotherapy in breast cancer. <cite>Scientific Reports</cite>, 11, 18800.
+          <a href="https://doi.org/10.1038/s41598-021-98408-8">doi:10.1038/s41598-021-98408-8</a>.</li>
+        <li>Collins G. S. et al. (2024). TRIPOD+AI statement: updated guidance for reporting clinical prediction models
+          that use regression or machine learning methods. <cite>BMJ</cite>, 385, e078378.
+          <a href="https://doi.org/10.1136/bmj-2023-078378">doi:10.1136/bmj-2023-078378</a>.</li>
+        <li>Van Calster B., Collins G. S., Vickers A. J. et al. (2024). Performance evaluation of predictive AI models
+          to support medical decisions: overview and guidance (iniciativa STRATOS). Preprint,
+          <a href="https://arxiv.org/abs/2412.10288">arXiv:2412.10288</a>.</li>
+        <li>Vickers A. J., Elkin E. B. (2006). Decision curve analysis: a novel method for evaluating prediction models.
+          <cite>Medical Decision Making</cite>, 26(6), 565–574.
+          <a href="https://doi.org/10.1177/0272989X06295361">doi:10.1177/0272989X06295361</a>.</li>
+      </ol>
+      <p class="nota">La «referencia de la asignatura» es la orientación que dio el profesor del caso para cortes 2D y tres
+        cohortes; no es una publicación.</p>
     </section>
   </main>
 
@@ -195,7 +281,8 @@
         <h2 class="pie__titulo">Los datos</h2>
         <p>Dataset docente derivado de BreastDCEDL (Fridman et al., <cite>Scientific Data</cite>, 2026), con licencia
           CC BY-NC 4.0. Los ejemplos son de pacientes de entrenamiento; ninguno es de test ni de la validación privada.</p>
-        <p>Gráficas: predicciones fuera de fold de las pacientes de entrenamiento, sin identificadores. Los datos clínicos solo se usan para comparar.</p>
+        <p>Gráficas: predicciones fuera de fold de las pacientes de entrenamiento y el resultado de la evaluación única
+          de test, sin identificadores. Los datos clínicos solo se usan para comparar.</p>
       </div>
     </div>
   </footer>

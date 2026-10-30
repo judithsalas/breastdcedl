@@ -22,6 +22,8 @@ de diseño D41 y D42.
 3. **Los colores de datos solo viven dentro de imágenes y gráficas** y cada uno significa una sola cosa.
 4. **Jerarquía de producto:** títulos contenidos, etiquetas en minúscula y datos alineados. Sin
    mayúsculas de adorno, sin «·» para unir datos y sin flechas en los textos.
+5. **Las dos clases se llaman siempre «pCR» y «no pCR»** (D47): en etiquetas, leyendas, matrices, tablas y
+   textos («pacientes pCR», «pacientes no pCR»). Nunca «con pCR», «sin ella», «lograron pCR» ni «las demás».
 
 ## Color
 
@@ -93,13 +95,15 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 
 - **Barra superior:** marca (icono del visor) y nombre, las tres páginas como pestañas con subrayado
   `--acento` en la actual, y a la derecha la pastilla «Uso educativo, sin validez clínica», que lleva al
-  aviso completo del pie.
+  aviso completo del pie. Hasta 900 px dice solo «Sin validez clínica», y en el móvil va sin icono, para que
+  la barra no se parta.
 - **Botones:** principal (fondo `--acento`, texto `--sala`), secundario (borde `--linea-2`) y discreto
   (solo texto, como un enlace). Hover: un paso más claro. Foco: anillo `--foco`. Desactivado: 40 % de
   opacidad. Como mucho un principal a la vista: hoy, «Siguiente» en los pasos de «La red».
 - **Enlaces:** `--acento-texto`, subrayados.
 - **Informe del resultado:** panel con título, la clase como etiqueta («pCR» / «no pCR»), la cifra, la
-  escala y los datos del modelo en dos columnas.
+  escala y los datos del modelo en dos columnas. Debajo de la clase, siempre, la fiabilidad del modelo
+  (`.fiabilidad-corte`, sobre `--panel-2`): una cifra de salud no va nunca sin su incertidumbre al lado.
 - **Monitores:** gráficas e imágenes sobre `--monitor`, con borde `--linea`; sin sombra.
 - **Cifras destacadas** («Resultados», «Cómo de fiable es»): raya neutra `--linea-2` encima, la cifra en
   la letra de los títulos y, si es de un modelo, un punto de su color junto al nombre (nunca la raya).
@@ -108,6 +112,11 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 - **Visor:** datos en las cuatro esquinas sobre un velo oscuro degradado arriba y abajo, para que se lean
   sobre cualquier imagen.
 - **Miniaturas y selector de cortes:** imagen cuadrada, nombre debajo; elegida = contorno `--acento`.
+- **Huecos para subir un corte** (D47): tres recuadros en fila, PRE, EARLY y LATE, cada uno con su
+  monitor cuadrado, el nombre de la fase, qué momento es y el fichero. Vacío: borde discontinuo `--linea-2`
+  e icono de subir; al arrastrar encima o al pasar el cursor, borde `--acento`; con imagen, borde continuo,
+  la miniatura y un botón × redondo de 28 px. Debajo, un enlace para elegir los tres a la vez y «Quitar las
+  tres imágenes» (botón discreto). El foco del teclado rodea todo el recuadro.
 - **Pie:** aviso completo, el proyecto y los datos, en tres columnas.
 
 ## Iconos e imágenes

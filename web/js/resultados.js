@@ -199,20 +199,38 @@ function roc(c) {
     }));
 }
 
+// ---------- De dónde salen los datos de cada gráfica: train (fuera de fold) o test (la evaluación única) ----------
+function fuenteTrain() {
+  const d = estado.datos;
+  return { test: false, sufijo: "", modelos: d.modelos_datos, ms: visibles(), tasa: d.tasa_pcr, brierConstante: d.brier_constante,
+    bordes: d.histograma_bordes, umbrales: d.decision_umbrales, decisionTodas: d.decision_todas,
+    subtipos: d.por_subtipo || [], cohortes: d.por_hospital || [] };
+}
+function fuenteTest() {
+  const t = estado.datos.test;
+  // Las curvas y las cifras de cada modelo, juntas, como en train; en test se ven siempre los tres
+  const modelos = Object.fromEntries(MODELOS.filter((m) => t.curvas?.[m]).map((m) => [m, { ...t.curvas[m], brier: t.modelos[m].brier }]));
+  return { test: true, sufijo: "Test", modelos, ms: Object.keys(modelos), tasa: t.tasa_pcr, brierConstante: t.brier_constante,
+    bordes: t.histograma_bordes, umbrales: t.decision_umbrales, decisionTodas: t.decision_todas,
+    subtipos: t.por_subtipo || [], cohortes: t.por_cohorte || [] };
+}
+const hayCurvasTest = () => Boolean(estado.datos.test?.curvas);
+const sinTest = (c) => c.replaceChildren(nodo("p", "Test aún no evaluado con este modelo.", "nota"));
+
 // ---------- Calibración ----------
-function calibracion(c) {
+function calibracion(c, f = fuenteTrain()) {
   const { g, ancho, alto } = lienzo(c, Math.min(440, c.clientWidth * 0.9 + 40));
   const max = 0.8;
   const x = d3.scaleLinear([0, max], [0, ancho]), y = d3.scaleLinear([0, max], [alto, 0]);
   ejes(g, x, y, ancho, alto, { titx: "Probabilidad que da el modelo (media del grupo)", tity: "Proporción real de pCR", fx: (v) => num(v, 1), fy: (v) => num(v, 1) });
   g.append("line").attr("class", "referencia").attr("x1", 0).attr("y1", alto).attr("x2", ancho).attr("y2", 0);
   g.append("text").attr("class", "anotacion").attr("x", x(0.6)).attr("y", y(0.62)).attr("text-anchor", "end").text("calibración perfecta");
-  const tasa = estado.datos.tasa_pcr;
+  const tasa = f.tasa;
   g.append("line").attr("class", "referencia referencia--tenue").attr("x1", 0).attr("x2", ancho).attr("y1", y(tasa)).attr("y2", y(tasa));
   g.append("text").attr("class", "anotacion").attr("x", ancho - 4).attr("y", y(tasa) - 6).attr("text-anchor", "end").text(`tasa de pCR, ${num(100 * tasa, 0)} %`);
-  const visiblesM = visibles();
+  const visiblesM = f.ms;
   visiblesM.forEach((m, k) => {
-    const puntos = estado.datos.modelos_datos[m].calibracion;
+    const puntos = f.modelos[m].calibracion;
     const desplaza = (k - (visiblesM.length - 1) / 2) * 3;
     const grupo = g.append("g");
     grupo.append("path").attr("d", d3.line().x((p) => x(p.predicha) + desplaza).y((p) => y(p.observada))(puntos))
@@ -223,35 +241,36 @@ function calibracion(c) {
     grupo.selectAll("circle").data(puntos).join("circle").attr("class", "marca-dato")
       .attr("cx", (p) => x(p.predicha) + desplaza).attr("cy", (p) => y(p.observada)).attr("r", 5).attr("fill", COLORES[m])
       .on("pointermove", (e, p) => mostrarTooltip(e, [[COLORES[m], NOMBRES_CORTOS[m], true],
-        [null, `Decía ${num(p.predicha)}; lograron pCR ${num(p.observada)} (IC ${num(p.ic95[0], 2)}–${num(p.ic95[1], 2)})`],
+        [null, `Decía ${num(p.predicha)}; eran pCR ${num(p.observada)} (IC ${num(p.ic95[0], 2)}–${num(p.ic95[1], 2)})`],
         [null, `${p.pacientes} pacientes`]]))
       .on("pointerleave", ocultarTooltip);
   });
-  leyenda(c, visibles().map((m) => [COLORES[m], NOMBRES_CORTOS[m], "punto"]));
-  const d = estado.datos, vi = d.validacion_interna;
-  if (d.brier_constante != null) {
-    let texto = `Error de Brier (cuanto menos, mejor): decir a todas la tasa de pCR, ${num(d.brier_constante, 4)}; `
-      + MODELOS.map((m) => `${NOMBRES_CORTOS[m]}, ${num(d.modelos_datos[m].brier, 4)}`).join("; ") + ".";
+  leyenda(c, f.ms.map((m) => [COLORES[m], NOMBRES_CORTOS[m], "punto"]));
+  const vi = f.test ? null : estado.datos.validacion_interna;
+  if (f.brierConstante != null) {
+    let texto = `Error de Brier (cuanto menos, mejor): decir a todas la tasa de pCR${f.test ? " de entrenamiento" : ""}, ${num(f.brierConstante, 4)}; `
+      + Object.keys(f.modelos).map((m) => `${NOMBRES_CORTOS[m]}, ${num(f.modelos[m].brier, 4)}`).join("; ") + ".";
+    if (f.test) texto += " Con unas 35 pacientes por grupo, cada punto puede moverse mucho por azar: mira sus intervalos.";
     if (vi) {
       texto += ` La CNN se calibró con estas mismas pacientes. Con la calibración elegida sin el fold que se mide, su Brier es ${num(vi.brier_platt_cruzado, 4)}: `
-        + (vi.brier_platt_cruzado < d.brier_constante ? "bate por poco a decir a todas la tasa de pCR." : "no bate a decir a todas la tasa de pCR. Como probabilidad, dice lo mismo que esa tasa.");
+        + (vi.brier_platt_cruzado < f.brierConstante ? "bate por poco a decir a todas la tasa de pCR." : "no bate a decir a todas la tasa de pCR. Como probabilidad, dice lo mismo que esa tasa.");
     }
     c.append(nodo("p", texto, "nota nota--grafica"));
   }
-  tabla(document.querySelector('[data-tabla="calibracion"]'), ["Modelo", "Grupo", "Predicha", "Observada", "IC 95 %", "Pacientes"],
-    MODELOS.flatMap((m) => estado.datos.modelos_datos[m].calibracion.map((p, i) =>
+  tabla(document.querySelector(`[data-tabla="calibracion${f.sufijo}"]`), ["Modelo", "Grupo", "Predicha", "Observada", "IC 95 %", "Pacientes"],
+    Object.keys(f.modelos).flatMap((m) => f.modelos[m].calibracion.map((p, i) =>
       [NOMBRES_CORTOS[m], String(i + 1), num(p.predicha), num(p.observada), `${num(p.ic95[0])}–${num(p.ic95[1])}`, String(p.pacientes)])));
 }
 
 // ---------- Distribución del riesgo (múltiplos pequeños) ----------
-function distribucion(c) {
-  const bordes = estado.datos.histograma_bordes;
-  const ms = visibles();
+function distribucion(c, f = fuenteTrain()) {
+  const bordes = f.bordes;
+  const ms = f.ms;
   const altoPanel = 120;
   const { g, ancho } = lienzo(c, ms.length * altoPanel + 50, { arriba: 10, derecha: 18, abajo: 40, izquierda: 52 });
   const x = d3.scaleLinear([0, 1], [0, ancho]);
   ms.forEach((m, i) => {
-    const h = estado.datos.modelos_datos[m].histograma;
+    const h = f.modelos[m].histograma;
     const totPcr = d3.sum(h.pcr), totNo = d3.sum(h.no_pcr);
     const fp = h.pcr.map((v) => v / totPcr), fn = h.no_pcr.map((v) => v / totNo);
     const y = d3.scaleLinear([0, d3.max([...fp, ...fn])], [altoPanel - 26, 20]);
@@ -267,38 +286,37 @@ function distribucion(c) {
       .on("pointermove", (e) => {
         const k = Math.max(0, Math.min(bordes.length - 2, Math.floor(x.invert(d3.pointer(e)[0]) * (bordes.length - 1))));
         mostrarTooltip(e, [[COLORES[m], `${NOMBRES_CORTOS[m]}, probabilidad ${num(bordes[k], 3)}–${num(bordes[k + 1], 3)}`, true],
-          [COLORES[m], `con pCR: ${h.pcr[k]} pacientes`], [TINTA, `sin pCR: ${h.no_pcr[k]} pacientes`]]);
+          [COLORES[m], `pCR: ${h.pcr[k]} pacientes`], [TINTA, `no pCR: ${h.no_pcr[k]} pacientes`]]);
       })
       .on("pointerleave", ocultarTooltip);
   });
   const eje = g.append("g").attr("class", "eje").attr("transform", `translate(0,${ms.length * altoPanel - 26})`)
     .call(d3.axisBottom(x).ticks(5).tickFormat((v) => num(v, 1)).tickSizeOuter(0));
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("Probabilidad de pCR que da el modelo");
-  leyenda(c, [[TINTA_2, "con pCR (relleno, color del modelo)", "area"], [TINTA, "sin pCR (línea clara)"]]);
+  leyenda(c, [[TINTA_2, "pCR (relleno, color del modelo)", "area"], [TINTA, "no pCR (línea clara)"]]);
   const filas = [];
-  for (const m of MODELOS) {
-    const h = estado.datos.modelos_datos[m].histograma;
+  for (const m of Object.keys(f.modelos)) {
+    const h = f.modelos[m].histograma;
     h.pcr.forEach((v, k) => { if (v || h.no_pcr[k]) filas.push([NOMBRES_CORTOS[m], `${num(bordes[k], 3)}–${num(bordes[k + 1], 3)}`, String(v), String(h.no_pcr[k])]); });
   }
-  tabla(document.querySelector('[data-tabla="distribucion"]'), ["Modelo", "Probabilidad", "Con pCR", "Sin pCR"], filas);
+  tabla(document.querySelector(`[data-tabla="distribucion${f.sufijo}"]`), ["Modelo", "Probabilidad", "pCR", "no pCR"], filas);
 }
 
 // ---------- Curva de decisión ----------
-function decision(c) {
-  const d = estado.datos;
-  const u = d.decision_umbrales;
+function decision(c, f = fuenteTrain()) {
+  const u = f.umbrales, todas = f.decisionTodas;
   const { g, ancho, alto } = lienzo(c, Math.min(420, c.clientWidth * 0.85 + 40));
-  const todos = [...visibles().flatMap((m) => d.modelos_datos[m].decision), ...d.decision_todas];
+  const todos = [...f.ms.flatMap((m) => f.modelos[m].decision), ...todas];
   const x = d3.scaleLinear([u[0], u[u.length - 1]], [0, ancho]);
   const y = d3.scaleLinear([Math.max(-0.05, d3.min(todos)), Math.max(0.32, d3.max(todos))], [alto, 0]).nice();
   ejes(g, x, y, ancho, alto, { titx: "Umbral de riesgo a partir del cual se actuaría", tity: "Beneficio neto", fx: (v) => num(v, 1), fy: (v) => num(v, 2) });
   g.append("line").attr("class", "referencia").attr("x1", 0).attr("x2", ancho).attr("y1", y(0)).attr("y2", y(0));
   const linea = d3.line().defined((v) => v != null && v >= y.domain()[0]).x((_, k) => x(u[k])).y((v) => y(v));
-  g.append("path").attr("d", linea(d.decision_todas)).attr("fill", "none").attr("stroke", REFERENCIA).attr("stroke-width", 2);
-  g.append("text").attr("class", "anotacion").attr("x", x(0.07)).attr("y", y(d.decision_todas[2]) - 8).text("actuar con todas");
+  g.append("path").attr("d", linea(todas)).attr("fill", "none").attr("stroke", REFERENCIA).attr("stroke-width", 2);
+  g.append("text").attr("class", "anotacion").attr("x", x(0.07)).attr("y", y(todas[2]) - 8).text("actuar con todas");
   g.append("text").attr("class", "anotacion").attr("x", ancho - 4).attr("y", y(0) - 6).attr("text-anchor", "end").text("con ninguna");
-  for (const m of visibles()) {
-    g.append("path").attr("d", linea(d.modelos_datos[m].decision)).attr("fill", "none").attr("stroke", COLORES[m]).attr("stroke-width", 2);
+  for (const m of f.ms) {
+    g.append("path").attr("d", linea(f.modelos[m].decision)).attr("fill", "none").attr("stroke", COLORES[m]).attr("stroke-width", 2);
   }
   const guia = g.append("line").attr("class", "guia").attr("y1", 0).attr("y2", alto).style("display", "none");
   g.append("rect").attr("width", ancho).attr("height", alto).attr("fill", "transparent")
@@ -306,15 +324,16 @@ function decision(c) {
       const k = d3.minIndex(u, (v) => Math.abs(x(v) - d3.pointer(e)[0]));
       guia.style("display", null).attr("x1", x(u[k])).attr("x2", x(u[k]));
       mostrarTooltip(e, [[null, `Umbral ${num(u[k], 2)}`, true],
-        ...visibles().map((m) => [COLORES[m], `${NOMBRES_CORTOS[m]}: ${num(d.modelos_datos[m].decision[k], 3)}`]),
-        [REFERENCIA, `Actuar con todas: ${num(d.decision_todas[k], 3)}`]]);
+        ...f.ms.map((m) => [COLORES[m], `${NOMBRES_CORTOS[m]}: ${num(f.modelos[m].decision[k], 3)}`]),
+        [REFERENCIA, `Actuar con todas: ${num(todas[k], 3)}`]]);
     })
     .on("pointerleave", () => { guia.style("display", "none"); ocultarTooltip(); });
-  leyenda(c, [...visibles().map((m) => [COLORES[m], NOMBRES_CORTOS[m]]), [REFERENCIA, "actuar con todas"]]);
-  tabla(document.querySelector('[data-tabla="decision"]'), ["Umbral", ...MODELOS.map((m) => NOMBRES_CORTOS[m]), "Todas"],
+  leyenda(c, [...f.ms.map((m) => [COLORES[m], NOMBRES_CORTOS[m]]), [REFERENCIA, "actuar con todas"]]);
+  const todosM = Object.keys(f.modelos);
+  tabla(document.querySelector(`[data-tabla="decision${f.sufijo}"]`), ["Umbral", ...todosM.map((m) => NOMBRES_CORTOS[m]), "Todas"],
     u.filter((_, k) => k % 5 === 0).map((v) => {
       const k = u.indexOf(v);
-      return [num(v, 2), ...MODELOS.map((m) => num(d.modelos_datos[m].decision[k], 3)), num(d.decision_todas[k], 3)];
+      return [num(v, 2), ...todosM.map((m) => num(f.modelos[m].decision[k], 3)), num(todas[k], 3)];
     }));
 }
 
@@ -337,31 +356,35 @@ function matrices(usarPropio = false) {
     const umbral = usarPropio && r.umbral != null ? r.umbral : u;
     const { vp, fn, fp, vn } = confusion(r.puntos, umbral);
     const sens = vp / (vp + fn), espec = vn / (vn + fp), vpp = vp + fp ? vp / (vp + fp) : NaN, vpn = vn + fn ? vn / (vn + fn) : NaN;
-    const t = nodo("div", null, "matriz");
-    const cab = nodo("p", null, "matriz__titulo");
-    const s = nodo("span", null, "chip__muestra");
-    s.style.background = COLORES[m];
-    cab.append(s, document.createTextNode(`${NOMBRES_CORTOS[m]}, umbral ${num(umbral)}`));
-    const rejilla = nodo("div", null, "matriz__rejilla");
-    const total = vp + fn + fp + vn;
-    const celda = (valor, texto, clase) => {
-      const c = nodo("div", null, `matriz__celda ${clase}`);
-      c.style.setProperty("--peso", String(valor / total));
-      c.append(nodo("span", miles(valor), "matriz__numero"), nodo("span", texto, "matriz__texto"));
-      return c;
-    };
-    rejilla.append(
-      nodo("span", "", "matriz__esquina"), nodo("span", "dice pCR", "matriz__cab"), nodo("span", "dice no pCR", "matriz__cab"),
-      nodo("span", "con pCR", "matriz__fila"), celda(vp, "aciertos", "matriz__celda--bien"), celda(fn, "se le escapan", "matriz__celda--mal"),
-      nodo("span", "sin pCR", "matriz__fila"), celda(fp, "falsas alarmas", "matriz__celda--mal"), celda(vn, "aciertos", "matriz__celda--bien"),
-    );
-    const metricas = nodo("dl", null, "matriz__metricas");
-    for (const [k, v] of [["Sensibilidad", sens], ["Especificidad", espec], ["Valor predictivo +", vpp], ["Valor predictivo −", vpn]]) {
-      metricas.append(nodo("dt", k), nodo("dd", num(v)));
-    }
-    t.append(cab, rejilla, metricas);
-    return t;
+    return bloqueMatriz(m, `${NOMBRES_CORTOS[m]}, umbral ${num(umbral)}`, { vp, fn, fp, vn },
+      [["Sensibilidad", num(sens)], ["Especificidad", num(espec)], ["Valor predictivo pCR", num(vpp)], ["Valor predictivo no pCR", num(vpn)]]);
   }));
+}
+
+// Una matriz de confusión: título con el color del modelo, las cuatro celdas y sus métricas debajo
+function bloqueMatriz(m, titulo, { vp, fn, fp, vn }, metricasFilas) {
+  const t = nodo("div", null, "matriz");
+  const cab = nodo("p", null, "matriz__titulo");
+  const s = nodo("span", null, "chip__muestra");
+  s.style.background = COLORES[m];
+  cab.append(s, document.createTextNode(titulo));
+  const rejilla = nodo("div", null, "matriz__rejilla");
+  const total = vp + fn + fp + vn;
+  const celda = (valor, texto, clase) => {
+    const c = nodo("div", null, `matriz__celda ${clase}`);
+    c.style.setProperty("--peso", String(valor / total));
+    c.append(nodo("span", miles(valor), "matriz__numero"), nodo("span", texto, "matriz__texto"));
+    return c;
+  };
+  rejilla.append(
+    nodo("span", "", "matriz__esquina"), nodo("span", "dice pCR", "matriz__cab"), nodo("span", "dice no pCR", "matriz__cab"),
+    nodo("span", "real pCR", "matriz__fila"), celda(vp, "aciertos", "matriz__celda--bien"), celda(fn, "se le escapan", "matriz__celda--mal"),
+    nodo("span", "real no pCR", "matriz__fila"), celda(fp, "falsas alarmas", "matriz__celda--mal"), celda(vn, "aciertos", "matriz__celda--bien"),
+  );
+  const metricas = nodo("dl", null, "matriz__metricas");
+  for (const [k, v] of metricasFilas) metricas.append(nodo("dt", k), nodo("dd", v));
+  t.append(cab, rejilla, metricas);
+  return t;
 }
 
 function notaUmbral() {
@@ -369,21 +392,117 @@ function notaUmbral() {
   const base = "El umbral de cada modelo se eligió con estas mismas pacientes, así que sus cifras podrían salir algo mejor de lo que serán con pacientes nuevas. "
     + "El 80 % de especificidad es una elección de este trabajo para limitar los «pCR» equivocados, no un criterio clínico validado.";
   if (!vi) { $("umbral-nota").textContent = base; return; }
-  const f = (r) => `sensibilidad ${num(r.sensibilidad)}, especificidad ${num(r.especificidad)} y valor predictivo + ${num(r.precision_pcr)}`;
+  const f = (r) => `sensibilidad ${num(r.sensibilidad)}, especificidad ${num(r.especificidad)} y valor predictivo pCR ${num(r.precision_pcr)}`;
   $("umbral-nota").textContent = `${base} Eligiendo el umbral (y la calibración) sin el fold que se mide, la CNN da ${f(vi.cnn_cruzado)}`
     + (vi.medico_cruzado ? `; el médico, ${f(vi.medico_cruzado)}.` : ".");
 }
 
+// ---------- Test: la evaluación única (R13, D44) ----------
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const fechaLarga = (f) => {
+  const [a, m, d] = (f || "").slice(0, 10).split("-").map(Number);
+  return a ? `${d} de ${MESES[m - 1]} de ${a}` : "";
+};
+const intervalo = (ic, d = 2) => (ic ? `${num(ic[0], d)}–${num(ic[1], d)}` : "—");
+
+function bloqueTest() {
+  const t = estado.datos.test;
+  if (!t) return;
+  $("test").hidden = false;
+  const cnn = t.modelos.cnn;
+  const margen = (cnn.ic95[1] - cnn.ic95[0]) / 2;
+  $("test-texto").textContent = `Ninguna de estas ${t.pacientes} pacientes (${t.pacientes_pcr} pCR) se usó antes: ni para entrenar ni para `
+    + `elegir versiones, calibración o umbral. Se evaluaron una sola vez, el ${fechaLarga(t.fecha)}, con el modelo ya cerrado, y no se `
+    + `cambió nada después. Con tan pocas pacientes, el intervalo del AUC mide unos ± ${num(margen, 2)}.`
+    + (t.repeticion ? ` Se repitió una vez: ${t.repeticion}.` : "");
+
+  // Las cifras: primero lo que añade la imagen, después cada modelo, con su cifra de validación cruzada al lado
+  const caja = $("cifras-test");
+  caja.replaceChildren();
+  const c = t.comparacion.combinado_menos_medico;
+  if (c && t.modelos.medico && t.modelos.combinado) {
+    const signo = (v) => `${v > 0 ? "+" : ""}${num(v)}`;
+    const cruza = c.ic95[0] <= 0 && c.ic95[1] >= 0;
+    const nota = nodo("div", null, "cifra-nota");
+    nota.append(
+      nodo("p", "Lo que añade la imagen al médico, en test", "cifra-nota__titulo"),
+      nodo("p", signo(c.diferencia), "cifra-nota__valor"),
+      nodo("p", cruza ? "Tampoco en test se puede afirmar que añada algo." : c.diferencia > 0 ? "En test, la imagen añade algo."
+        : "En test, la imagen empeora al médico.", "cifra-nota__veredicto"),
+      nodo("p", `${num(t.modelos.combinado.auc)} − ${num(t.modelos.medico.auc)}, IC 95 % ${signo(c.ic95[0])} a ${signo(c.ic95[1])} `
+        + "(bootstrap pareado de pacientes).", "cifra-nota__texto"));
+    caja.append(nota);
+  }
+  for (const m of MODELOS) {
+    const r = t.modelos[m];
+    if (!r) continue;
+    const tarjeta = nodo("div", null, "cifra-modelo");
+    const cab = nodo("p", null, "cifra-modelo__nombre");
+    const muestra = nodo("span", null, "cifra-modelo__muestra");
+    muestra.style.background = COLORES[m];
+    cab.append(muestra, document.createTextNode(NOMBRES_CORTOS[m]));
+    const cv = estado.datos.modelos_datos?.[m]?.auc_val;
+    tarjeta.append(cab, nodo("p", num(r.auc), "cifra-modelo__valor"),
+      nodo("p", `AUC en test, IC 95 % ${intervalo(r.ic95)}`, "cifra-modelo__detalle"),
+      nodo("p", cv != null ? `En validación cruzada: ${num(cv)}` : "", "cifra-modelo__detalle cifra-modelo__detalle--tenue"));
+    caja.append(tarjeta);
+  }
+
+  // Las matrices de confusión de los tres, cada uno con el umbral que se eligió en entrenamiento
+  $("matrices-test").replaceChildren(...MODELOS.filter((m) => t.modelos[m]).map((m) => {
+    const r = t.modelos[m];
+    const { VP: vp, FN: fn, FP: fp, VN: vn } = r.matriz_confusion;
+    const conIc = (v, ic) => (ic ? `${num(v)} (${intervalo(ic)})` : num(v));
+    return bloqueMatriz(m, `${NOMBRES_CORTOS[m]}, umbral ${num(r.umbral)}`, { vp, fn, fp, vn }, [
+      ["Sensibilidad", conIc(r.sensibilidad, r.sensibilidad_ic95)], ["Especificidad", conIc(r.especificidad, r.especificidad_ic95)],
+      ["Valor predictivo pCR", num(r.precision_pcr)], ["Valor predictivo no pCR", num(vn + fn ? vn / (vn + fn) : NaN)],
+      ["F1 macro", num(r.f1_macro)]]);
+  }));
+  const siempre = t.siempre_no_pcr || {};
+  $("test-nota-matrices").textContent = `Decir siempre «no pCR» acierta más (accuracy ${num(siempre.accuracy)}, frente a ${num(cnn.accuracy)} de la CNN), `
+    + `pero no detecta ninguna pCR: por eso la accuracy no es la cifra principal. La probabilidad de la CNN no informa más que la tasa de pCR: `
+    + `su error de Brier es ${num(cnn.brier, 4)}, y decir a todas la tasa de pCR de entrenamiento da ${num(t.brier_constante, 4)}.`;
+
+}
+
+function rocTest(c) {
+  const t = estado.datos.test;
+  if (!t || !t.roc) { c.replaceChildren(nodo("p", "Test aún no evaluado con este modelo.", "nota")); return; }
+  const ms = MODELOS.filter((m) => t.roc[m]);
+  const { g, ancho, alto } = lienzo(c, Math.min(440, c.clientWidth * 0.9 + 40));
+  const x = d3.scaleLinear([0, 1], [0, ancho]), y = d3.scaleLinear([0, 1], [alto, 0]);
+  ejes(g, x, y, ancho, alto, { titx: "1 − especificidad (no pCR marcadas como pCR)", tity: "Sensibilidad (pCR detectadas)" });
+  g.append("line").attr("class", "referencia").attr("x1", 0).attr("y1", alto).attr("x2", ancho).attr("y2", 0);
+  const linea = d3.line().x((p) => x(p[0])).y((p) => y(p[1]));
+  for (const m of ms) {
+    g.append("path").attr("d", linea(t.roc[m])).attr("fill", "none").attr("stroke", COLORES[m]).attr("stroke-width", 2).attr("stroke-linejoin", "round");
+    const r = t.modelos[m];
+    g.append("circle").attr("class", "marca-dato").attr("cx", x(1 - r.especificidad)).attr("cy", y(r.sensibilidad)).attr("r", 5).attr("fill", COLORES[m])
+      .on("pointermove", (e) => mostrarTooltip(e, [[COLORES[m], `${NOMBRES_CORTOS[m]}, umbral ${num(r.umbral)}`, true],
+        [null, `Sensibilidad ${num(r.sensibilidad)}, especificidad ${num(r.especificidad)}`]]))
+      .on("pointerleave", ocultarTooltip);
+  }
+  leyenda(c, [...ms.map((m) => [COLORES[m], `${NOMBRES_CORTOS[m]} (AUC ${num(t.modelos[m].auc)})`]),
+    [TINTA, "el umbral elegido en entrenamiento", "punto"]]);
+  tabla(document.querySelector('[data-tabla="rocTest"]'), ["Modelo", "AUC en test", "IC 95 %", "Sensibilidad", "Especificidad"],
+    ms.map((m) => {
+      const r = t.modelos[m];
+      return [NOMBRES_CORTOS[m], num(r.auc), intervalo(r.ic95, 3), num(r.sensibilidad), num(r.especificidad)];
+    }));
+}
+
 // ---------- Subgrupos (bosque) ----------
-function subgrupos(c) {
-  const d = estado.datos;
-  const filas = [...d.por_subtipo.map((f) => ({ ...f, tipo: "Subtipo" })), ...d.por_hospital.map((f) => ({ ...f, tipo: "Cohorte" }))];
-  const ms = visibles();
+function subgrupos(c, fuente = fuenteTrain()) {
+  const filas = [...fuente.subtipos.map((f) => ({ ...f, tipo: "Subtipo" })), ...fuente.cohortes.map((f) => ({ ...f, tipo: "Cohorte" }))];
+  const corte = fuente.subtipos.length;
+  const ms = fuente.ms;
   const estrecho = c.clientWidth < 480;
   const cabeza = estrecho ? 32 : 0;
   const altoFila = 18 + ms.length * 9 + cabeza;
   const { g, ancho, alto } = lienzo(c, filas.length * altoFila + 70, { arriba: 10, derecha: 18, abajo: 44, izquierda: estrecho ? 8 : 150 });
-  const x = d3.scaleLinear([0.3, 0.95], [0, ancho]);
+  // El eje cubre todos los intervalos (en test, con grupos pequeños, bajan de 0,3) y nada se sale de él
+  const extremos = filas.flatMap((f) => ms.filter((m) => f[m]).flatMap((m) => f[m].ic95));
+  const x = d3.scaleLinear([Math.min(0.3, Math.floor(10 * d3.min(extremos)) / 10), Math.max(0.95, d3.max(extremos))], [0, ancho]).clamp(true);
   const nx = marcasX(ancho, 6);
   g.append("g").attr("class", "rejilla").selectAll("line").data(x.ticks(nx)).join("line").attr("x1", (v) => x(v)).attr("x2", (v) => x(v)).attr("y1", 0).attr("y2", alto);
   g.append("line").attr("class", "referencia").attr("x1", x(0.5)).attr("x2", x(0.5)).attr("y1", 0).attr("y2", alto);
@@ -392,7 +511,7 @@ function subgrupos(c) {
   eje.append("text").attr("class", "eje__titulo").attr("x", ancho / 2).attr("y", 36).attr("text-anchor", "middle").text("AUC dentro del grupo (IC 95 %)");
   filas.forEach((f, i) => {
     const y0 = i * altoFila + 8;
-    if (i === d.por_subtipo.length) g.append("line").attr("class", "separador").attr("x1", estrecho ? -8 : -140).attr("x2", ancho).attr("y1", y0 - 6).attr("y2", y0 - 6);
+    if (i === corte) g.append("line").attr("class", "separador").attr("x1", estrecho ? -8 : -140).attr("x2", ancho).attr("y1", y0 - 6).attr("y2", y0 - 6);
     if (estrecho) {
       g.append("text").attr("class", "fila-titulo").attr("x", 0).attr("y", y0 + 10).text(f.grupo);
       g.append("text").attr("class", "fila-detalle").attr("x", 0).attr("y", y0 + 24).text(`${f.pacientes} pacientes, ${f.pcr} pCR`);
@@ -406,13 +525,13 @@ function subgrupos(c) {
       g.append("line").attr("x1", x(v.ic95[0])).attr("x2", x(v.ic95[1])).attr("y1", y).attr("y2", y).attr("stroke", COLORES[m]).attr("stroke-width", 2).attr("stroke-linecap", "round");
       g.append("circle").attr("class", "marca-dato").attr("cx", x(v.auc)).attr("cy", y).attr("r", 4.5).attr("fill", COLORES[m])
         .on("pointermove", (e) => mostrarTooltip(e, [[COLORES[m], `${NOMBRES_CORTOS[m]}, ${f.grupo}`, true],
-          [null, `AUC ${num(v.auc)} (IC ${num(v.ic95[0])}–${num(v.ic95[1])})`], [null, `${f.pacientes} pacientes, ${f.pcr} con pCR`]]))
+          [null, `AUC ${num(v.auc)} (IC ${num(v.ic95[0])}–${num(v.ic95[1])})`], [null, `${f.pacientes} pacientes, ${f.pcr} pCR`]]))
         .on("pointerleave", ocultarTooltip);
     });
   });
   leyenda(c, ms.map((m) => [COLORES[m], NOMBRES_CORTOS[m], "punto"]));
-  tabla(document.querySelector('[data-tabla="subgrupos"]'), ["Grupo", "Pacientes", "pCR", ...MODELOS.map((m) => NOMBRES_CORTOS[m])],
-    filas.map((f) => [f.grupo, String(f.pacientes), String(f.pcr), ...MODELOS.map((m) => `${num(f[m].auc)} (${num(f[m].ic95[0])}–${num(f[m].ic95[1])})`)]));
+  tabla(document.querySelector(`[data-tabla="subgrupos${fuente.sufijo}"]`), ["Grupo", "Pacientes", "pCR", ...MODELOS.map((m) => NOMBRES_CORTOS[m])],
+    filas.map((f) => [f.grupo, String(f.pacientes), String(f.pcr), ...MODELOS.map((m) => (f[m] ? `${num(f[m].auc)} (${num(f[m].ic95[0])}–${num(f[m].ic95[1])})` : "—"))]));
 }
 
 // ---------- Folds ----------
@@ -543,6 +662,10 @@ function bibliografia(c) {
     { estudio: "Nuestra CNN, solo imagen", que: "validación cruzada en train, media de folds", auc: d.modelos_datos.cnn.auc_val, propio: "cnn" },
     { estudio: "Nuestro médico, sin imagen", que: "validación cruzada en train, media de folds", auc: d.modelos_datos.medico.auc_val, propio: "medico" },
     { estudio: "Nuestra CNN + médico", que: "validación cruzada en train, media de folds", auc: d.modelos_datos.combinado.auc_val, propio: "combinado" },
+    ...(d.test ? MODELOS.filter((m) => d.test.modelos[m]).map((m) => ({
+      estudio: `${{ cnn: "Nuestra CNN", medico: "Nuestro médico", combinado: "Nuestra CNN + médico" }[m]}, en test`,
+      que: `una sola vez, ${d.test.pacientes} pacientes nuevas`, auc: d.test.modelos[m].auc, propio: m, test: true,
+    })) : []),
     ...d.bibliografia,
   ];
   tabla(document.querySelector('[data-tabla="bibliografia"]'), ["Estudio", "Qué se midió", "AUC"],
@@ -554,12 +677,15 @@ function bibliografia(c) {
   ejeBibliografia(g, x, ancho, alto);
   filas.forEach((f, i) => {
     const cy = y(i) + y.bandwidth() / 2;
-    if (i === 3) g.append("line").attr("class", "separador").attr("x1", -margen.izquierda + 8).attr("x2", ancho).attr("y1", y(i) - 6).attr("y2", y(i) - 6);
+    if (i === propios(filas)) g.append("line").attr("class", "separador").attr("x1", -margen.izquierda + 8).attr("x2", ancho).attr("y1", y(i) - 6).attr("y2", y(i) - 6);
     g.append("text").attr("class", "fila-titulo").attr("x", -12).attr("y", cy).attr("text-anchor", "end").text(f.estudio);
     g.append("text").attr("class", "fila-detalle").attr("x", -12).attr("y", cy + 13).attr("text-anchor", "end").text(f.que);
     puntoBibliografia(g, x, f, cy);
   });
 }
+
+// Cuántas filas son nuestras (van antes de la raya que las separa de lo publicado)
+const propios = (filas) => filas.filter((f) => f.propio).length;
 
 function ejeBibliografia(g, x, ancho, alto) {
   const nx = marcasX(ancho, 6);
@@ -575,7 +701,7 @@ function puntoBibliografia(g, x, f, cy) {
   if (f.auc_min != null) {
     g.append("line").attr("x1", x(f.auc_min)).attr("x2", x(f.auc)).attr("y1", cy).attr("y2", cy).attr("stroke", color).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-opacity", 0.5);
   }
-  g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio ? color : FONDO).attr("stroke", color).attr("stroke-width", 2);
+  g.append("circle").attr("cx", x(f.auc)).attr("cy", cy).attr("r", 5).attr("fill", f.propio && !f.test ? color : FONDO).attr("stroke", color).attr("stroke-width", 2);
   g.append("text").attr("class", "etiqueta-serie").attr("x", x(f.auc) + 10).attr("y", cy + 4)
     .text(f.auc_min != null ? `${num(f.auc_min, 2)}–${num(f.auc, 2)}` : num(f.auc, f.propio ? 3 : 2));
 }
@@ -610,7 +736,7 @@ function bibliografiaEstrecha(c, filas) {
   const anchoTexto = ancho + margen.derecha;
   let y = 0;
   filas.forEach((f, i) => {
-    if (i === 3) {
+    if (i === propios(filas)) {
       g.append("line").attr("class", "separador").attr("x1", -margen.izquierda).attr("x2", ancho).attr("y1", y + 2).attr("y2", y + 2);
       y += 6;
     }
@@ -627,13 +753,16 @@ function bibliografiaEstrecha(c, filas) {
 }
 
 // ---------- Todo ----------
-const GRAFICAS = { roc, calibracion, distribucion, decision, subgrupos, folds, odds, sesgo, entrenamiento, bibliografia };
+const conTest = (dibujar) => (c) => (hayCurvasTest() ? dibujar(c, fuenteTest()) : sinTest(c));
+const GRAFICAS = {
+  rocTest, calibracionTest: conTest(calibracion), distribucionTest: conTest(distribucion), decisionTest: conTest(decision),
+  subgruposTest: conTest(subgrupos), roc, calibracion, distribucion, decision, subgrupos, folds, odds, sesgo, entrenamiento, bibliografia };
 function dibujarTodo() {
   for (const c of document.querySelectorAll("[data-grafica]")) {
     c.replaceChildren();
     const f = GRAFICAS[c.dataset.grafica];
     if (!f) continue;
-    if (!estado.datos.modelos_datos && !["sesgo", "entrenamiento"].includes(c.dataset.grafica)) continue;
+    if (!estado.datos.modelos_datos && !["sesgo", "entrenamiento"].includes(c.dataset.grafica) && !c.dataset.grafica.endsWith("Test")) continue;
     try {
       f(c);
     } catch (error) {
@@ -652,6 +781,7 @@ async function arrancar() {
     return;
   }
   nombrarDatos();
+  bloqueTest();
   if (!estado.datos.modelos_datos) {
     $("aviso-datos").hidden = false;
     $("aviso-datos").textContent = `Faltan las predicciones de la comparación: ${estado.datos.aviso || "vuelve a exportar la app"}.`;

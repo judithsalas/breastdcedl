@@ -15,7 +15,8 @@ con ONNX Runtime Web. Este script hace todo lo que la página necesita, a partir
 2. **Comprobación**: cada corte de ejemplo se predice con PyTorch (como la app de Python y
    `src.models.predecir`) y con el ONNX. Si difieren en más de 1e-5, no se exporta nada.
 3. **`web/modelo/info.json`**: umbral, huella, entrenamiento y métricas internas, que la página
-   enseña (enunciado §9).
+   enseña (enunciado §9). Si test ya se evaluó con este modelo, también su resultado (D44): se copia de
+   `docs/resultados/4_test/`, aquí no se evalúa nada.
 4. **`web/ejemplos/`**: los cortes de `app/ejemplos/` (de train), con la probabilidad del pipeline,
    para que la página enseñe ✅ si coincide.
 
@@ -334,7 +335,12 @@ def anatomia(red: CNN) -> dict:
 
 def info_web(manifiesto: dict, onnx: Path, comprobacion: dict, resultados: Path = RESULTADOS,
              clinico: Path = CLINICO) -> dict:
-    """Lo que la página enseña del modelo (enunciado §9): umbral, huella, entrenamiento y métricas internas."""
+    """Lo que la página enseña del modelo (enunciado §9): umbral, huella, entrenamiento y métricas internas.
+
+    Y, si ya se hizo con este modelo, el resultado de la evaluación única de test (R13, D44).
+    """
+    from src.models.datos_web import resumen_test
+
     mi, ent = manifiesto["metricas_internas"], manifiesto["entrenamiento"]
     config = ent.get("config", {})
     versiones = []
@@ -380,6 +386,7 @@ def info_web(manifiesto: dict, onnx: Path, comprobacion: dict, resultados: Path 
         },
         "referencia": {**referencia_oof(manifiesto, resultados), **referencia_medico(manifiesto, clinico)},
         "validacion_interna": resumen_validacion_interna(manifiesto, resultados),
+        "test": resumen_test(manifiesto, resultados),
     }
 
 
@@ -460,6 +467,12 @@ def main() -> None:
         print("«Resultados»: " + " · ".join(f"{k} {v['auc_val']:.3f}" for k, v in datos["modelos_datos"].items()))
     if info.get("validacion_interna") is None:
         print("AVISO: falta la validación interna (python -m src.evaluation.validacion_interna); la web sale sin ella.")
+    test = info.get("test")
+    if test is None:
+        print("Test: aún no evaluado con este modelo; la web sale sin él.")
+    else:
+        print(f"Test en la web ({test['pacientes']} pacientes, {test['fecha']}): "
+              + " · ".join(f"{k} {v['auc']:.3f}" for k, v in test["modelos"].items()))
     n = len(json.loads((WEB / "ejemplos" / "ejemplos.json").read_text(encoding="utf-8")))
     print(f"{n} ejemplos en web/ejemplos/. Siguiente paso: subir web/ al Space (web/README.md).")
 

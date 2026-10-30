@@ -1,7 +1,9 @@
 """Los datos de la página «Resultados» de la app web (D39): `web/datos/resultados.json`.
 
-Lo llama `src.models.exportar_web`. Todo sale de train, con predicciones fuera de fold; test no se usa.
-Compara los tres modelos de la comparación clínica (D25):
+Lo llama `src.models.exportar_web`. Casi todo sale de train, con predicciones fuera de fold. La única
+excepción es `test`: el resultado de la evaluación única de test (R13, D44), copiado de
+`docs/resultados/4_test/` tal cual si es de este modelo, y las mismas gráficas que en train dibujadas con las
+predicciones de test que dejó `evaluar_test`. Nada se ajusta ni se elige con test. Compara los tres modelos de la comparación clínica (D25):
 - **cnn**: el modelo final (solo imagen), con sus predicciones fuera de fold del cierre;
 - **medico**: edad, menopausia, HR y HER2, sin imagen;
 - **combinado**: el médico más la puntuación de la CNN.
@@ -41,16 +43,23 @@ COHORTES = {"duke": "Duke", "spy1": "I-SPY1", "spy2": "I-SPY2"}
 SUBTIPOS = {"HER2pos": "HER2+", "TripleNeg": "Triple negativo", "HRposHER2neg": "HR+/HER2−"}
 VARIABLES = {"age": "Edad (10 años más)", "menopause": "Posmenopausia", "HR": "Receptores hormonales (HR+)",
              "HER2": "HER2+", "cnn": "CNN (una desviación más)"}
+# Lo publicado, para situar las cifras (la referencia completa de cada uno está al final de «Resultados», D46)
 BIBLIOGRAFIA = [
-    {"estudio": "Fridman et al. 2025, BreastDCEDL", "que": "ViT preentrenado (no permitido aquí), mismo test",
+    {"estudio": "Fridman et al. 2025 (preprint)", "que": "ViT preentrenado (no permitido aquí), mismo test",
      "auc": 0.72, "conjunto": "test"},
-    {"estudio": "Mejores marcadores de RM previa al tratamiento", "que": "volumen tumoral funcional y similares",
-     "auc_min": 0.61, "auc": 0.62, "conjunto": "revisión (COMO_SE_HIZO §3.13)"},
-    {"estudio": "Joo et al. 2021", "que": "solo clínica", "auc": 0.83, "conjunto": "un centro"},
-    {"estudio": "Joo et al. 2021", "que": "imagen + clínica (deep learning)", "auc": 0.89, "conjunto": "un centro"},
-    {"estudio": "Correo del profesor", "que": "«buen trabajo» con cortes 2D y tres cohortes, en test", "auc_min": 0.60,
-     "auc": 0.70, "conjunto": "test"},
+    {"estudio": "Onishi et al. 2023, I-SPY 2", "que": "volumen tumoral funcional en la RM previa al tratamiento",
+     "auc_min": 0.61, "auc": 0.62, "conjunto": "I-SPY 2"},
+    {"estudio": "Joo et al. 2021", "que": "solo clínica; un centro, validación", "auc": 0.83, "conjunto": "un centro"},
+    {"estudio": "Joo et al. 2021", "que": "imagen + clínica (deep learning); un centro, validación", "auc": 0.89,
+     "conjunto": "un centro"},
+    {"estudio": "Referencia de la asignatura", "que": "«buen trabajo» con cortes 2D y tres cohortes, en test",
+     "auc_min": 0.60, "auc": 0.70, "conjunto": "test"},
 ]
+
+
+# Los mismos ejes en train y en test, para que las gráficas se puedan comparar
+UMBRALES_DCA = np.round(np.arange(0.05, 0.71, 0.01), 2)
+BORDES_HISTOGRAMA = np.linspace(0, 1, 41)
 
 
 def _r(x, d: int = 6):
@@ -159,7 +168,8 @@ def resultados(manifiesto: dict, carpeta_resultados: Path, runs: Path, n_bootstr
     cnn, _, motivo = _cnn_de(oof, manifiesto)
     salida = {"huella_modelo": manifiesto["huella_modelo"], "modelos": {k: NOMBRES[k] for k in MODELOS},
               "bibliografia": BIBLIOGRAFIA, "entrenamiento": curvas_entrenamiento(manifiesto, runs),
-              "sesgo_epoca": sesgo_epoca(manifiesto, Path(runs) / "historico.csv")}
+              "sesgo_epoca": sesgo_epoca(manifiesto, Path(runs) / "historico.csv"),
+              "test": resumen_test(manifiesto, carpeta_resultados, curvas=True)}
     if cnn is None:
         salida["aviso"] = motivo
         return salida
@@ -170,8 +180,7 @@ def resultados(manifiesto: dict, carpeta_resultados: Path, runs: Path, n_bootstr
     probs = {"cnn": con.prob_cnn, "medico": analisis["modelos"]["medico"]["prob"].loc[con.index],
              "combinado": analisis["modelos"]["combinado"]["prob"].loc[con.index]}
     y = con.pCR.to_numpy()
-    umbrales_dca = np.round(np.arange(0.05, 0.71, 0.01), 2)
-    bordes = np.linspace(0, 1, 41)
+    umbrales_dca, bordes = UMBRALES_DCA, BORDES_HISTOGRAMA
     modelos = {}
     for m, p in probs.items():
         r = analisis["modelos"][m]
@@ -241,6 +250,86 @@ def _validacion_interna(manifiesto: dict, carpeta_resultados: Path) -> dict | No
         resumen["medico_cruzado"] = {k: _r(v["medico"]["umbral"]["cruzado"][k])
                                      for k in ("sensibilidad", "especificidad", "precision_pcr")}
     return resumen
+
+
+def _metricas_test(d: dict, *claves_ic: str) -> dict:
+    salida = {k: _r(d.get(k)) for k in ("umbral", "auc", "sensibilidad", "especificidad", "precision_pcr", "f1_macro",
+                                         "accuracy", "brier") if k in d}
+    salida["ic95"] = [_r(v) for v in d["ic95"]]
+    for k in claves_ic:
+        if d.get(k):
+            salida[k] = [_r(v) for v in d[k]]
+    salida["matriz_confusion"] = {k: int(d["matriz_confusion"][k]) for k in ("VP", "FN", "FP", "VN")}
+    return salida
+
+
+def resumen_test(manifiesto: dict, carpeta_resultados: Path, curvas: bool = False) -> dict | None:
+    """La evaluación única de test (R13), si ya se hizo con ESTE modelo; si no, None.
+
+    Las cifras son las que escribió `evaluar_test` (aquí no se evalúa ni se ajusta nada). Con `curvas`, además,
+    las mismas gráficas que en train, dibujadas con las predicciones de test que dejó (`predicciones_test_pacientes.csv`):
+    ROC, calibración por deciles, curva de decisión, distribución del riesgo y AUC por subtipo (fase B: solo para
+    entender). Sin identificadores de pacientes: solo salen curvas y recuentos.
+    """
+    carpeta = Path(carpeta_resultados) / "4_test"
+    ruta = carpeta / "resultado_test.json"
+    if not ruta.exists():
+        return None
+    r = json.loads(ruta.read_text(encoding="utf-8"))
+    if r.get("huella_modelo") != manifiesto["huella_modelo"]:
+        return None
+    modelos = {"cnn": _metricas_test(r, "sensibilidad_ic95", "especificidad_ic95")}
+    clinico = r.get("comparacion_clinica") or {}
+    for m, d in (clinico.get("modelos") or {}).items():
+        modelos[m] = _metricas_test(d)
+    cohortes = []
+    for clave, nombre in COHORTES.items():
+        if clave not in r.get("por_cohorte", {}):
+            continue
+        c = r["por_cohorte"][clave]
+        fila = {"grupo": nombre, "pacientes": int(c["pacientes"]), "pcr": int(c["pcr"])}
+        for m, d in [("cnn", c)] + [(m, (clinico["modelos"][m].get("por_cohorte") or {}).get(clave))
+                                     for m in (clinico.get("modelos") or {})]:
+            if d and d.get("auc") is not None:
+                fila[m] = {"auc": _r(d["auc"]), "ic95": [_r(v) for v in d["ic95"]]}
+        cohortes.append(fila)
+    trivial = (r.get("referencias_triviales") or {}).get("siempre_no_pcr") or {}
+    salida = {
+        "fecha": r.get("fecha"), "pacientes": int(r["pacientes"]), "pacientes_pcr": int(r["pacientes_pcr"]),
+        "repeticion": r.get("repeticion"), "modelos": modelos,
+        "comparacion": {k: {"diferencia": _r(v["diferencia"]), "ic95": [_r(x) for x in v["ic95"]]}
+                        for k, v in (clinico.get("diferencias") or {}).items()},
+        "brier_constante": _r((r.get("brier_constante") or {}).get("brier")),
+        "siempre_no_pcr": {k: _r(trivial.get(k)) for k in ("accuracy", "f1_macro")},
+        "por_cohorte": cohortes,
+    }
+    pacientes = carpeta / "predicciones_test_pacientes.csv"
+    if curvas and pacientes.exists():
+        salida.update(_curvas_test(pd.read_csv(pacientes), modelos))
+    return salida
+
+
+def _curvas_test(tabla: pd.DataFrame, modelos: dict, n_bootstrap: int = 2000) -> dict:
+    """Las gráficas de test, con los mismos ejes que las de train."""
+    columnas = {"cnn": "prob", "medico": "prob_medico", "combinado": "prob_combinado"}
+    probs = {m: tabla[col] for m, col in columnas.items() if col in tabla and m in modelos}
+    y = tabla.pCR.to_numpy()
+    salida = {
+        "tasa_pcr": _r(y.mean()), "decision_umbrales": UMBRALES_DCA.tolist(),
+        "decision_todas": curva_decision(y, np.ones_like(y, dtype=float), UMBRALES_DCA),
+        "histograma_bordes": [_r(b, 3) for b in BORDES_HISTOGRAMA],
+        "roc": {m: curva_roc(y, p.to_numpy()) for m, p in probs.items()},
+        # Con 176 pacientes, cinco grupos (unas 35 por grupo) en vez de diez: cada punto se mueve menos por azar
+        "curvas": {m: {"calibracion": calibracion(y, p.to_numpy(), grupos=5), "decision": curva_decision(y, p.to_numpy(), UMBRALES_DCA),
+                       "histograma": histograma(y, p.to_numpy(), BORDES_HISTOGRAMA)} for m, p in probs.items()},
+    }
+    # El subtipo de cada paciente de test, de patients.csv (solo para entender, fase B; no entra en ningún modelo)
+    from src.data.caso import uc
+
+    estado = uc.cargar_patients().set_index("pid")["HR_HER2_STATUS"]
+    con_subtipo = tabla.assign(subtipo=tabla.patient_id.map(estado))
+    salida["por_subtipo"] = auc_grupos(con_subtipo, "subtipo", SUBTIPOS, probs, n_bootstrap)
+    return salida
 
 
 def solo_hospital(tabla: pd.DataFrame) -> float:

@@ -58,7 +58,6 @@ generan desde el código (`python -m src.models.dibujar cnn_v2`):
 │   └── clinico/          el «médico» sin imagen (un JSON pequeño)
 ├── runs/               cada entrenamiento (solo en tu ordenador; a GitHub va historico.csv)
 ├── config.json         parámetros de ejecución y plantilla de experimentos (D31)
-├── environment.yml     entorno conda (Python 3.12)
 └── requirements.txt    librerías con versión fija (sin PyTorch)
 ```
 
@@ -105,11 +104,11 @@ git clone https://github.com/judithsalas/breastdcedl.git C:\breastdcedl
 **Primera vez en una máquina:**
 
 ```bash
-conda env create -f environment.yml     # crea "cancer" con Python 3.12 + requirements.txt
+conda create -n cancer python=3.12 pip -y   # crea el entorno "cancer" con Python 3.12
 # Aislar el entorno de los paquetes instalados fuera de él (carpeta de usuario de Python):
 conda env config vars set PYTHONNOUSERSITE=1 -n cancer
 conda activate cancer
-pip install -r requirements.txt         # reinstala dentro del entorno lo que pip encontró fuera
+pip install -r requirements.txt         # las librerías, con su versión fija
 ```
 
 Si el entorno `cancer` ya existe (PC Universidad):
@@ -275,8 +274,9 @@ ordenador. Por qué así y cómo se garantiza que da lo mismo que el pipeline:
 [`docs/COMO_SE_HIZO.md` §7](docs/COMO_SE_HIZO.md#7-la-app) y D38 del registro.
 
 Tiene tres páginas (D39):
-- **Predicción** (`index.html`): se suben las tres fases de un corte, o se elige un ejemplo, y da la
-  probabilidad, la clase y el mapa de qué zonas la suben o la bajan.
+- **Predicción** (`index.html`): se sube un corte, una imagen en cada hueco (PRE, EARLY y LATE) y con
+  cualquier nombre, o se elige un ejemplo, y da la probabilidad, la clase («pCR» o «no pCR») y el mapa de qué
+  zonas la suben o la bajan.
 - **La red** (`red.html`): la arquitectura pieza a pieza, con un corte atravesándola, sus mapas de
   características reales y los parámetros de cada capa.
 - **Resultados** (`resultados.html`): la CNN frente al modelo del médico y a los dos juntos, con las
