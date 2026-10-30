@@ -1,6 +1,6 @@
-"""Lanza lo que diga la sección `experimento` de config.json (D31, D34).
+"""Lanza lo que diga la sección `experimento` de configs/config.json (D31, D34).
 
-    python -m src.training.experimento                       # config.json de la raíz del repo
+    python -m src.training.experimento                       # configs/config.json
     python -m src.training.experimento --config prueba.json  # otro fichero con una sección experimento
     python -m src.training.experimento --ver                 # solo enseña qué se lanzaría
     python -m src.training.experimento --repetir             # vuelve a entrenar también las ya hechas
@@ -16,7 +16,7 @@ Es reanudable (D35): una prueba que ya terminó tiene su carpeta en runs/ con `c
 igual a ella, y no se repite. Si la tarjeta se cuelga a mitad, se vuelve a lanzar el mismo comando
 y sigue por la que falló.
 
-Así se entrenó el modelo final: la sección `experimento` de config.json lanza las 6 versiones en
+Así se entrenó el modelo final: la sección `experimento` de configs/config.json lanza las 6 versiones en
 modo `fijo` (6 épocas, D37) en los 5 folds. Sus ejecuciones están en experimentos/.
 
 Para comparar versiones (D16) solo cuentan las validaciones cruzadas de 5 folds con los valores
@@ -106,7 +106,7 @@ def describir(e: dict) -> str:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Lanza la sección experimento de config.json.")
+    p = argparse.ArgumentParser(description="Lanza la sección experimento de configs/config.json.")
     p.add_argument("--config", default=str(RUTA_CONFIG), help="JSON con una sección experimento")
     p.add_argument("--ver", action="store_true", help="solo enseñar qué se lanzaría")
     p.add_argument("--repetir", action="store_true", help="entrenar también las pruebas ya hechas")

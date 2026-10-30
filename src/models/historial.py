@@ -32,13 +32,13 @@ def leer_historico(ruta: Path = HISTORICO, modo: str = "completo") -> pd.DataFra
 
 
 TODOS_LOS_FOLDS = "0,1,2,3,4"
-# Diferencia de AUC train − val a partir de la cual se considera que sobreajusta (config.json, D16).
+# Diferencia de AUC train − val a partir de la cual se considera que sobreajusta (configs/config.json, D16).
 SOBREAJUSTE = COMPARACION["sobreajuste_maximo"]
 
 
 def validaciones_validas(historico: pd.DataFrame, perdida: str = "normal") -> pd.DataFrame:
     """Última validación cruzada de 5 folds de cada versión, con huella ✓, la pérdida pedida y el
-    batch, el learning rate y la semilla estándar de su modo (config.json, D31)."""
+    batch, el learning rate y la semilla estándar de su modo (configs/config.json, D31)."""
     if historico.empty:
         return historico
     filas = historico[(historico.tipo == "cv") & (historico.perdida == perdida)

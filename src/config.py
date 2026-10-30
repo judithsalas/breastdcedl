@@ -1,6 +1,6 @@
-"""Configuración de los experimentos, leída de `config.json` en la raíz del repo (D31).
+"""Configuración de los experimentos, leída de `configs/config.json` (D31).
 
-`config.json` es el único sitio con los parámetros de ejecución:
+`configs/config.json` es el único sitio con los parámetros de ejecución:
 - `modos`: los dos tipos de ejecución. El modo indica QUÉ TIPO DE EJECUCIÓN es, no en qué
   ordenador estamos (el dispositivo se detecta solo, ver `src/utils/dispositivo.py`):
   - `rapido`: comprobar que el código funciona de principio a fin con pocos datos y pocas
@@ -14,7 +14,7 @@
 - `experimento`: la plantilla de lo que lanza `python -m src.training.experimento`.
 
 Lo que define una versión de la red (capas, aumento, optimizador, weight decay) NO está en
-config.json, sino en `src/models/versiones.py`: cambiarlo es crear otra versión.
+configs/config.json, sino en `src/models/versiones.py`: cambiarlo es crear otra versión.
 
 Uso:
     from src.config import obtener_config
@@ -29,7 +29,7 @@ import math
 from dataclasses import asdict, dataclass, fields, replace
 from pathlib import Path
 
-RUTA_CONFIG = Path(__file__).resolve().parents[1] / "config.json"
+RUTA_CONFIG = Path(__file__).resolve().parents[1] / "configs" / "config.json"
 # Los mismos que METODOS_AGREGACION de utils_caso (un test lo comprueba). No se importa utils_caso
 # aquí para que leer la configuración no cargue torch.
 AGREGACIONES = ("mean", "max", "median", "voto")
@@ -67,8 +67,10 @@ CAMPOS_MODO = tuple(f.name for f in fields(Config) if f.name != "modo")
 
 
 def leer_config(ruta: Path | str = RUTA_CONFIG) -> dict:
-    """Lee config.json y comprueba que no falta ni sobra nada, con un mensaje claro si algo está mal."""
+    """Lee configs/config.json y comprueba que no falta ni sobra nada, con un mensaje claro si algo está mal."""
     ruta = Path(ruta)
+    if not ruta.is_file():
+        raise FileNotFoundError(f"No encuentro {ruta}: la configuración va en configs/config.json, dentro del repo")
     try:
         datos = json.loads(ruta.read_text(encoding="utf-8"))
     except json.JSONDecodeError as error:

@@ -62,7 +62,7 @@ from src.utils.dispositivo import describir_dispositivo, elegir_dispositivo
 from src.utils.semilla import fijar_semilla
 
 CARPETA_RUNS = RAIZ_REPO / "runs"
-# De config.json (D31). Sirven para las métricas de cada época; el umbral y la agregación
+# De configs/config.json (D31). Sirven para las métricas de cada época; el umbral y la agregación
 # definitivos se eligen al cerrar el modelo, con validación (D21).
 METODO_AGREGACION = EVALUACION["agregacion"]
 UMBRAL = EVALUACION["umbral_entrenamiento"]
