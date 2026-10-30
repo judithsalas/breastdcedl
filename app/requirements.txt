@@ -1,9 +1,0 @@
-# Dependencias de la app desplegada (Streamlit Community Cloud, sin GPU).
-# PyTorch en su variante CPU y la MISMA versión que en el entrenamiento (D1).
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.14.0
-numpy==2.5.3
-pandas==3.0.6
-pillow==12.3.0
-matplotlib==3.11.2
-streamlit==1.65.0
