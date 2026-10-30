@@ -1,0 +1,16 @@
+{
+  "experimento": {
+    "perdida": "normal",
+    "folds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "cambios": {},
+    "nota": "6 épocas fijas, sin elegir con la validación (D37)",
+    "modelo": "cnn_v3",
+    "modo": "fijo"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "fecha": "2026-10-29T14:00:11+01:00",
+  "uso": "solo comparación (D25): no entra en la CNN ni en la app",
+  "criterio_umbral": "mayor sensibilidad con especificidad ≥ 0.80, fuera de fold",
+  "medico": {
+    "variables": [
+      "age",
+      "menopause",
+      "HR",
+      "HER2"
+    ],
+    "medianas": {
+      "age": 48.0,
+      "menopause": 0.0,
+      "HR": 1.0,
+      "HER2": 0.0
+    },
+    "menopausia_por_edad": [
+      0.4012303048389684,
+      -20.577692448148895
+    ],
+    "medias": {
+      "age": 48.66309936189608,
+      "menopause": 0.4065173695186723,
+      "HR": 0.577939835916135,
+      "HER2": 0.26162260711030083
+    },
+    "desviaciones": {
+      "age": 10.473171318554547,
+      "menopause": 0.4806054069976989,
+      "HR": 0.4938880257481102,
+      "HER2": 0.439518166358468
+    },
+    "coeficientes": {
+      "age": -0.18662289230360732,
+      "menopause": -0.017930533130499318,
+      "HR": -0.6002845247952368,
+      "HER2": 0.4429555188440209
+    },
+    "intercepto": -0.9846790710332373,
+    "umbral": 0.38718564366966435
+  },
+  "combinado": {
+    "variables": [
+      "cnn",
+      "age",
+      "menopause",
+      "HR",
+      "HER2"
+    ],
+    "medianas": {
+      "cnn": -0.8707465382952553,
+      "age": 48.0,
+      "menopause": 0.0,
+      "HR": 1.0,
+      "HER2": 0.0
+    },
+    "menopausia_por_edad": [
+      0.4012303048389684,
+      -20.577692448148895
+    ],
+    "medias": {
+      "cnn": -0.879063132688234,
+      "age": 48.66309936189608,
+      "menopause": 0.4065173695186723,
+      "HR": 0.577939835916135,
+      "HER2": 0.26162260711030083
+    },
+    "desviaciones": {
+      "cnn": 0.11438013051302016,
+      "age": 10.473171318554547,
+      "menopause": 0.4806054069976989,
+      "HR": 0.4938880257481102,
+      "HER2": 0.439518166358468
+    },
+    "coeficientes": {
+      "cnn": 0.13659325774177913,
+      "age": -0.19336541561625076,
+      "menopause": -0.013666750321925545,
+      "HR": -0.5998201606185027,
+      "HER2": 0.45069456559177923
+    },
+    "intercepto": -0.9890556284595694,
+    "umbral": 0.38440686698104926
+  },
+  "huella_cnn": "86efe7b4b112",
+  "validacion": {
+    "medico": {
+      "auc_val": 0.6894571394180542,
+      "auc_val_desv": 0.02423306577432938,
+      "auc_train": 0.6998172087580306,
+      "pacientes": 1097
+    },
+    "medico_volumen": {
+      "auc_val": 0.7105155440783307,
+      "auc_val_desv": 0.03046383515515641,
+      "auc_train": 0.7201049656622388,
+      "pacientes": 1097
+    },
+    "cnn": {
+      "auc_val": 0.5538055472909356,
+      "auc_val_desv": 0.04258184257012439,
+      "auc_train": null,
+      "pacientes": 1097
+    },
+    "combinado": {
+      "auc_val": 0.692522882626328,
+      "auc_val_desv": 0.025737518670953703,
+      "auc_train": 0.7049259605278155,
+      "pacientes": 1097
+    }
+  },
+  "huella": "19a7504e"
+}

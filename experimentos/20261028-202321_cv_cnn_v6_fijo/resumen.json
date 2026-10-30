@@ -1,0 +1,269 @@
+{
+  "ejecucion": "20261028-202321_cv_cnn_v6_fijo",
+  "modelo": "cnn_v6",
+  "perdida": "normal",
+  "nota": "6 épocas fijas, sin elegir con la validación (D37)",
+  "config": {
+    "modo": "fijo",
+    "n_pacientes": null,
+    "fold_val": 0,
+    "batch_size": 32,
+    "epocas_max": 6,
+    "paciencia": 6,
+    "learning_rate": 0.001,
+    "pacientes_auc_train": 220,
+    "semilla": 42,
+    "num_workers": 2,
+    "eleccion_epoca": "ultima"
+  },
+  "maquina": {
+    "dispositivo": "cuda",
+    "sistema": "Linux 7.0.0-38-generic",
+    "maquina": "pc0503",
+    "python": "3.12.14",
+    "torch": "2.14.0+rocm7.14",
+    "backend": "rocm 7.14.60850",
+    "gpu": "AMD Radeon RX 6700 XT",
+    "vram_gb": 12.0
+  },
+  "tiempo_total_s": 969.9102383049994,
+  "folds_terminados": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "por_fold": [
+    {
+      "fold": 0,
+      "epoca": 6,
+      "auc_val": 0.5492943548387097,
+      "auc_train": 0.6723573200992556,
+      "diferencia_auc": 0.12306296526054594,
+      "sensibilidad": 0.078125,
+      "especificidad": 0.9741935483870968,
+      "precision_pcr": 0.5555555555555556,
+      "f1_pcr": 0.136986301369863,
+      "f1_no_pcr": 0.8273972602739726,
+      "f1_macro": 0.4821917808219178,
+      "accuracy": 0.7123287671232876,
+      "VP": 5,
+      "VN": 151,
+      "FP": 4,
+      "FN": 59,
+      "epocas_entrenadas": 6,
+      "segundos_por_epoca": 32.08649039516664
+    },
+    {
+      "fold": 1,
+      "epoca": 6,
+      "auc_val": 0.5571193753852476,
+      "auc_train": 0.6579652605459058,
+      "diferencia_auc": 0.10084588516065818,
+      "sensibilidad": 0.04838709677419355,
+      "especificidad": 0.9490445859872612,
+      "precision_pcr": 0.2727272727272727,
+      "f1_pcr": 0.0821917808219178,
+      "f1_no_pcr": 0.8164383561643835,
+      "f1_macro": 0.44931506849315067,
+      "accuracy": 0.6940639269406392,
+      "VP": 3,
+      "VN": 149,
+      "FP": 8,
+      "FN": 59,
+      "epocas_entrenadas": 6,
+      "segundos_por_epoca": 32.00434381116671
+    },
+    {
+      "fold": 2,
+      "epoca": 6,
+      "auc_val": 0.6072218128224024,
+      "auc_train": 0.5971074380165289,
+      "diferencia_auc": -0.010114374805873516,
+      "sensibilidad": 0.11864406779661017,
+      "especificidad": 0.968944099378882,
+      "precision_pcr": 0.5833333333333334,
+      "f1_pcr": 0.19718309859154928,
+      "f1_no_pcr": 0.8455284552845529,
+      "f1_macro": 0.5213557769380511,
+      "accuracy": 0.740909090909091,
+      "VP": 7,
+      "VN": 156,
+      "FP": 5,
+      "FN": 52,
+      "epocas_entrenadas": 6,
+      "segundos_por_epoca": 32.00752385766706
+    },
+    {
+      "fold": 3,
+      "epoca": 6,
+      "auc_val": 0.5102528735632184,
+      "auc_train": 0.7291751735402205,
+      "diferencia_auc": 0.2189222999770022,
+      "sensibilidad": 0.02666666666666667,
+      "especificidad": 0.9862068965517241,
+      "precision_pcr": 0.5,
+      "f1_pcr": 0.05063291139240506,
+      "f1_no_pcr": 0.7922437673130194,
+      "f1_macro": 0.42143833935271224,
+      "accuracy": 0.6590909090909091,
+      "VP": 2,
+      "VN": 143,
+      "FP": 2,
+      "FN": 73,
+      "epocas_entrenadas": 6,
+      "segundos_por_epoca": 32.16298117950009
+    },
+    {
+      "fold": 4,
+      "epoca": 6,
+      "auc_val": 0.600678035750976,
+      "auc_train": 0.6988585607940446,
+      "diferencia_auc": 0.09818052504306862,
+      "sensibilidad": 0.06451612903225806,
+      "especificidad": 0.9554140127388535,
+      "precision_pcr": 0.36363636363636365,
+      "f1_pcr": 0.1095890410958904,
+      "f1_no_pcr": 0.821917808219178,
+      "f1_macro": 0.4657534246575342,
+      "accuracy": 0.7031963470319634,
+      "VP": 4,
+      "VN": 150,
+      "FP": 7,
+      "FN": 58,
+      "epocas_entrenadas": 6,
+      "segundos_por_epoca": 32.02582100816653
+    }
+  ],
+  "media_desviacion": {
+    "epoca": {
+      "media": 6.0,
+      "desviacion": 0.0
+    },
+    "auc_val": {
+      "media": 0.5649132904721107,
+      "desviacion": 0.039879774032969176
+    },
+    "auc_train": {
+      "media": 0.6710927505991912,
+      "desviacion": 0.049477936192688685
+    },
+    "diferencia_auc": {
+      "media": 0.10617946012708028,
+      "desviacion": 0.08156697663704147
+    },
+    "sensibilidad": {
+      "media": 0.0672677920539457,
+      "desviacion": 0.03453224710294528
+    },
+    "especificidad": {
+      "media": 0.9667606286087634,
+      "desviacion": 0.014838943997221458
+    },
+    "precision_pcr": {
+      "media": 0.4550505050505051,
+      "desviacion": 0.13245424927192317
+    },
+    "f1_pcr": {
+      "media": 0.11531662665432511,
+      "desviacion": 0.05586979885761319
+    },
+    "f1_no_pcr": {
+      "media": 0.8207051294510214,
+      "desviacion": 0.01930483876657589
+    },
+    "f1_macro": {
+      "media": 0.4680108780526733,
+      "desviacion": 0.03731757961175431
+    },
+    "accuracy": {
+      "media": 0.701917808219178,
+      "desviacion": 0.029690779682773023
+    },
+    "segundos_por_epoca": {
+      "media": 32.05743205033341,
+      "desviacion": 0.0676266458066093
+    }
+  },
+  "fuera_de_fold": {
+    "pacientes": 1097,
+    "agregacion": "mean",
+    "umbral": 0.5,
+    "auc": 0.551488679623322,
+    "matriz_confusion": {
+      "VP": 21,
+      "VN": 749,
+      "FP": 26,
+      "FN": 301
+    },
+    "sensibilidad": 0.06521739130434782,
+    "especificidad": 0.9664516129032258,
+    "precision_pcr": 0.44680851063829785,
+    "recall_pcr": 0.06521739130434782,
+    "f1_pcr": 0.11382113821138211,
+    "precision_no_pcr": 0.7133333333333334,
+    "recall_no_pcr": 0.9664516129032258,
+    "f1_no_pcr": 0.8208219178082192,
+    "f1_macro": 0.46732152800980065,
+    "accuracy": 0.7019143117593437,
+    "por_cohorte": {
+      "duke": {
+        "pacientes": 209,
+        "pcr": 44,
+        "auc": 0.5158402203856749
+      },
+      "spy1": {
+        "pacientes": 104,
+        "pcr": 26,
+        "auc": 0.5680473372781066
+      },
+      "spy2": {
+        "pacientes": 784,
+        "pcr": 252,
+        "auc": 0.5411743644826352
+      }
+    },
+    "senal_de_hospital": {
+      "duke": 0.39337363679468945,
+      "spy1": 0.2831164303973972,
+      "spy2": 0.6719167699028494
+    },
+    "referencias_triviales": {
+      "siempre_no_pcr": {
+        "matriz_confusion": {
+          "VP": 0,
+          "VN": 775,
+          "FP": 0,
+          "FN": 322
+        },
+        "precision_pcr": NaN,
+        "recall_pcr": 0.0,
+        "f1_pcr": 0.0,
+        "precision_no_pcr": 0.7064721969006381,
+        "recall_no_pcr": 1.0,
+        "f1_no_pcr": 0.8279914529914529,
+        "f1_macro": 0.41399572649572647,
+        "accuracy": 0.7064721969006381,
+        "auc": 0.5
+      },
+      "siempre_pcr": {
+        "matriz_confusion": {
+          "VP": 322,
+          "VN": 0,
+          "FP": 775,
+          "FN": 0
+        },
+        "precision_pcr": 0.2935278030993619,
+        "recall_pcr": 1.0,
+        "f1_pcr": 0.45384073291050037,
+        "precision_no_pcr": NaN,
+        "recall_no_pcr": 0.0,
+        "f1_no_pcr": 0.0,
+        "f1_macro": 0.22692036645525018,
+        "accuracy": 0.2935278030993619,
+        "auc": 0.5
+      }
+    }
+  }
+}

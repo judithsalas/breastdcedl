@@ -1,0 +1,969 @@
+{
+  "fecha": "2026-10-28T21:31:47+01:00",
+  "version": "conjunto de 6 CNN",
+  "versiones": [
+    "cnn_v3",
+    "cnn_v4",
+    "cnn_v5",
+    "cnn_v6",
+    "cnn_v7",
+    "cnn_v10"
+  ],
+  "eleccion": {
+    "version": "conjunto de 6 CNN",
+    "versiones": [
+      "cnn_v3",
+      "cnn_v4",
+      "cnn_v5",
+      "cnn_v6",
+      "cnn_v7",
+      "cnn_v10"
+    ],
+    "motivo_version": "todas las versiones con validación cruzada completa que no sobreajustan (diferencia ≤ 0,15): cnn_v3, cnn_v4, cnn_v5, cnn_v6, cnn_v7, cnn_v10",
+    "excluidas": {},
+    "auc_val_versiones": {
+      "cnn_v3": 0.548935,
+      "cnn_v4": 0.549108,
+      "cnn_v5": 0.541844,
+      "cnn_v6": 0.564913,
+      "cnn_v7": 0.552238,
+      "cnn_v10": 0.546796
+    },
+    "diferencia_versiones": {
+      "cnn_v3": 0.117135,
+      "cnn_v4": 0.111045,
+      "cnn_v5": 0.118667,
+      "cnn_v6": 0.106179,
+      "cnn_v7": 0.0986084,
+      "cnn_v10": 0.0922063
+    },
+    "perdida": "normal",
+    "motivo_perdida": "las versiones se compararon con la pérdida normal; con cnn_v3, la ponderada da el mismo AUC (rúbrica, punto 6)"
+  },
+  "validacion_cruzada": [
+    "20261028-195129_cv_cnn_v3_fijo",
+    "20261028-211140_cv_cnn_v4_fijo",
+    "20261028-205529_cv_cnn_v5_fijo",
+    "20261028-202321_cv_cnn_v6_fijo",
+    "20261028-203931_cv_cnn_v7_fijo",
+    "20261028-200725_cv_cnn_v10_fijo"
+  ],
+  "miembros": [
+    {
+      "version": "cnn_v3",
+      "validacion_cruzada": "20261028-195129_cv_cnn_v3_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "entrenamiento": {
+          "aumento": "geometrico"
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0
+      },
+      "receta": {
+        "aumento": "geometrico",
+        "optimizador": "adam",
+        "weight_decay": 0.0,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+      },
+      "parametros": 97809,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.548935258610831,
+      "auc_val_desviacion": 0.03835239263941796,
+      "auc_train_media": 0.666070541137099,
+      "diferencia_media": 0.11713528252626786,
+      "pesos": [
+        {
+          "fichero": "cnn_v3/fold_0.pt",
+          "sha256": "bc6f3afbbc520a65b8e870389b574ac42cfe1e6d02899d105aa2640a52d46123",
+          "epoca": 6,
+          "auc_val_fold": 0.5083669354838709
+        },
+        {
+          "fichero": "cnn_v3/fold_1.pt",
+          "sha256": "e04604728c5e7f3793812290692ca91b6a68a2cf6fc2e6053a3fc0729fe90011",
+          "epoca": 6,
+          "auc_val_fold": 0.536059174029176
+        },
+        {
+          "fichero": "cnn_v3/fold_2.pt",
+          "sha256": "56f7213320577e68bcea89677b6f20e995a3d2397492be624f75d29e58937bc7",
+          "epoca": 6,
+          "auc_val_fold": 0.5627960837982946
+        },
+        {
+          "fichero": "cnn_v3/fold_3.pt",
+          "sha256": "508506543f3f1c9b046350522a5766bd2546a9115458709241a4e5d552e48c00",
+          "epoca": 6,
+          "auc_val_fold": 0.5293793103448275
+        },
+        {
+          "fichero": "cnn_v3/fold_4.pt",
+          "sha256": "5eff588459aaf7daba18a714cdda8d846fa0ded4f3654c593998d4fd67a9ffb1",
+          "epoca": 6,
+          "auc_val_fold": 0.6080747893979865
+        }
+      ]
+    },
+    {
+      "version": "cnn_v4",
+      "validacion_cruzada": "20261028-211140_cv_cnn_v4_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "entrada": "fases+realce",
+        "entrenamiento": {
+          "aumento": "geometrico"
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "entrada": "fases+realce"
+      },
+      "receta": {
+        "aumento": "geometrico",
+        "optimizador": "adam",
+        "weight_decay": 0.0,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+      },
+      "parametros": 98097,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.5491084469558026,
+      "auc_val_desviacion": 0.04863515108289055,
+      "auc_train_media": 0.6601529500604448,
+      "diferencia_media": 0.11104450310464216,
+      "pesos": [
+        {
+          "fichero": "cnn_v4/fold_0.pt",
+          "sha256": "06f5a47671e156ca543b771b7fff7c1c75fb7ae8d88355d162cc4b7e59fdf0f6",
+          "epoca": 6,
+          "auc_val_fold": 0.5196572580645161
+        },
+        {
+          "fichero": "cnn_v4/fold_1.pt",
+          "sha256": "42ae3f4d6ac40e0ab00c236712f0a18d46c2f45b6afa0a1fc883365ec3a3a8fd",
+          "epoca": 6,
+          "auc_val_fold": 0.550955414012739
+        },
+        {
+          "fichero": "cnn_v4/fold_2.pt",
+          "sha256": "396575763d685c5abac2abf91845deda61262a086323f3d6cc8bebca647a462f",
+          "epoca": 6,
+          "auc_val_fold": 0.5620591641225393
+        },
+        {
+          "fichero": "cnn_v4/fold_3.pt",
+          "sha256": "24b64e8bda0cb2d41b88b162ea595b75c2e886c6a7f7074e6de0170ae895dc00",
+          "epoca": 6,
+          "auc_val_fold": 0.4919540229885057
+        },
+        {
+          "fichero": "cnn_v4/fold_4.pt",
+          "sha256": "b7bc50ca7c80ad1fd7f6564de193b2599e997a5f099b8d39974a4ce1fcfe5d09",
+          "epoca": 6,
+          "auc_val_fold": 0.620916375590713
+        }
+      ]
+    },
+    {
+      "version": "cnn_v5",
+      "validacion_cruzada": "20261028-205529_cv_cnn_v5_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "normalizacion": "pre",
+        "entrenamiento": {
+          "aumento": "geometrico"
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "normalizacion": "pre"
+      },
+      "receta": {
+        "aumento": "geometrico",
+        "optimizador": "adam",
+        "weight_decay": 0.0,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+      },
+      "parametros": 97809,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.5418444560351944,
+      "auc_val_desviacion": 0.05535838921385378,
+      "auc_train_media": 0.6605115860419324,
+      "diferencia_media": 0.11866713000673808,
+      "pesos": [
+        {
+          "fichero": "cnn_v5/fold_0.pt",
+          "sha256": "94a6dd0cbdc740f636dd65225a1ef3120f0e6d122d9e24c3698fdce753262a0c",
+          "epoca": 6,
+          "auc_val_fold": 0.4960685483870968
+        },
+        {
+          "fichero": "cnn_v5/fold_1.pt",
+          "sha256": "ee169b55641728979183ef3599539ed1380077b35dfe090aa39ae69afc4d37eb",
+          "epoca": 6,
+          "auc_val_fold": 0.49537702897061847
+        },
+        {
+          "fichero": "cnn_v5/fold_2.pt",
+          "sha256": "9dc6308fb129acb8255b0ae742357afdecb24015f75aa0ee321a59171e585b87",
+          "epoca": 6,
+          "auc_val_fold": 0.5352142330771661
+        },
+        {
+          "fichero": "cnn_v5/fold_3.pt",
+          "sha256": "dd1e867a7f3837fa0604ced3a1944004250a178a32860a0d2f622b44e824ed0e",
+          "epoca": 6,
+          "auc_val_fold": 0.5520919540229885
+        },
+        {
+          "fichero": "cnn_v5/fold_4.pt",
+          "sha256": "ddca3039ad440b9708c724bd70f572e2c3f041457dff2aa6fc145b9e3f610656",
+          "epoca": 6,
+          "auc_val_fold": 0.6304705157181016
+        }
+      ]
+    },
+    {
+      "version": "cnn_v6",
+      "validacion_cruzada": "20261028-202321_cv_cnn_v6_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "atencion",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "entrenamiento": {
+          "aumento": "geometrico"
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "atencion",
+        "cabeza_oculta": null,
+        "dropout": 0.0
+      },
+      "receta": {
+        "aumento": "geometrico",
+        "optimizador": "adam",
+        "weight_decay": 0.0,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+      },
+      "parametros": 101970,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.5649132904721107,
+      "auc_val_desviacion": 0.039879774032969176,
+      "auc_train_media": 0.6710927505991912,
+      "diferencia_media": 0.10617946012708028,
+      "pesos": [
+        {
+          "fichero": "cnn_v6/fold_0.pt",
+          "sha256": "3a8c4d4cc9180651f51e2e4dd8cafa6601e5d26ddd48d15ee32ddae9ee1d5e7c",
+          "epoca": 6,
+          "auc_val_fold": 0.5492943548387097
+        },
+        {
+          "fichero": "cnn_v6/fold_1.pt",
+          "sha256": "ab8aa68330e9f11eb0d3c61c716d3844df7cf01d48bcf21f5873767b6df61e6d",
+          "epoca": 6,
+          "auc_val_fold": 0.5571193753852476
+        },
+        {
+          "fichero": "cnn_v6/fold_2.pt",
+          "sha256": "4430aef08395cd363185b5bda27a67ea331d7864cfb8f628fbbd92287b4ac5b2",
+          "epoca": 6,
+          "auc_val_fold": 0.6072218128224024
+        },
+        {
+          "fichero": "cnn_v6/fold_3.pt",
+          "sha256": "d11280ef9af2bd01c0cdde1304cb9881ee749ad9f8aab7ed0c31ffe3003be65e",
+          "epoca": 6,
+          "auc_val_fold": 0.5102528735632184
+        },
+        {
+          "fichero": "cnn_v6/fold_4.pt",
+          "sha256": "9afba15218b1870d54a53bb057af4d21c8fdfd77e49b6b8071eac43bf95c5fac",
+          "epoca": 6,
+          "auc_val_fold": 0.600678035750976
+        }
+      ]
+    },
+    {
+      "version": "cnn_v7",
+      "validacion_cruzada": "20261028-203931_cv_cnn_v7_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.3,
+        "entrenamiento": {
+          "aumento": "geometrico",
+          "optimizador": "adamw",
+          "weight_decay": 0.05
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.3
+      },
+      "receta": {
+        "aumento": "geometrico",
+        "optimizador": "adamw",
+        "weight_decay": 0.05,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5})"
+      },
+      "parametros": 97809,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.5522378318596213,
+      "auc_val_desviacion": 0.04864268422335134,
+      "auc_train_media": 0.6508462789793203,
+      "diferencia_media": 0.0986084471196991,
+      "pesos": [
+        {
+          "fichero": "cnn_v7/fold_0.pt",
+          "sha256": "264ab64d681b7a1b9034fc334954beecb5671b632dbba22c122abb9f1ec55844",
+          "epoca": 6,
+          "auc_val_fold": 0.5384072580645161
+        },
+        {
+          "fichero": "cnn_v7/fold_1.pt",
+          "sha256": "05b056ce4197f709fb80158629c1a2dce7878c86ad82c778143a305a9b9d0e74",
+          "epoca": 6,
+          "auc_val_fold": 0.5483870967741936
+        },
+        {
+          "fichero": "cnn_v7/fold_2.pt",
+          "sha256": "59b51dc40f1dd0016a54b08fc337d5ebce28f4a4c3110dbf33ae7a4b0cc049cb",
+          "epoca": 6,
+          "auc_val_fold": 0.5594273081376987
+        },
+        {
+          "fichero": "cnn_v7/fold_3.pt",
+          "sha256": "14477a970dad103ef5d90de3d6019e2f7e396c07ad31c9446fc03974c10b3060",
+          "epoca": 6,
+          "auc_val_fold": 0.48983908045977015
+        },
+        {
+          "fichero": "cnn_v7/fold_4.pt",
+          "sha256": "34d4b6a4a741d0b6414dea791cc8be582488c870c5966eaef97786f590c17ffe",
+          "epoca": 6,
+          "auc_val_fold": 0.6251284158619274
+        }
+      ]
+    },
+    {
+      "version": "cnn_v10",
+      "validacion_cruzada": "20261028-200725_cv_cnn_v10_fijo",
+      "definicion": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0,
+        "entrenamiento": {
+          "aumento": "geometrico+giros90"
+        }
+      },
+      "arquitectura": {
+        "filtros": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel": 3,
+        "convs_por_bloque": 1,
+        "pooling": "max",
+        "batchnorm": true,
+        "resumen": "global",
+        "cabeza_oculta": null,
+        "dropout": 0.0
+      },
+      "receta": {
+        "aumento": "geometrico+giros90",
+        "optimizador": "adam",
+        "weight_decay": 0.0,
+        "recorte": null,
+        "learning_rate": null,
+        "cortes_por_paciente": null,
+        "programador": null,
+        "detalle_aumento": "AumentoGeometrico({'grados': 10.0, 'desplazamiento': 0.04, 'escala': [0.95, 1.05], 'p_volteo': 0.5, 'giros90': True})"
+      },
+      "parametros": 97809,
+      "config": {
+        "modo": "fijo",
+        "n_pacientes": null,
+        "fold_val": 0,
+        "batch_size": 32,
+        "epocas_max": 6,
+        "paciencia": 6,
+        "learning_rate": 0.001,
+        "pacientes_auc_train": 220,
+        "semilla": 42,
+        "num_workers": 2,
+        "eleccion_epoca": "ultima"
+      },
+      "maquina": {
+        "dispositivo": "cuda",
+        "sistema": "Linux 7.0.0-38-generic",
+        "maquina": "pc0503",
+        "python": "3.12.14",
+        "torch": "2.14.0+rocm7.14",
+        "backend": "rocm 7.14.60850",
+        "gpu": "AMD Radeon RX 6700 XT",
+        "vram_gb": 12.0
+      },
+      "auc_val_media": 0.546795713741283,
+      "auc_val_desviacion": 0.03572213774772297,
+      "auc_train_media": 0.6390019775935363,
+      "diferencia_media": 0.09220626385225321,
+      "pesos": [
+        {
+          "fichero": "cnn_v10/fold_0.pt",
+          "sha256": "a92ec91a5892530d58f237601c1f4e49dc361d7cae0eb13f28a2ce5c71fc2860",
+          "epoca": 6,
+          "auc_val_fold": 0.5210685483870967
+        },
+        {
+          "fichero": "cnn_v10/fold_1.pt",
+          "sha256": "ac590f3bc8b04160531c74854fde53a86550b67253efd0ac7ac2a04f65760d01",
+          "epoca": 6,
+          "auc_val_fold": 0.5302034107252928
+        },
+        {
+          "fichero": "cnn_v10/fold_2.pt",
+          "sha256": "f1437dad11b1e31f84f3551843f758ef95cfb0e60fa147420937a7002ee54d16",
+          "epoca": 6,
+          "auc_val_fold": 0.5590062111801242
+        },
+        {
+          "fichero": "cnn_v10/fold_3.pt",
+          "sha256": "be8390e719ede5704255e60dea55e29bd0d050e0ac436f60b0327687bd3a9b9b",
+          "epoca": 6,
+          "auc_val_fold": 0.519632183908046
+        },
+        {
+          "fichero": "cnn_v10/fold_4.pt",
+          "sha256": "6250d90f4af375df3f55b08d0fc065a5c32c4d6df88e0275992cc7a1b89adc97",
+          "epoca": 6,
+          "auc_val_fold": 0.6040682145058558
+        }
+      ]
+    }
+  ],
+  "receta": null,
+  "entrada": "3 PNG en gris de 8 bits (PRE, EARLY, LATE), 256×256, divididos entre 255 → [0, 1]",
+  "conjunto": "media de los logits de los 5 modelos de cada versión (uno por fold) y media entre las 6 versiones: 30 CNN propias desde cero",
+  "calibracion": {
+    "a": 0.1865455673450981,
+    "b": -0.6880873427695147,
+    "metodo": "Platt (regresión logística sobre el logit de cada corte)"
+  },
+  "agregacion": "media de las probabilidades de los cortes de una paciente",
+  "umbral": 0.30691576119190556,
+  "criterio_umbral": "máxima sensibilidad con especificidad ≥ 0,80",
+  "pesos": [
+    {
+      "fichero": "cnn_v3/fold_0.pt",
+      "sha256": "bc6f3afbbc520a65b8e870389b574ac42cfe1e6d02899d105aa2640a52d46123",
+      "epoca": 6,
+      "auc_val_fold": 0.5083669354838709
+    },
+    {
+      "fichero": "cnn_v3/fold_1.pt",
+      "sha256": "e04604728c5e7f3793812290692ca91b6a68a2cf6fc2e6053a3fc0729fe90011",
+      "epoca": 6,
+      "auc_val_fold": 0.536059174029176
+    },
+    {
+      "fichero": "cnn_v3/fold_2.pt",
+      "sha256": "56f7213320577e68bcea89677b6f20e995a3d2397492be624f75d29e58937bc7",
+      "epoca": 6,
+      "auc_val_fold": 0.5627960837982946
+    },
+    {
+      "fichero": "cnn_v3/fold_3.pt",
+      "sha256": "508506543f3f1c9b046350522a5766bd2546a9115458709241a4e5d552e48c00",
+      "epoca": 6,
+      "auc_val_fold": 0.5293793103448275
+    },
+    {
+      "fichero": "cnn_v3/fold_4.pt",
+      "sha256": "5eff588459aaf7daba18a714cdda8d846fa0ded4f3654c593998d4fd67a9ffb1",
+      "epoca": 6,
+      "auc_val_fold": 0.6080747893979865
+    },
+    {
+      "fichero": "cnn_v4/fold_0.pt",
+      "sha256": "06f5a47671e156ca543b771b7fff7c1c75fb7ae8d88355d162cc4b7e59fdf0f6",
+      "epoca": 6,
+      "auc_val_fold": 0.5196572580645161
+    },
+    {
+      "fichero": "cnn_v4/fold_1.pt",
+      "sha256": "42ae3f4d6ac40e0ab00c236712f0a18d46c2f45b6afa0a1fc883365ec3a3a8fd",
+      "epoca": 6,
+      "auc_val_fold": 0.550955414012739
+    },
+    {
+      "fichero": "cnn_v4/fold_2.pt",
+      "sha256": "396575763d685c5abac2abf91845deda61262a086323f3d6cc8bebca647a462f",
+      "epoca": 6,
+      "auc_val_fold": 0.5620591641225393
+    },
+    {
+      "fichero": "cnn_v4/fold_3.pt",
+      "sha256": "24b64e8bda0cb2d41b88b162ea595b75c2e886c6a7f7074e6de0170ae895dc00",
+      "epoca": 6,
+      "auc_val_fold": 0.4919540229885057
+    },
+    {
+      "fichero": "cnn_v4/fold_4.pt",
+      "sha256": "b7bc50ca7c80ad1fd7f6564de193b2599e997a5f099b8d39974a4ce1fcfe5d09",
+      "epoca": 6,
+      "auc_val_fold": 0.620916375590713
+    },
+    {
+      "fichero": "cnn_v5/fold_0.pt",
+      "sha256": "94a6dd0cbdc740f636dd65225a1ef3120f0e6d122d9e24c3698fdce753262a0c",
+      "epoca": 6,
+      "auc_val_fold": 0.4960685483870968
+    },
+    {
+      "fichero": "cnn_v5/fold_1.pt",
+      "sha256": "ee169b55641728979183ef3599539ed1380077b35dfe090aa39ae69afc4d37eb",
+      "epoca": 6,
+      "auc_val_fold": 0.49537702897061847
+    },
+    {
+      "fichero": "cnn_v5/fold_2.pt",
+      "sha256": "9dc6308fb129acb8255b0ae742357afdecb24015f75aa0ee321a59171e585b87",
+      "epoca": 6,
+      "auc_val_fold": 0.5352142330771661
+    },
+    {
+      "fichero": "cnn_v5/fold_3.pt",
+      "sha256": "dd1e867a7f3837fa0604ced3a1944004250a178a32860a0d2f622b44e824ed0e",
+      "epoca": 6,
+      "auc_val_fold": 0.5520919540229885
+    },
+    {
+      "fichero": "cnn_v5/fold_4.pt",
+      "sha256": "ddca3039ad440b9708c724bd70f572e2c3f041457dff2aa6fc145b9e3f610656",
+      "epoca": 6,
+      "auc_val_fold": 0.6304705157181016
+    },
+    {
+      "fichero": "cnn_v6/fold_0.pt",
+      "sha256": "3a8c4d4cc9180651f51e2e4dd8cafa6601e5d26ddd48d15ee32ddae9ee1d5e7c",
+      "epoca": 6,
+      "auc_val_fold": 0.5492943548387097
+    },
+    {
+      "fichero": "cnn_v6/fold_1.pt",
+      "sha256": "ab8aa68330e9f11eb0d3c61c716d3844df7cf01d48bcf21f5873767b6df61e6d",
+      "epoca": 6,
+      "auc_val_fold": 0.5571193753852476
+    },
+    {
+      "fichero": "cnn_v6/fold_2.pt",
+      "sha256": "4430aef08395cd363185b5bda27a67ea331d7864cfb8f628fbbd92287b4ac5b2",
+      "epoca": 6,
+      "auc_val_fold": 0.6072218128224024
+    },
+    {
+      "fichero": "cnn_v6/fold_3.pt",
+      "sha256": "d11280ef9af2bd01c0cdde1304cb9881ee749ad9f8aab7ed0c31ffe3003be65e",
+      "epoca": 6,
+      "auc_val_fold": 0.5102528735632184
+    },
+    {
+      "fichero": "cnn_v6/fold_4.pt",
+      "sha256": "9afba15218b1870d54a53bb057af4d21c8fdfd77e49b6b8071eac43bf95c5fac",
+      "epoca": 6,
+      "auc_val_fold": 0.600678035750976
+    },
+    {
+      "fichero": "cnn_v7/fold_0.pt",
+      "sha256": "264ab64d681b7a1b9034fc334954beecb5671b632dbba22c122abb9f1ec55844",
+      "epoca": 6,
+      "auc_val_fold": 0.5384072580645161
+    },
+    {
+      "fichero": "cnn_v7/fold_1.pt",
+      "sha256": "05b056ce4197f709fb80158629c1a2dce7878c86ad82c778143a305a9b9d0e74",
+      "epoca": 6,
+      "auc_val_fold": 0.5483870967741936
+    },
+    {
+      "fichero": "cnn_v7/fold_2.pt",
+      "sha256": "59b51dc40f1dd0016a54b08fc337d5ebce28f4a4c3110dbf33ae7a4b0cc049cb",
+      "epoca": 6,
+      "auc_val_fold": 0.5594273081376987
+    },
+    {
+      "fichero": "cnn_v7/fold_3.pt",
+      "sha256": "14477a970dad103ef5d90de3d6019e2f7e396c07ad31c9446fc03974c10b3060",
+      "epoca": 6,
+      "auc_val_fold": 0.48983908045977015
+    },
+    {
+      "fichero": "cnn_v7/fold_4.pt",
+      "sha256": "34d4b6a4a741d0b6414dea791cc8be582488c870c5966eaef97786f590c17ffe",
+      "epoca": 6,
+      "auc_val_fold": 0.6251284158619274
+    },
+    {
+      "fichero": "cnn_v10/fold_0.pt",
+      "sha256": "a92ec91a5892530d58f237601c1f4e49dc361d7cae0eb13f28a2ce5c71fc2860",
+      "epoca": 6,
+      "auc_val_fold": 0.5210685483870967
+    },
+    {
+      "fichero": "cnn_v10/fold_1.pt",
+      "sha256": "ac590f3bc8b04160531c74854fde53a86550b67253efd0ac7ac2a04f65760d01",
+      "epoca": 6,
+      "auc_val_fold": 0.5302034107252928
+    },
+    {
+      "fichero": "cnn_v10/fold_2.pt",
+      "sha256": "f1437dad11b1e31f84f3551843f758ef95cfb0e60fa147420937a7002ee54d16",
+      "epoca": 6,
+      "auc_val_fold": 0.5590062111801242
+    },
+    {
+      "fichero": "cnn_v10/fold_3.pt",
+      "sha256": "be8390e719ede5704255e60dea55e29bd0d050e0ac436f60b0327687bd3a9b9b",
+      "epoca": 6,
+      "auc_val_fold": 0.519632183908046
+    },
+    {
+      "fichero": "cnn_v10/fold_4.pt",
+      "sha256": "6250d90f4af375df3f55b08d0fc065a5c32c4d6df88e0275992cc7a1b89adc97",
+      "epoca": 6,
+      "auc_val_fold": 0.6040682145058558
+    }
+  ],
+  "entrenamiento": {
+    "perdida": "normal",
+    "config": {
+      "modo": "fijo",
+      "n_pacientes": null,
+      "fold_val": 0,
+      "batch_size": 32,
+      "epocas_max": 6,
+      "paciencia": 6,
+      "learning_rate": 0.001,
+      "pacientes_auc_train": 220,
+      "semilla": 42,
+      "num_workers": 2,
+      "eleccion_epoca": "ultima"
+    },
+    "parametros": 591303,
+    "parametros_por_version": {
+      "cnn_v3": 97809,
+      "cnn_v4": 98097,
+      "cnn_v5": 97809,
+      "cnn_v6": 101970,
+      "cnn_v7": 97809,
+      "cnn_v10": 97809
+    },
+    "redes": 30,
+    "maquina": {
+      "dispositivo": "cuda",
+      "sistema": "Linux 7.0.0-38-generic",
+      "maquina": "pc0503",
+      "python": "3.12.14",
+      "torch": "2.14.0+rocm7.14",
+      "backend": "rocm 7.14.60850",
+      "gpu": "AMD Radeon RX 6700 XT",
+      "vram_gb": 12.0
+    }
+  },
+  "metricas_internas": {
+    "auc_val_media": 0.5538055472909356,
+    "auc_val_desviacion": 0.04258184257012439,
+    "auc_val_por_fold": [
+      0.5255040322580645,
+      0.5384220258886377,
+      0.5752184440467418,
+      0.5124597701149425,
+      0.6174234641462913
+    ],
+    "auc_train_media": 0.6579460140685872,
+    "diferencia_media": 0.10730684778944677,
+    "nota_train": "AUC de entrenamiento y diferencia: media de las versiones del conjunto (cada una se midió en su validación cruzada)",
+    "fuera_de_fold": {
+      "auc": {
+        "auc": 0.5464556201162092,
+        "ic95": [
+          0.5100468150006584,
+          0.5844696350926644
+        ]
+      },
+      "sensibilidad": 0.2826086956521739,
+      "especificidad": 0.8012903225806451,
+      "precision_pcr": 0.37142857142857144,
+      "precision_no_pcr": 0.7288732394366197,
+      "f1_pcr": 0.32098765432098764,
+      "f1_no_pcr": 0.7633681622618316,
+      "f1_macro": 0.5421779082914095,
+      "accuracy": 0.6490428441203282,
+      "matriz_confusion": {
+        "VP": 91,
+        "VN": 621,
+        "FP": 154,
+        "FN": 231
+      }
+    },
+    "brier_calibrado": 0.20675362095256133
+  },
+  "huella_modelo": "86efe7b4b112"
+}
