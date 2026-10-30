@@ -17,13 +17,13 @@ Qué comprueba y por qué:
 4. Orden de las fases: en el tejido debe cumplirse PRE < EARLY (el contraste ilumina). Si no,
    las fases estarían mal leídas. Y cuántas pacientes tienen lavado (LATE < EARLY).
 5. Intensidades por cohorte: si una cohorte es más brillante o realza distinto, la red podría
-   aprender a reconocer el hospital en lugar del tumor (sesgo que el enunciado pide discutir).
+   aprender a reconocer la cohorte en lugar del tumor (sesgo que el enunciado pide discutir).
 6. Realce por clase: si un indicador hecho a mano (realce medio en el tejido) ya separa algo las
    clases, hay señal en la imagen; su AUC es otra referencia para la CNN.
 7. Ejemplos: un corte de una paciente con pCR y otra sin pCR de cada cohorte, con las tres fases
    y el mapa de realce (la guía pide mirarlas antes de programar).
-8. Orientación: el corte central de 10 pacientes al azar por cohorte. Cada hospital orienta la
-   mama a su manera, y eso es una pista del hospital que la red puede usar (D29).
+8. Orientación: el corte central de 10 pacientes al azar por cohorte. Cada cohorte orienta la
+   mama a su manera, y eso es una pista de la cohorte que la red puede usar (D29).
 
 Solo se usan etiquetas de TRAIN para cualquier cosa que mezcle imagen y clase. De test solo se
 cuentan pacientes y cortes (describir su composición no es ajustar nada).
@@ -291,9 +291,9 @@ def figura_orientacion(samples_tr: pd.DataFrame, pac: pd.DataFrame, ruta: Path, 
                        semilla: int = 0, raiz: Path = RAIZ_DATOS) -> Path | None:
     """EARLY del corte central de `por_cohorte` pacientes al azar de cada cohorte, en una fila por cohorte.
 
-    Sirve para ver cómo orienta la mama cada hospital. En la revisión del 2026-10-21 (D29), en
+    Sirve para ver cómo orienta la mama cada cohorte. En la revisión del 2026-10-21 (D29), en
     I-SPY1 apunta hacia abajo y en I-SPY2 y Duke a la izquierda o a la derecha: la orientación
-    delata el hospital y no dice nada del tumor. Con semilla 0 salen las mismas pacientes que
+    delata la cohorte y no dice nada del tumor. Con semilla 0 salen las mismas pacientes que
     en el mosaico de esa revisión.
     """
     cortes = samples_tr[samples_tr.patient_id.isin(pac.index)]
@@ -347,8 +347,9 @@ def informe(datos: dict) -> str:
     ]
     for split, v in r["por_split"].items():
         lineas.append(f"| {split} | {v['pacientes']} | {v['cortes']} | {v['pacientes_pcr']} ({_pct(v['proporcion_pcr'])}) |")
-    lineas += ["", f"Decir siempre «no pCR» acierta el {_pct(r['siempre_no_pcr_accuracy'])} de las pacientes: la",
-               "accuracy no sirve como métrica principal.", "", "**Por cohorte:**", "",
+    lineas += ["", (f"Decir siempre «no pCR» acierta el {_pct(1 - r['por_split']['train']['proporcion_pcr'])} "
+                    f"de las pacientes de train (el {_pct(r['siempre_no_pcr_accuracy'])} contando también las de "
+                    "test): la accuracy no sirve como métrica principal."), "", "**Por cohorte:**", "",
                "| Conjunto | Cohorte | Pacientes | Proporción de pCR |", "|---|---|---|---|"]
     for c in r["por_cohorte"]:
         lineas.append(f"| {c['split']} | {NOMBRE_COHORTE.get(c['cohorte'], c['cohorte'])} | {c['pacientes']} "
@@ -405,14 +406,14 @@ def informe(datos: dict) -> str:
             lineas.append(f"| {nombre} | " + " | ".join(celdas) + " |")
         lineas += ["", "![Intensidades por cohorte](intensidades.png)", "",
                    "![Ejemplos por cohorte y clase](ejemplos.png)", "",
-                   "**Orientación por cohorte.** Cada hospital orienta la mama a su manera. En la revisión del",
+                   "**Orientación por cohorte.** Cada cohorte orienta la mama a su manera. En la revisión del",
                    "2026-10-21, en I-SPY1 apunta hacia abajo en las 10 pacientes; en I-SPY2 y Duke, a la izquierda",
                    "o a la derecha, y en Duke y algunas de I-SPY2 se ven el corazón y los pulmones (otro plano de",
-                   "corte). La orientación no dice nada del tumor, pero sí del hospital (D29).", "",
+                   "corte). La orientación no dice nada del tumor, pero sí de la cohorte.", "",
                    "![Orientación por cohorte](orientacion.png)"]
     lineas += ["", "## Cómo leer esto", "",
-               "- Si las cohortes difieren mucho en intensidad o realce, la red puede aprender a reconocer el",
-               "  hospital. Por eso se miran los resultados por cohorte (rúbrica, punto 9) y se compara con la",
+               "- Si las cohortes difieren mucho en intensidad o realce, la red puede aprender a reconocer la",
+               "  cohorte. Por eso se miran los resultados por cohorte (rúbrica, punto 9) y se compara con la",
                "  referencia «solo cohorte».",
                "- Si un indicador hecho a mano ya da un AUC claramente por encima de 0,5, hay señal en el",
                "  realce y la CNN debería superarlo.",

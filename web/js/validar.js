@@ -1,6 +1,6 @@
 // Validación de las 3 fases de un corte en la app web (D38): la misma que src/data/entrada.py.
 //
-// Mismas reglas, en el mismo orden y con los mismos mensajes. tests/test_web.py lo comprueba: pasa por
+// Mismas reglas, en el mismo orden y con los mismos mensajes. Un test local (tests/, no se sube) lo comprueba: pasa por
 // aquí (con Node) y por entrada.py los mismos ficheros, válidos e inválidos, y exige los mismos errores,
 // los mismos avisos y los mismos píxeles.
 //

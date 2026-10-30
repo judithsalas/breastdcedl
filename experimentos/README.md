@@ -8,7 +8,7 @@ local; aquí se copian sin cambiar nada.
 
 Cada una es la validación cruzada de una versión en los 5 folds, en modo `fijo`: 6 épocas y se
 usa la última, sin elegirla con la validación. Se lanzaron con `python -m src.training.experimento`
-(la sección `experimento` de `config.json`).
+(la sección `experimento` de `configs/config.json`).
 
 | Versión | Ejecución | AUC val (5 folds) | Train − val | Parámetros |
 |---|---|---|---|---|
@@ -43,7 +43,7 @@ Qué hay en cada carpeta:
   de arriba, guardados solos.
 
 Lo carga `src/models/final.py`, que comprueba el sha256 de cada fichero antes de usarlo. Lo usan
-la evaluación de test y las apps.
+la evaluación de test, `src.models.predecir` y la app web (exportado a ONNX).
 
 ## El modelo clínico: `modelo_clinico/`
 

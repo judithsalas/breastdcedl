@@ -1,9 +1,8 @@
 # DESIGN.md · App web de pCR en RM de mama
 
-Sistema de diseño de las tres páginas de `web/` (D43). Los valores viven en `estilos.css` como variables;
-las páginas usan los nombres, nunca valores sueltos. No se basó en una biblioteca de webs de referencia (no
-estaba conectada): sale del tema, de las convenciones de las estaciones de radiología y de las revisiones
-de diseño D41 y D42.
+Sistema de diseño de las tres páginas de `web/`. Los valores viven en `estilos.css` como variables;
+las páginas usan los nombres, nunca valores sueltos. Sale del tema, de las convenciones de las estaciones de
+lectura de radiología y de dos revisiones de diseño de la página publicada.
 
 ## Para quién y qué tiene que transmitir
 
@@ -22,7 +21,7 @@ de diseño D41 y D42.
 3. **Los colores de datos solo viven dentro de imágenes y gráficas** y cada uno significa una sola cosa.
 4. **Jerarquía de producto:** títulos contenidos, etiquetas en minúscula y datos alineados. Sin
    mayúsculas de adorno, sin «·» para unir datos y sin flechas en los textos.
-5. **Las dos clases se llaman siempre «pCR» y «no pCR»** (D47): en etiquetas, leyendas, matrices, tablas y
+5. **Las dos clases se llaman siempre «pCR» y «no pCR»**: en etiquetas, leyendas, matrices, tablas y
    textos («pacientes pCR», «pacientes no pCR»). Nunca «con pCR», «sin ella», «lograron pCR» ni «las demás».
 
 ## Color
@@ -112,17 +111,17 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 - **Visor:** datos en las cuatro esquinas sobre un velo oscuro degradado arriba y abajo, para que se lean
   sobre cualquier imagen.
 - **Miniaturas y selector de cortes:** imagen cuadrada, nombre debajo; elegida = contorno `--acento`.
-- **Por dónde empezar** (D49): bajo el título de Predicción, el botón principal «Subir un corte» y el enlace «o
+- **Por dónde empezar:** bajo el título de Predicción, el botón principal «Subir un corte» y el enlace «o
   elegir un ejemplo». En tablet y móvil, donde el título queda debajo del visor, el mismo par va encima de la
   imagen, con la línea que dice qué es. Es el único botón principal de la página.
-- **Huecos para subir un corte** (D47): tres recuadros en fila, PRE, EARLY y LATE, cada uno con su
+- **Huecos para subir un corte:** tres recuadros en fila, PRE, EARLY y LATE, cada uno con su
   monitor cuadrado, el nombre de la fase, qué momento es y el fichero. Vacío: borde discontinuo `--linea-2`
   e icono de subir; al arrastrar encima o al pasar el cursor, borde `--acento`; con imagen, borde continuo,
   la miniatura y un botón × redondo de 28 px. Debajo, una sola línea con lo que tiene que cumplir cada
   imagen y «Quitar las tres imágenes» (botón discreto). Sin explicaciones de nombres de fichero ni de cómo
-  valida la página (D48). El foco del teclado rodea todo el recuadro. Una imagen que no pasa la validación pone
-  su hueco con borde y nombre `--error` (D49).
-- **Carga sin saltos** (D49): una página que se dibuja con datos que llegan después (Resultados) se monta invisible
+  valida la página. El foco del teclado rodea todo el recuadro. Una imagen que no pasa la validación pone
+  su hueco con borde y nombre `--error`.
+- **Carga sin saltos:** una página que se dibuja con datos que llegan después (Resultados) se monta invisible
   (`data-cargando` en `body`, con una línea «Cargando…» bajo el título) y aparece de una vez.
 - **Pie:** aviso completo, el proyecto y los datos, en tres columnas.
 
@@ -142,4 +141,4 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 - Cada gráfica con nombre (`role="img"` y `aria-label`) y sus valores en una tabla («Ver los datos»).
 - Nada depende solo del color: leyendas y etiquetas directas en las gráficas, texto junto a cada clase.
 - Sin scroll horizontal a 320 px; sin animaciones si se piden menos (`prefers-reduced-motion`).
-- Se comprueba con axe-core y Playwright antes de publicar (D43).
+- Se comprueba con axe-core y Playwright antes de publicar (pruebas locales, que no se suben).

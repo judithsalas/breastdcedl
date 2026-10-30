@@ -20,7 +20,7 @@ principal, «App web»). Esta carpeta guarda lo que la página necesita para sus
 - [ ] `01_valido`: predice, y da la misma probabilidad que el pipeline (está en el LEEME).
 - [ ] Un corte de train que no sea de los ejemplos, subido a mano: mismo resultado que
       `python -m src.models.predecir <PRE> <EARLY> <LATE>`.
-- [ ] `02_dos_fases` → "Falta la fase LATE".
+- [ ] `02_dos_fases` → coloca las dos imágenes y dice "Falta LATE: pon esa imagen en su hueco."
 - [ ] `03_misma_imagen_dos_veces` → "Dos de los ficheros son idénticos".
 - [ ] `04_jpg_renombrado` → "no es un PNG".
 - [ ] `05_png_en_color` y `06_otro_tamano` → mensaje de modo o de tamaño.

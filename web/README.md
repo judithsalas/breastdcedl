@@ -32,7 +32,8 @@ Tres páginas:
   `python -m src.models.exportar_web`. Lleva dentro la normalización del entrenamiento (dividir entre 255), las
   30 redes, la media de logits y la calibración. Antes de publicarlo se comprueba que da lo mismo que PyTorch.
 - **Validación de la entrada:** `js/validar.js` aplica las mismas reglas y los mismos mensajes que
-  `src/data/entrada.py`, y un test lo comprueba con ficheros válidos e inválidos.
+  `src/data/entrada.py`, y un test local (los tests no se suben al repositorio) lo comprueba con ficheros
+  válidos e inválidos.
 - **Código y resultados:** <https://github.com/judithsalas/breastdcedl> (la app está en la carpeta `web/`).
 
 Imágenes de ejemplo: dataset docente derivado de BreastDCEDL (Fridman et al., *Scientific Data*, 2026), con

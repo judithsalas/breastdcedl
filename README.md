@@ -40,7 +40,7 @@ clínico sencillo y sin imagen («el médico»: edad, menopausia, HR y HER2) que
 Un conjunto de **30 CNN propias**, entrenadas desde cero: 6 versiones de la red, cada una con los
 5 modelos de su validación cruzada (uno por fold). Está en
 [`experimentos/modelo_final/`](experimentos/modelo_final/) (huella `86efe7b4b112`) y lo usan, con el
-mismo código, la evaluación de test y las apps.
+mismo código, la evaluación de test, `src.models.predecir` y la app web (exportado a ONNX).
 
 **La red base, cnn_v3** (97.809 parámetros):
 
@@ -97,7 +97,7 @@ modelo clínico de comparación. Qué hay en cada carpeta:
 │   ├── training/         3. entrenar y validación cruzada
 │   ├── evaluation/       4. cerrar el modelo, el «médico» sin imagen y test
 │   ├── utils/            CPU o GPU, semilla y exportar resultados
-│   └── config.py         lee config.json
+│   └── config.py         lee configs/config.json
 ├── experimentos/       las 6 ejecuciones del modelo final, el modelo final y el modelo clínico
 ├── docs/
 │   ├── figuras/          diagramas de las 6 versiones
@@ -105,7 +105,7 @@ modelo clínico de comparación. Qué hay en cada carpeta:
 ├── web/                la app web publicada: página estática con el modelo en ONNX (Hugging Face)
 ├── app/                ejemplos de la app web y ficheros para probarla
 ├── presentacion/       las diapositivas (PPTX con notas del orador, y PDF)
-├── config.json         parámetros de ejecución y lo que lanza src.training.experimento
+├── configs/            config.json: parámetros de ejecución y lo que lanza src.training.experimento
 └── requirements.txt    librerías con versión fija (sin PyTorch)
 ```
 
@@ -220,7 +220,7 @@ python -m src.models.comprobar cnn_v3 # capas, tamaños y parámetros de la red 
 | AUC de entrenamiento | sobre sus 40 pacientes | sobre 220 pacientes fijas de train | sobre 220 pacientes fijas de train |
 | ¿Sus métricas cuentan? | **no** | sí | sí |
 
-Los valores están en [`config.json`](config.json), con una explicación de cada parámetro en `_ayuda`.
+Los valores están en [`configs/config.json`](configs/config.json), con una explicación de cada parámetro en `_ayuda`.
 Su sección `experimento` es lo que lanza `src.training.experimento`: ahora, las 6 versiones del
 modelo final en modo `fijo` y en los 5 folds.
 
@@ -304,7 +304,9 @@ python -m src.models.publicar_web <usuario>/breastdcedl-pcr  # crea el Space si 
 ```
 
 Si cambian el modelo final o los ejemplos, antes: `python -m src.models.exportar_web` (rehace
-`web/modelo`, `web/ejemplos` y `web/datos`, comprobados con PyTorch).
+`web/modelo`, `web/ejemplos` y `web/datos`, comprobados con PyTorch). La tabla del sesgo de la época
+compara con las validaciones del modo `completo`, que solo están en `runs/historico.csv` (en local); sin ese
+fichero, se conserva la de la exportación anterior si es del mismo modelo.
 
 Publicada el 2026-10-29 en <https://huggingface.co/spaces/judithsalas/breastdcedl-pcr>. Para probarla con entradas
 válidas e inválidas: `python -m app.casos_prueba` y la lista de `pruebas_app/LEEME.md`.
