@@ -273,6 +273,7 @@ function mostrarResultado(r, esperado) {
   panel.setAttribute("data-hubo", "");
   estado.ultima = r;
   $("probabilidad").textContent = prob(r.probabilidad);
+  $("regla-umbral").textContent = textoUmbral(umbral);
   const clase = $("clase");
   const esPcr = r.probabilidad >= umbral;
   clase.replaceChildren(
@@ -292,7 +293,8 @@ function mostrarResultado(r, esperado) {
     lienzo.getContext("2d").drawImage(lienzoContribucion(r.mapa.datos, r.mapa.lado, estado.early), 0, 0);
   }
   mostrarVista(estado.vista);
-  $("dato-dispositivo").textContent = estado.modelo.dispositivo;
+  $("dato-dispositivo").textContent = `${estado.modelo.dispositivo}. Solo inferencia: el modelo se exportó en modo evaluación `
+    + "(model.eval()) y aquí no se calculan gradientes.";
   $("dato-tiempo").textContent = `${Math.round(r.ms)} ms`;
   const coincide = $("coincide");
   if (esperado == null) {
@@ -318,18 +320,50 @@ function fiabilidad() {
     : `${donde} su AUC es ${num(auc, 2)} (0,5 es el azar y 1, acertar siempre). Es un modelo educativo: no sirve para decidir nada.`;
 }
 
-// Si la persona eligió el corte más abajo, se le sube al visor para que vea las imágenes y el resultado
+// Por qué el umbral no es 0,5, en palabras: sale de la especificidad mínima con que se eligió (D49)
+function textoUmbral(umbral) {
+  const m = /especificidad\s*≥\s*([\d,.]+)/.exec(estado.info?.criterio_umbral || "");
+  if (!m) return `El umbral, ${num(umbral)}, se eligió con las pacientes de entrenamiento.`;
+  const falsos = 1 - Number(m[1].replace(",", "."));
+  const cada = Math.round(1 / falsos);
+  const proporcion = Math.abs(1 / falsos - cada) < 1e-6 ? `1 de cada ${cada}` : `${Math.round(100 * falsos)} de cada 100`;
+  return `El umbral es ${num(umbral)} y no 0,5: se eligió con las pacientes de entrenamiento para que, como mucho, `
+    + `${proporcion} pacientes no pCR salga como pCR.`;
+}
+
+// Si la persona eligió el corte más abajo, se le sube a ver el resultado. En pantallas anchas, al visor (imagen y
+// resultado van juntos); en las estrechas, al panel del resultado, que está debajo de la imagen (D49)
 function subirAlVisor() {
-  const sala = document.querySelector(".sala");
-  if (sala.getBoundingClientRect().top >= -40) return;
+  const estrecha = window.matchMedia("(max-width: 1000px)").matches;
+  const destino = estrecha ? $("resultado") : document.querySelector(".sala");
+  const arriba = destino.getBoundingClientRect().top;
+  if (estrecha ? arriba >= 0 && arriba < window.innerHeight / 3 : arriba >= -40) return;
   const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  sala.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "start" });
+  destino.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "start" });
+}
+
+// Qué dice el título del resultado: de qué corte es
+function tituloResultado() {
+  const c = estado.corte;
+  $("titulo-resultado").textContent = !c ? "Resultado" : c.ejemplo ? "Resultado del ejemplo" : "Resultado de tu corte";
+}
+
+// La entrada, ya validada: forma, tipo y los valores que tiene de verdad (lo que pide el enunciado, a la vista)
+function textoEntrada(pixeles) {
+  let min = 255, max = 0;
+  for (let i = 0; i < pixeles.length; i++) {
+    const v = pixeles[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return `PRE, EARLY y LATE: 3 × ${LADO} × ${LADO} píxeles, gris de 8 bits, valores de ${min} a ${max}. Dentro del modelo `
+    + "se dividen entre 255, como en el entrenamiento.";
 }
 
 async function analizar(ficheros, esperado = null, corte = null, subir = true, { traducir = (m) => m, avisos = [] } = {}) {
   const peticion = ++estado.peticion;
   const r = await validarCorte(ficheros);
-  if (peticion !== estado.peticion) return;
+  if (peticion !== estado.peticion) return null;
   const lista = [...r.errores.map((m) => ["error", traducir(m)]), ...avisos.map((m) => ["aviso", m]),
     ...r.avisos.map((m) => ["aviso", traducir(m)])];
   const panel = $("resultado");
@@ -341,11 +375,15 @@ async function analizar(ficheros, esperado = null, corte = null, subir = true, {
     panel.dataset.estado = "vacio";
     panel.removeAttribute("data-hubo");
     $("clase-chip").hidden = true;
+    $("dato-entrada").textContent = "—";
+    tituloResultado();
     $("resultado-espera").textContent = "Corrige los ficheros (los mensajes están en «Elige un corte») o elige un ejemplo.";
-    return;
+    return r;
   }
   estado.corte = corte || { titulo: "Tu corte", subtitulo: ficheros.map((f) => f.nombre).find((n) => /_PRE\.png$/i.test(n))?.replace(/_PRE\.png$/i, "") };
   estado.ultima = null;
+  tituloResultado();
+  $("dato-entrada").textContent = textoEntrada(r.pixeles);
   pintarFases(r.pixeles);
   if (subir) subirAlVisor();
   if (!estado.modelo) {
@@ -360,12 +398,16 @@ async function analizar(ficheros, esperado = null, corte = null, subir = true, {
   try {
     await estado.modeloListo;
     const resultado = await estado.modelo.predecir(r.pixeles);
-    if (peticion !== estado.peticion) return;
+    if (peticion !== estado.peticion) return r;
+    if (!Number.isFinite(resultado.probabilidad)) throw new Error("el modelo ha devuelto un valor no finito (NaN o infinito)");
     mensajes(lista);
     mostrarResultado(resultado, esperado);
   } catch (error) {
     mensajes([...lista, ["error", `No se pudo calcular la predicción: ${error.message}`]]);
+    panel.dataset.estado = "vacio";
+    $("resultado-espera").textContent = "No se pudo calcular la predicción (el motivo está en «Elige un corte»).";
   }
+  return r;
 }
 
 // ---------- Subir un corte propio: un hueco por fase (D47) ----------
@@ -379,6 +421,7 @@ function pintarHueco(fase) {
   const caja = document.querySelector(`.hueco[data-fase="${fase}"]`);
   const f = huecos[fase];
   caja.toggleAttribute("data-lleno", Boolean(f));
+  caja.removeAttribute("data-error");
   caja.querySelector(".hueco__fichero").textContent = f ? f.nombre : "Elige o arrastra";
   const vista = caja.querySelector(".hueco__vista");
   if (f) {
@@ -430,8 +473,13 @@ async function despuesDeColocar() {
   const patron = new RegExp([...porNombre.keys()].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
   const traducir = (m) => m.replace(patron, (n) => porNombre.get(n));
   for (const b of document.querySelectorAll(".ejemplos button")) b.setAttribute("aria-pressed", "false");
-  await analizar(internos.map(({ nombre, bytes }) => ({ nombre, bytes })), null,
+  const r = await analizar(internos.map(({ nombre, bytes }) => ({ nombre, bytes })), null,
     { titulo: "Tu corte", subtitulo: base === "tu_corte" ? "" : base }, true, { traducir, avisos });
+  // Si un error es de una imagen concreta (empieza por su nombre), se marca su hueco
+  if (r) for (const f of internos) {
+    const mala = r.errores.some((m) => m.startsWith(`${f.nombre}:`));
+    document.querySelector(`.hueco[data-fase="${f.fase}"]`).toggleAttribute("data-error", mala);
+  }
 }
 
 // Varios ficheros soltados a la vez (o uno fuera de los huecos): si sus nombres dicen la fase, una de cada, se colocan
@@ -456,6 +504,11 @@ function prepararSubida() {
       const lista = [...entrada.files];
       entrada.value = "";
       if (!lista.length) return;
+      // Si en el diálogo se eligen las tres a la vez, se colocan por su nombre, como al arrastrarlas juntas (D49)
+      if (lista.length > 1) {
+        await leerVarios(lista);
+        return;
+      }
       await ponerEnHueco(fase, lista[0]);
       await despuesDeColocar();
     });
@@ -492,6 +545,16 @@ function prepararSubida() {
     for (const f of FASES) quitarDeHueco(f);
     mensajes([]);
   });
+  // «Subir un corte», junto al título: lleva a los huecos y deja el foco en el primero vacío (D49)
+  for (const enlace of document.querySelectorAll("[data-ir-a-subir]")) {
+    enlace.addEventListener("click", (e) => {
+      e.preventDefault();
+      const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      $("subir").scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "center" });
+      const vacio = FASES.find((f) => !huecos[f]) || "PRE";
+      document.querySelector(`.hueco[data-fase="${vacio}"] input`).focus({ preventScroll: true });
+    });
+  }
 }
 
 // ---------- Ejemplos ----------
@@ -530,7 +593,7 @@ async function prepararEjemplos() {
         const r = await fetch(`ejemplos/${encodeURIComponent(e.corte)}/${encodeURIComponent(nombre)}`);
         return { nombre, bytes: new Uint8Array(await r.arrayBuffer()) };
       }));
-      await analizar(ficheros, e.probabilidad_pipeline, { titulo: cohorte, subtitulo: e.corte, etiqueta },
+      await analizar(ficheros, e.probabilidad_pipeline, { titulo: `Ejemplo de ${cohorte}`, subtitulo: e.corte, etiqueta, ejemplo: true },
         evento.isTrusted);
     });
     const li = nodo("li");

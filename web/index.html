@@ -28,9 +28,13 @@
 
   <main>
     <section class="sala" aria-labelledby="titulo-portada">
-      <!-- En el móvil, una línea que dice qué es antes de la imagen (el título y la explicación quedan debajo) -->
-      <p class="sala__resumen" aria-hidden="true">Una red neuronal estima, con un corte de RM de mama de antes de la
-        quimioterapia, la probabilidad de respuesta patológica completa (pCR).</p>
+      <!-- En pantallas estrechas, antes de la imagen: qué es y por dónde empezar (el título y la explicación quedan
+           debajo del visor). En las anchas, lo mismo va junto al título (D49) -->
+      <div class="sala__arranque">
+        <p class="sala__resumen" aria-hidden="true">Una red neuronal estima, con un corte de RM de mama de antes de la
+          quimioterapia, la probabilidad de respuesta patológica completa (pCR).</p>
+        <p class="empezar"><a class="boton" href="#subir" data-ir-a-subir>Subir un corte</a><a class="empezar__otro" href="#elegir">o elegir un ejemplo</a></p>
+      </div>
       <div class="sala__dentro">
         <div class="visor">
           <div class="visor__pantalla caja-luz" id="visor">
@@ -91,10 +95,11 @@
             quimioterapia y estima la probabilidad de respuesta patológica completa (pCR): que tras la quimioterapia
             no quede cáncer invasivo en la mama ni en los ganglios.
           </p>
+          <p class="empezar empezar--portada"><a class="boton" href="#subir" data-ir-a-subir>Subir un corte</a><a class="empezar__otro" href="#elegir">o elegir un ejemplo</a></p>
 
           <section class="informe resultado" aria-labelledby="titulo-resultado" id="resultado" data-estado="vacio">
             <div class="informe__cabeza">
-              <h2 id="titulo-resultado">Resultado de este corte</h2>
+              <h2 id="titulo-resultado">Resultado</h2>
               <span class="estado-clase" id="clase-chip" hidden></span>
             </div>
             <p class="resultado__vacio" id="resultado-espera">Calculando… La primera vez el navegador descarga el
@@ -109,15 +114,16 @@
               <figure class="regla" aria-labelledby="regla-pie">
                 <svg id="regla" viewBox="0 0 600 150" role="img" aria-label="Dónde cae este corte"></svg>
                 <figcaption id="regla-pie">Arriba, la escala de 0 a 1; abajo, ampliada, la franja donde el modelo
-                  coloca al 90 % de las pacientes de entrenamiento.</figcaption>
+                  coloca al 90 % de las pacientes de entrenamiento. <span id="regla-umbral"></span></figcaption>
               </figure>
               <p class="coincide" id="coincide" hidden></p>
             </div>
             <dl class="ficha" aria-label="Modelo">
-              <div><dt>Huella del modelo</dt><dd id="ficha-huella">—</dd></div>
+              <div><dt>Checksum del modelo</dt><dd id="ficha-huella">—</dd></div>
               <div><dt>Umbral</dt><dd id="ficha-umbral">—</dd></div>
               <div><dt>Tiempo de respuesta</dt><dd id="dato-tiempo">—</dd></div>
               <div><dt>Estado</dt><dd id="ficha-estado">Cargando…</dd></div>
+              <div class="ficha__ancha"><dt>Entrada validada</dt><dd id="dato-entrada">—</dd></div>
               <div class="ficha__ancha"><dt>Dispositivo de inferencia</dt><dd id="dato-dispositivo">—</dd></div>
             </dl>
           </section>
@@ -141,7 +147,7 @@
           <div class="huecos" role="group" aria-labelledby="subir-titulo">
             <div class="hueco" data-fase="PRE">
               <label class="hueco__zona">
-                <input type="file" accept=".png,image/png" data-fase="PRE" aria-describedby="requisitos">
+                <input type="file" accept=".png,image/png" data-fase="PRE" aria-describedby="requisitos" multiple>
                 <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
                 <span class="hueco__fase">PRE</span>
                 <span class="hueco__que">antes del contraste</span>
@@ -151,7 +157,7 @@
             </div>
             <div class="hueco" data-fase="EARLY">
               <label class="hueco__zona">
-                <input type="file" accept=".png,image/png" data-fase="EARLY" aria-describedby="requisitos">
+                <input type="file" accept=".png,image/png" data-fase="EARLY" aria-describedby="requisitos" multiple>
                 <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
                 <span class="hueco__fase">EARLY</span>
                 <span class="hueco__que">justo después</span>
@@ -161,7 +167,7 @@
             </div>
             <div class="hueco" data-fase="LATE">
               <label class="hueco__zona">
-                <input type="file" accept=".png,image/png" data-fase="LATE" aria-describedby="requisitos">
+                <input type="file" accept=".png,image/png" data-fase="LATE" aria-describedby="requisitos" multiple>
                 <span class="hueco__vista"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></span>
                 <span class="hueco__fase">LATE</span>
                 <span class="hueco__que">un rato después</span>
@@ -190,7 +196,7 @@
         <div>
           <h3>Qué es</h3>
           <p id="modelo-que">—</p>
-          <h3>Cómo se entrenó</h3>
+          <h3>Parámetros del entrenamiento</h3>
           <dl class="lista" id="modelo-entrenamiento"></dl>
         </div>
         <div>

@@ -772,7 +772,16 @@ function dibujarTodo() {
   if (estado.datos.modelos_datos) matrices();
 }
 
+// Todo se dibuja con la página aún invisible (data-cargando) y aparece de una vez: así nada salta mientras se lee (D49)
 async function arrancar() {
+  try {
+    await dibujarPrimeraVez();
+  } finally {
+    document.body.removeAttribute("data-cargando");
+  }
+}
+
+async function dibujarPrimeraVez() {
   try {
     estado.datos = await leerJSON("datos/resultados.json");
   } catch (error) {

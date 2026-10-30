@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" crossorigin="anonymous"></script>
   <script type="module" src="js/resultados.js"></script>
 </head>
-<body class="pagina-resultados">
+<body class="pagina-resultados" data-cargando>
   <header class="barra">
     <div class="barra__dentro">
       <a class="marca" href="index.html"><svg class="marca__icono" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#05080b"/><rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#33424d"/><ellipse cx="16" cy="17.5" rx="10" ry="8.5" fill="#3a4954"/><circle cx="19.5" cy="19.5" r="3.6" fill="#f2a541"/></svg><span>pCR en RM de mama</span></a>
@@ -37,6 +37,7 @@
         junta los dos. Primero, test: pacientes que ningún modelo vio, evaluadas una sola vez. Debajo, la validación
         cruzada con las de entrenamiento, con la que se construyó el modelo.
       </p>
+      <p class="nota cargando-nota" role="status">Cargando los resultados y dibujando las gráficas…</p>
     </div>
   </div>
 

@@ -300,7 +300,12 @@ a:hover { color: #ffd59a; }
 .fiabilidad-corte:has(span:empty) { display: none; }
 .sala__resumen { display: none; }
 .aviso-resultado { display: flex; gap: var(--e-2); margin-top: var(--e-3); font-size: var(--t-xs); color: var(--tinta-3); max-width: 60ch; }
-.portada .boton { margin-top: var(--e-5); }
+.portada > .boton { margin-top: var(--e-5); }
+/* Por dónde empezar (D49): la acción principal de la página, junto al título. En pantallas estrechas va antes de
+   la imagen (.sala__arranque), porque el título queda debajo del visor */
+.empezar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-1) var(--e-4); margin-top: var(--e-5); }
+.empezar__otro { display: inline-flex; align-items: center; min-height: 44px; }
+.sala__arranque { display: none; }
 
 /* ---------- Elegir un corte (y el mismo selector en «La red») ---------- */
 .elegir, .fiable, .modelo { padding-top: var(--seccion); }
@@ -340,6 +345,9 @@ a:hover { color: #ffd59a; }
 .hueco__fichero { max-width: 100%; margin-top: var(--e-1); font-size: var(--t-xs); color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hueco[data-lleno] .hueco__zona { border-style: solid; border-color: var(--linea-2); }
 .hueco[data-lleno] .hueco__fichero { color: var(--tinta); }
+/* La imagen que no pasa la validación, marcada en su hueco (el mensaje dice por qué) */
+.hueco[data-error] .hueco__zona { border-style: solid; border-color: var(--error); }
+.hueco[data-error] .hueco__fichero { color: var(--error); }
 .hueco:not([data-lleno]) .hueco__fichero { white-space: normal; }
 .hueco__quitar {
   position: absolute; top: var(--e-1); right: var(--e-1); width: 28px; height: 28px; display: grid; place-items: center;
@@ -612,6 +620,10 @@ a:hover { color: #ffd59a; }
   .fases__grupo { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); flex: 3; }
   .fases__grupo--calculado { flex: 2; padding-top: 0; border-top: 0; padding-left: var(--e-2); border-left: 1px solid var(--linea-2); }
   .portada { max-width: 640px; width: 100%; margin: 0 auto; }
+  .sala__arranque { display: block; max-width: calc(640px + 2 * var(--margen)); margin: 0 auto var(--e-5); padding: 0 var(--margen); }
+  .sala__resumen { display: block; margin: 0; color: var(--tinta-2); font-size: var(--t-s); }
+  .sala__arranque .empezar { margin-top: var(--e-3); }
+  .empezar--portada { display: none; }
   .pie__dentro { grid-template-columns: 1fr 1fr; }
   .pie__dentro > :first-child { grid-column: 1 / -1; }
 }
@@ -632,7 +644,7 @@ a:hover { color: #ffd59a; }
 @media (max-width: 640px) {
   :root { --seccion: var(--e-7); --t-xxl: 2rem; --t-cifra: 3.6rem; --t-xl: 1.375rem; }
   .escalas { padding: 0 var(--margen); }
-  .sala__resumen { display: block; margin: 0; padding: var(--e-3) var(--margen); color: var(--tinta-2); font-size: var(--t-s); }
+  .sala__arranque { padding-top: var(--e-3); margin-bottom: var(--e-4); }
   .fiable__cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Tablas: en el móvil se quitan las columnas de detalle para que la AUC quede a la vista */
   .tabla { min-width: 0; }
@@ -669,4 +681,13 @@ a:hover { color: #ffd59a; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+  /* No es movimiento: solo el plan B de Resultados por si el JS no quitara data-cargando */
+  body[data-cargando] main > :not(.cabecera), body[data-cargando] .pie { animation: mostrar-sin-js 0s 6s forwards !important; }
 }
+
+/* Resultados (D49): el bloque de test y las gráficas aparecen de una vez, cuando están dibujados, para que la página no
+   salte mientras se lee el título. Si el JS no llegara a quitar data-cargando, se enseña todo a los 6 s igualmente */
+@keyframes mostrar-sin-js { to { visibility: visible; } }
+body[data-cargando] main > :not(.cabecera), body[data-cargando] .pie { visibility: hidden; animation: mostrar-sin-js 0s 6s forwards; }
+.cargando-nota { margin-top: var(--e-4); }
+body:not([data-cargando]) .cargando-nota { display: none; }

@@ -99,7 +99,7 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
   la barra no se parta.
 - **Botones:** principal (fondo `--acento`, texto `--sala`), secundario (borde `--linea-2`) y discreto
   (solo texto, como un enlace). Hover: un paso más claro. Foco: anillo `--foco`. Desactivado: 40 % de
-  opacidad. Como mucho un principal a la vista: hoy, «Siguiente» en los pasos de «La red».
+  opacidad. Como mucho un principal a la vista: «Subir un corte» en Predicción y «Siguiente» en los pasos de «La red».
 - **Enlaces:** `--acento-texto`, subrayados.
 - **Informe del resultado:** panel con título, la clase como etiqueta («pCR» / «no pCR»), la cifra, la
   escala y los datos del modelo en dos columnas. Debajo de la clase, siempre, la fiabilidad del modelo
@@ -112,12 +112,18 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 - **Visor:** datos en las cuatro esquinas sobre un velo oscuro degradado arriba y abajo, para que se lean
   sobre cualquier imagen.
 - **Miniaturas y selector de cortes:** imagen cuadrada, nombre debajo; elegida = contorno `--acento`.
+- **Por dónde empezar** (D49): bajo el título de Predicción, el botón principal «Subir un corte» y el enlace «o
+  elegir un ejemplo». En tablet y móvil, donde el título queda debajo del visor, el mismo par va encima de la
+  imagen, con la línea que dice qué es. Es el único botón principal de la página.
 - **Huecos para subir un corte** (D47): tres recuadros en fila, PRE, EARLY y LATE, cada uno con su
   monitor cuadrado, el nombre de la fase, qué momento es y el fichero. Vacío: borde discontinuo `--linea-2`
   e icono de subir; al arrastrar encima o al pasar el cursor, borde `--acento`; con imagen, borde continuo,
   la miniatura y un botón × redondo de 28 px. Debajo, una sola línea con lo que tiene que cumplir cada
   imagen y «Quitar las tres imágenes» (botón discreto). Sin explicaciones de nombres de fichero ni de cómo
-  valida la página (D48). El foco del teclado rodea todo el recuadro.
+  valida la página (D48). El foco del teclado rodea todo el recuadro. Una imagen que no pasa la validación pone
+  su hueco con borde y nombre `--error` (D49).
+- **Carga sin saltos** (D49): una página que se dibuja con datos que llegan después (Resultados) se monta invisible
+  (`data-cargando` en `body`, con una línea «Cargando…» bajo el título) y aparece de una vez.
 - **Pie:** aviso completo, el proyecto y los datos, en tres columnas.
 
 ## Iconos e imágenes
