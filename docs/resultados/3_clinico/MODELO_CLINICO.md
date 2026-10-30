@@ -2,7 +2,6 @@
 
 Generado por `python -m src.evaluation.modelo_clinico` el 2026-10-29 14:00. Solo train, con
 los mismos 5 folds que la CNN; test no se ha usado (se evalúa una sola vez, junto con la CNN, en `evaluar_test`).
-Por qué y cómo: D25 en [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md#25-el-modelo-del-médico-sin-imagen-d25).
 
 **Para qué sirve.** Es lo que sabría un médico antes de la quimioterapia sin mirar la resonancia. Si la CNN no lo
 supera, la imagen (tal como la usamos) aporta menos que la biopsia. **No entra en la CNN ni en la app**: el profesor
@@ -103,4 +102,4 @@ La media de 30 varía menos entre pacientes, así que en test el peso de la CNN 
 - Es el listón que la CNN tiene que superar para decir que la imagen aporta algo que no sabe ya el médico.
 - Las diferencias de AUC se juzgan por su intervalo: si cruza el 0, no hay pruebas de que un modelo sea mejor que otro.
 - En la bibliografía pasa lo mismo: en Joo et al. 2021 la clínica sola daba 0,83 y la imagen la subía a 0,89.
-- Modelo guardado en `models/clinico/modelo_clinico.json` (huella `19a7504e`, hecho con la CNN `86efe7b4b112`): lo usa `evaluar_test`.
+- Modelo guardado en `experimentos/modelo_clinico/modelo_clinico.json` (huella `19a7504e`, hecho con la CNN `86efe7b4b112`): lo usa `evaluar_test`.

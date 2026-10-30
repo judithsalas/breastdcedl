@@ -1,7 +1,6 @@
 # Validación interna de la calibración y del umbral
 
 Generado por `python -m src.evaluation.validacion_interna` para el modelo `86efe7b4b112`. Solo train; test no se toca.
-Por qué: D40 en [`REGISTRO.md`](../../REGISTRO.md) y `COMO_SE_HIZO.md` §5.8.
 
 En el cierre, Platt y el umbral se eligieron con todas las pacientes de train (fuera de fold) y se midieron con esas mismas.
 Aquí, cada fold recibe un Platt y un umbral elegidos sin él, como una paciente nueva.

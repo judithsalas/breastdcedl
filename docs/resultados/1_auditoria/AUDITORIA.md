@@ -1,8 +1,8 @@
 # Auditoría de los datos
 
 Generado automáticamente por `python -m src.data.auditoria` el 2026-10-21 21:37. No se edita a mano:
-se vuelve a generar. La explicación de por qué se mira cada cosa está en el código y en
-[`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).
+se vuelve a generar. La explicación de por qué se mira cada cosa está en el código
+(`src/data/auditoria.py`).
 
 ## 1. Recuentos
 

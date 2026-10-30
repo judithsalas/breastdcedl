@@ -12,5 +12,5 @@ Hay una carpeta por paso, numerada en el orden en que se ejecutan:
 | `3_clinico/` | El «médico» sin imagen y la comparación con la CNN | `python -m src.evaluation.modelo_clinico` |
 | `4_test/` | El resultado en test, que se calcula **una sola vez** | `python -m src.evaluation.evaluar_test` |
 
-Cada carpeta tiene su informe (`.md`) con las figuras al lado. Por qué se hace cada paso:
-[`COMO_SE_HIZO.md`](../COMO_SE_HIZO.md).
+Cada carpeta tiene su informe (`.md`) con las figuras al lado. Qué hace cada paso y por qué: en el
+README principal y al principio de cada script.

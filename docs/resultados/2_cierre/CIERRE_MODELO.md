@@ -1,8 +1,7 @@
 # Cierre del modelo
 
 Generado por `python -m src.evaluation.cerrar_modelo` el 2026-10-28 21:31.
-Todo con predicciones **fuera de fold** de train; test no se ha usado. Explicación de cada
-decisión: [`COMO_SE_HIZO.md`](../../COMO_SE_HIZO.md).
+Todo con predicciones **fuera de fold** de train; test no se ha usado.
 
 ## 1. Qué modelo
 
@@ -57,38 +56,38 @@ Con el umbral elegido, fuera de fold: VP 91, FN 231, FP 154, VN 621.
 
 | Fichero | Época | AUC del fold | sha256 |
 |---|---|---|---|
-| `models/final/cnn_v3/fold_0.pt` | 6 | 0,508 | `bc6f3afbbc520a65…` |
-| `models/final/cnn_v3/fold_1.pt` | 6 | 0,536 | `e04604728c5e7f37…` |
-| `models/final/cnn_v3/fold_2.pt` | 6 | 0,563 | `56f7213320577e68…` |
-| `models/final/cnn_v3/fold_3.pt` | 6 | 0,529 | `508506543f3f1c9b…` |
-| `models/final/cnn_v3/fold_4.pt` | 6 | 0,608 | `5eff588459aaf7da…` |
-| `models/final/cnn_v4/fold_0.pt` | 6 | 0,520 | `06f5a47671e156ca…` |
-| `models/final/cnn_v4/fold_1.pt` | 6 | 0,551 | `42ae3f4d6ac40e0a…` |
-| `models/final/cnn_v4/fold_2.pt` | 6 | 0,562 | `396575763d685c5a…` |
-| `models/final/cnn_v4/fold_3.pt` | 6 | 0,492 | `24b64e8bda0cb2d4…` |
-| `models/final/cnn_v4/fold_4.pt` | 6 | 0,621 | `b7bc50ca7c80ad1f…` |
-| `models/final/cnn_v5/fold_0.pt` | 6 | 0,496 | `94a6dd0cbdc740f6…` |
-| `models/final/cnn_v5/fold_1.pt` | 6 | 0,495 | `ee169b5564172897…` |
-| `models/final/cnn_v5/fold_2.pt` | 6 | 0,535 | `9dc6308fb129acb8…` |
-| `models/final/cnn_v5/fold_3.pt` | 6 | 0,552 | `dd1e867a7f3837fa…` |
-| `models/final/cnn_v5/fold_4.pt` | 6 | 0,630 | `ddca3039ad440b97…` |
-| `models/final/cnn_v6/fold_0.pt` | 6 | 0,549 | `3a8c4d4cc9180651…` |
-| `models/final/cnn_v6/fold_1.pt` | 6 | 0,557 | `ab8aa68330e9f11e…` |
-| `models/final/cnn_v6/fold_2.pt` | 6 | 0,607 | `4430aef08395cd36…` |
-| `models/final/cnn_v6/fold_3.pt` | 6 | 0,510 | `d11280ef9af2bd01…` |
-| `models/final/cnn_v6/fold_4.pt` | 6 | 0,601 | `9afba15218b1870d…` |
-| `models/final/cnn_v7/fold_0.pt` | 6 | 0,538 | `264ab64d681b7a1b…` |
-| `models/final/cnn_v7/fold_1.pt` | 6 | 0,548 | `05b056ce4197f709…` |
-| `models/final/cnn_v7/fold_2.pt` | 6 | 0,559 | `59b51dc40f1dd001…` |
-| `models/final/cnn_v7/fold_3.pt` | 6 | 0,490 | `14477a970dad103e…` |
-| `models/final/cnn_v7/fold_4.pt` | 6 | 0,625 | `34d4b6a4a741d0b6…` |
-| `models/final/cnn_v10/fold_0.pt` | 6 | 0,521 | `a92ec91a5892530d…` |
-| `models/final/cnn_v10/fold_1.pt` | 6 | 0,530 | `ac590f3bc8b04160…` |
-| `models/final/cnn_v10/fold_2.pt` | 6 | 0,559 | `f1437dad11b1e31f…` |
-| `models/final/cnn_v10/fold_3.pt` | 6 | 0,520 | `be8390e719ede570…` |
-| `models/final/cnn_v10/fold_4.pt` | 6 | 0,604 | `6250d90f4af375df…` |
+| `experimentos/modelo_final/cnn_v3/fold_0.pt` | 6 | 0,508 | `bc6f3afbbc520a65…` |
+| `experimentos/modelo_final/cnn_v3/fold_1.pt` | 6 | 0,536 | `e04604728c5e7f37…` |
+| `experimentos/modelo_final/cnn_v3/fold_2.pt` | 6 | 0,563 | `56f7213320577e68…` |
+| `experimentos/modelo_final/cnn_v3/fold_3.pt` | 6 | 0,529 | `508506543f3f1c9b…` |
+| `experimentos/modelo_final/cnn_v3/fold_4.pt` | 6 | 0,608 | `5eff588459aaf7da…` |
+| `experimentos/modelo_final/cnn_v4/fold_0.pt` | 6 | 0,520 | `06f5a47671e156ca…` |
+| `experimentos/modelo_final/cnn_v4/fold_1.pt` | 6 | 0,551 | `42ae3f4d6ac40e0a…` |
+| `experimentos/modelo_final/cnn_v4/fold_2.pt` | 6 | 0,562 | `396575763d685c5a…` |
+| `experimentos/modelo_final/cnn_v4/fold_3.pt` | 6 | 0,492 | `24b64e8bda0cb2d4…` |
+| `experimentos/modelo_final/cnn_v4/fold_4.pt` | 6 | 0,621 | `b7bc50ca7c80ad1f…` |
+| `experimentos/modelo_final/cnn_v5/fold_0.pt` | 6 | 0,496 | `94a6dd0cbdc740f6…` |
+| `experimentos/modelo_final/cnn_v5/fold_1.pt` | 6 | 0,495 | `ee169b5564172897…` |
+| `experimentos/modelo_final/cnn_v5/fold_2.pt` | 6 | 0,535 | `9dc6308fb129acb8…` |
+| `experimentos/modelo_final/cnn_v5/fold_3.pt` | 6 | 0,552 | `dd1e867a7f3837fa…` |
+| `experimentos/modelo_final/cnn_v5/fold_4.pt` | 6 | 0,630 | `ddca3039ad440b97…` |
+| `experimentos/modelo_final/cnn_v6/fold_0.pt` | 6 | 0,549 | `3a8c4d4cc9180651…` |
+| `experimentos/modelo_final/cnn_v6/fold_1.pt` | 6 | 0,557 | `ab8aa68330e9f11e…` |
+| `experimentos/modelo_final/cnn_v6/fold_2.pt` | 6 | 0,607 | `4430aef08395cd36…` |
+| `experimentos/modelo_final/cnn_v6/fold_3.pt` | 6 | 0,510 | `d11280ef9af2bd01…` |
+| `experimentos/modelo_final/cnn_v6/fold_4.pt` | 6 | 0,601 | `9afba15218b1870d…` |
+| `experimentos/modelo_final/cnn_v7/fold_0.pt` | 6 | 0,538 | `264ab64d681b7a1b…` |
+| `experimentos/modelo_final/cnn_v7/fold_1.pt` | 6 | 0,548 | `05b056ce4197f709…` |
+| `experimentos/modelo_final/cnn_v7/fold_2.pt` | 6 | 0,559 | `59b51dc40f1dd001…` |
+| `experimentos/modelo_final/cnn_v7/fold_3.pt` | 6 | 0,490 | `14477a970dad103e…` |
+| `experimentos/modelo_final/cnn_v7/fold_4.pt` | 6 | 0,625 | `34d4b6a4a741d0b6…` |
+| `experimentos/modelo_final/cnn_v10/fold_0.pt` | 6 | 0,521 | `a92ec91a5892530d…` |
+| `experimentos/modelo_final/cnn_v10/fold_1.pt` | 6 | 0,530 | `ac590f3bc8b04160…` |
+| `experimentos/modelo_final/cnn_v10/fold_2.pt` | 6 | 0,559 | `f1437dad11b1e31f…` |
+| `experimentos/modelo_final/cnn_v10/fold_3.pt` | 6 | 0,520 | `be8390e719ede570…` |
+| `experimentos/modelo_final/cnn_v10/fold_4.pt` | 6 | 0,604 | `6250d90f4af375df…` |
 
-Comprobación: cada modelo recargado desde `models/final/` reproduce las predicciones del entrenamiento con una diferencia máxima de 2.1e-07.
+Comprobación: cada modelo recargado desde `experimentos/modelo_final/` reproduce las predicciones del entrenamiento con una diferencia máxima de 2.1e-07.
 
 ![Las redes del conjunto y lo que da cada una](conjunto.png)
 
