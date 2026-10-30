@@ -1,6 +1,6 @@
 // El modelo final en el navegador (D38), con ONNX Runtime Web.
 //
-// modelo.onnx lo genera `python -m src.models.exportar_web` a partir de los pesos de models/final/: dentro van
+// modelo.onnx lo genera `python -m src.models.exportar_web` a partir de los pesos de experimentos/modelo_final/: dentro van
 // la división entre 255, las 30 CNN, la media de logits, la calibración de Platt y la sigmoide. Aquí solo se le
 // pasan los píxeles enteros del corte. Antes de usarlo se comprueba que el fichero descargado tiene el sha256
 // que dice info.json, y la sesión es solo de inferencia (sin gradientes), con el modelo exportado en modo eval.

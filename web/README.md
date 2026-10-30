@@ -33,8 +33,7 @@ Tres páginas:
   30 redes, la media de logits y la calibración. Antes de publicarlo se comprueba que da lo mismo que PyTorch.
 - **Validación de la entrada:** `js/validar.js` aplica las mismas reglas y los mismos mensajes que
   `src/data/entrada.py`, y un test lo comprueba con ficheros válidos e inválidos.
-- **Código, informe y decisiones:** <https://github.com/judithsalas/breastdcedl> (carpeta `web/` y
-  `docs/COMO_SE_HIZO.md` §7).
+- **Código y resultados:** <https://github.com/judithsalas/breastdcedl> (la app está en la carpeta `web/`).
 
 Imágenes de ejemplo: dataset docente derivado de BreastDCEDL (Fridman et al., *Scientific Data*, 2026), con
 licencia CC BY-NC 4.0. Son de pacientes de entrenamiento; ninguna es de test ni de la validación privada.

@@ -3,7 +3,7 @@
     "Parámetros de ejecución del proyecto, en un solo sitio (D31). Explicación de cada uno en _ayuda, al final.",
     "experimento: lo que lanza 'python -m src.training.experimento'. Es la plantilla para probar cosas: una prueba o una lista de pruebas, que se lanzan una detrás de otra. Se edita aquí o se copia a otro fichero y se lanza con --config.",
     "modos: el estándar con el que se comparan las versiones (rapido, completo y fijo, D37). Si se cambia un valor, las ejecuciones anteriores dejan de contar para el criterio. Para probar otro valor, usa experimento.cambios.",
-    "No está aquí lo que define una versión (capas, aumento, optimizador, weight decay, dropout): está en src/models/versiones.py, porque cambiarlo es crear otra versión con su ficha."
+    "No está aquí lo que define una versión (capas, aumento, optimizador, weight decay, dropout): está en src/models/versiones.py, porque cambiarlo es crear otra versión."
   ],
   "experimento": [
     {
@@ -140,7 +140,7 @@
   "_ayuda": {
     "experimento": "Una prueba (un objeto) o una lista de pruebas que se lanzan en orden (D34). Cada prueba lleva los campos de abajo.",
     "experimento.modelo": "Versión de la red que se entrena, por su nombre en src/models/versiones.py (cnn_v3, cnn_v10...).",
-    "experimento.modo": "rapido (comprobar que funciona, sus cifras no cuentan) o completo (entrenamiento real).",
+    "experimento.modo": "rapido (comprobar que funciona, sus cifras no cuentan), completo (entrenamiento real; se queda la mejor época) o fijo (6 épocas y se queda la última, D37: así se entrenó el modelo final).",
     "experimento.perdida": "normal o ponderada (BCE con pos_weight = no pCR / pCR, para que la red no ignore la clase minoritaria).",
     "experimento.folds": "Folds de validación que se entrenan: [0] para una prueba rápida (~10 min), [0, 1, 2, 3, 4] para la validación cruzada completa (~45 min). Para decidir y para el informe cuentan los 5 (D16, rúbrica punto 2).",
     "experimento.cambios": "Valores de 'modos' que se cambian solo en esta ejecución, por ejemplo {\"learning_rate\": 0.0001}. Las ejecuciones con cambios en batch, learning rate o semilla no cuentan para el criterio de comparación.",
