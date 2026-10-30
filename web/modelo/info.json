@@ -32,7 +32,7 @@
     "semilla": 42,
     "epocas": 6,
     "eleccion_epoca": "ultima",
-    "optimizador": "Adam",
+    "optimizador": "Adam (AdamW con weight decay 0,05 en cnn_v7)",
     "gpu": "AMD Radeon RX 6700 XT",
     "versiones": [
       {

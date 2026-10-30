@@ -543,7 +543,7 @@ function folds() {
   const e = estado.info.entrenamiento;
   $("receta").replaceChildren(...[
     ["Pacientes por red", "unas 878 para aprender y 219 para medir"],
-    ["Optimizador", `Adam, learning rate ${String(e.learning_rate).replace(".", ",")}, lotes de ${e.batch} cortes`],
+    ["Optimizador", `${e.optimizador}, learning rate ${String(e.learning_rate).replace(".", ",")}, lotes de ${e.batch} cortes`],
     ["Épocas", `${e.epocas}, fijadas de antemano; se usa la última`],
     ["Pérdida", "entropía cruzada binaria"],
     ["Semilla", String(e.semilla)],

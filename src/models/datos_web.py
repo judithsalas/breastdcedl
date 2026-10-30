@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, roc_curve
 
+from src.data.caso import carpeta_ejecucion
 from src.evaluation import modelo_clinico as mc
 from src.evaluation.metricas import auc_con_ic, brier, metricas_con_umbral
 from src.models.final import miembros
@@ -130,7 +131,10 @@ def curvas_entrenamiento(manifiesto: dict, runs: Path) -> list[dict]:
     """Media y desviación, época a época y entre los 5 folds, de AUC y pérdida de cada versión del conjunto."""
     salida = []
     for m in miembros(manifiesto):
-        carpeta = Path(runs) / str(m.get("validacion_cruzada", ""))
+        nombre = str(m.get("validacion_cruzada", ""))
+        carpeta = Path(runs) / nombre
+        if not carpeta.is_dir():
+            carpeta = carpeta_ejecucion(nombre)
         historiales = [pd.read_csv(f) for f in sorted(carpeta.glob("fold_*/historial.csv"))]
         if not historiales:
             continue
@@ -146,10 +150,15 @@ def curvas_entrenamiento(manifiesto: dict, runs: Path) -> list[dict]:
     return salida
 
 
-def sesgo_epoca(manifiesto: dict, historico: Path) -> list[dict]:
-    """Cada versión del conjunto: AUC de validación con la época elegida (modo completo) y con 6 fijas."""
+def sesgo_epoca(manifiesto: dict, historico: Path, anterior: Path | None = None) -> list[dict]:
+    """Cada versión del conjunto: AUC de validación con la época elegida (modo completo) y con 6 fijas.
+
+    Sale de runs/historico.csv, que solo está en el PC donde se entrenó: las validaciones del modo completo no se
+    versionan (experimentos/ guarda solo las del modelo final). Sin él, se conserva la tabla que ya tenía
+    `anterior` (el resultados.json que se va a rehacer) si es del mismo modelo.
+    """
     if not Path(historico).exists():
-        return []
+        return _sesgo_anterior(manifiesto, anterior)
     tabla = pd.read_csv(historico)
     tabla = tabla[(tabla.tipo == "cv") & (tabla.perdida == "normal") & (tabla.folds.astype(str) == "0,1,2,3,4")]
     salida = []
@@ -162,13 +171,25 @@ def sesgo_epoca(manifiesto: dict, historico: Path) -> list[dict]:
     return salida
 
 
-def resultados(manifiesto: dict, carpeta_resultados: Path, runs: Path, n_bootstrap: int = 500) -> dict:
+def _sesgo_anterior(manifiesto: dict, anterior: Path | None) -> list[dict]:
+    if anterior is None or not Path(anterior).exists():
+        return []
+    try:
+        datos = json.loads(Path(anterior).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return datos.get("sesgo_epoca", []) if datos.get("huella_modelo") == manifiesto["huella_modelo"] else []
+
+
+def resultados(manifiesto: dict, carpeta_resultados: Path, runs: Path, n_bootstrap: int = 500,
+               historico: Path | None = None, anterior: Path | None = None) -> dict:
     """Todo lo de la página «Resultados». Si la CNN no está cerrada con este modelo, solo lo que no depende de ella."""
     oof = Path(carpeta_resultados) / "2_cierre" / "oof_pacientes.csv"
     cnn, _, motivo = _cnn_de(oof, manifiesto)
+    historico = Path(runs) / "historico.csv" if historico is None else historico
     salida = {"huella_modelo": manifiesto["huella_modelo"], "modelos": {k: NOMBRES[k] for k in MODELOS},
               "bibliografia": BIBLIOGRAFIA, "entrenamiento": curvas_entrenamiento(manifiesto, runs),
-              "sesgo_epoca": sesgo_epoca(manifiesto, Path(runs) / "historico.csv"),
+              "sesgo_epoca": sesgo_epoca(manifiesto, historico, anterior),
               "test": resumen_test(manifiesto, carpeta_resultados, curvas=True)}
     if cnn is None:
         salida["aviso"] = motivo
@@ -352,8 +373,8 @@ def _cnn_de(oof: Path, manifiesto: dict):
 
 
 def escribir_resultados(manifiesto: dict, ruta: Path, carpeta_resultados: Path, runs: Path,
-                        n_bootstrap: int = 500) -> dict:
-    datos = resultados(manifiesto, carpeta_resultados, runs, n_bootstrap)
+                        n_bootstrap: int = 500, historico: Path | None = None) -> dict:
+    datos = resultados(manifiesto, carpeta_resultados, runs, n_bootstrap, historico=historico, anterior=ruta)
     ruta = Path(ruta)
     ruta.parent.mkdir(parents=True, exist_ok=True)
     ruta.write_text(json.dumps(datos, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

@@ -28,8 +28,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.data.caso import RAIZ_REPO, RESULTADOS
-from src.evaluation.cerrar_modelo import CARPETA_RUNS, ajustar_platt, combinar_oof, logit, sigmoide
+from src.data.caso import RAIZ_REPO, RESULTADOS, carpeta_ejecucion
+from src.evaluation.cerrar_modelo import ajustar_platt, combinar_oof, logit, sigmoide
 from src.evaluation.metricas import auc_por_rangos, brier, coma
 from src.evaluation.umbral import ESPECIFICIDAD_MINIMA, umbral_por_especificidad
 from src.models.final import CARPETA_FINAL
@@ -39,9 +39,10 @@ INFORME = CARPETA / "VALIDACION_INTERNA.md"
 JSON = CARPETA / "validacion_interna.json"
 
 
-def carpetas_del_conjunto(manifiesto: dict, runs: Path = CARPETA_RUNS) -> list[Path]:
-    """Las validaciones cruzadas de las versiones del modelo final, en runs/."""
-    return [Path(runs) / m["validacion_cruzada"] for m in manifiesto["miembros"]]
+def carpetas_del_conjunto(manifiesto: dict, runs: Path | None = None) -> list[Path]:
+    """Las validaciones cruzadas de las versiones del modelo final: en experimentos/ (o en runs/, en local)."""
+    nombres = [m["validacion_cruzada"] for m in manifiesto["miembros"]]
+    return [Path(runs) / n if runs is not None else carpeta_ejecucion(n) for n in nombres]
 
 
 def _por_paciente(cortes: pd.DataFrame, columna: str) -> pd.Series:
@@ -223,7 +224,8 @@ def main() -> None:
     carpetas = carpetas_del_conjunto(manifiesto)
     faltan = [c.name for c in carpetas if not (c / "predicciones_oof.csv").exists()]
     if faltan:
-        raise SystemExit(f"Faltan las predicciones fuera de fold de: {', '.join(faltan)} (en runs/).")
+        raise SystemExit(f"Faltan las predicciones fuera de fold de: {', '.join(faltan)} "
+                         "(ni en experimentos/ ni en runs/).")
     r = validar(combinar_oof(carpetas))
     r["medico"] = medico()
     r["huella_modelo"], r["versiones"] = manifiesto["huella_modelo"], len(carpetas)

@@ -37,15 +37,15 @@ import pandas as pd
 import torch
 from torch import nn
 
-from src.data.caso import RAIZ_DATOS, RAIZ_REPO, RESULTADOS
+from src.data.caso import EXPERIMENTOS, RAIZ_DATOS, RAIZ_REPO, RESULTADOS, RUNS
 from src.data.entrada import FASES, validar_corte
 from src.models.cnn import CNN, PoolingAtencion
 from src.models.final import CARPETA_FINAL, cargar_modelo_final, miembros
-from src.models.versiones import NOMBRES
+from src.models.versiones import NOMBRES, POR_DEFECTO
 
 WEB = RAIZ_REPO / "web"
 EJEMPLOS_APP = RAIZ_REPO / "app" / "ejemplos"
-CLINICO = RAIZ_REPO / "experimentos" / "modelo_clinico" / "modelo_clinico.json"
+CLINICO = EXPERIMENTOS / "modelo_clinico" / "modelo_clinico.json"
 TOLERANCIA = 1e-5
 LADO = 256
 
@@ -333,6 +333,24 @@ def anatomia(red: CNN) -> dict:
             "cabeza": cabeza, "parametros": sum(p.numel() for p in red.parameters())}
 
 
+OPTIMIZADORES = {"adam": "Adam", "adamw": "AdamW", "sgd": "SGD"}
+
+
+def nombre_optimizador(miembros_: list[dict]) -> str:
+    """El optimizador del conjunto, con las versiones que usan otro: «Adam (AdamW con weight decay 0,05 en cnn_v7)»."""
+    base = POR_DEFECTO["entrenamiento"]["optimizador"]
+    otros = []
+    for m in miembros_:
+        receta = m.get("receta") or {}
+        nombre = receta.get("optimizador") or base
+        if nombre != base:
+            decaimiento = receta.get("weight_decay") or 0
+            con = f" con weight decay {str(decaimiento).replace('.', ',')}" if decaimiento else ""
+            otros.append(f"{OPTIMIZADORES.get(nombre, nombre)}{con} en {m['version']}")
+    texto = OPTIMIZADORES.get(base, base)
+    return f"{texto} ({'; '.join(otros)})" if otros else texto
+
+
 def info_web(manifiesto: dict, onnx: Path, comprobacion: dict, resultados: Path = RESULTADOS,
              clinico: Path = CLINICO) -> dict:
     """Lo que la página enseña del modelo (enunciado §9): umbral, huella, entrenamiento y métricas internas.
@@ -373,7 +391,7 @@ def info_web(manifiesto: dict, onnx: Path, comprobacion: dict, resultados: Path 
             "redes": ent.get("redes"), "parametros": ent.get("parametros"), "perdida": ent.get("perdida"),
             "batch": config.get("batch_size"), "learning_rate": config.get("learning_rate"),
             "semilla": config.get("semilla"), "epocas": config.get("epocas_max"),
-            "eleccion_epoca": config.get("eleccion_epoca"), "optimizador": "Adam",
+            "eleccion_epoca": config.get("eleccion_epoca"), "optimizador": nombre_optimizador(miembros(manifiesto)),
             "gpu": (ent.get("maquina") or {}).get("gpu"), "versiones": versiones,
         },
         "metricas": {
@@ -413,8 +431,13 @@ def copiar_ejemplos(ejemplos: list[dict], comprobacion: dict, destino: Path, ori
 
 def exportar(carpeta_final: Path = CARPETA_FINAL, web: Path = WEB, ejemplos_app: Path = EJEMPLOS_APP,
              resultados: Path = RESULTADOS, clinico: Path = CLINICO,
-             runs: Path = RAIZ_REPO / "experimentos") -> dict:
-    """Todo lo que necesita la página. Devuelve info.json."""
+             runs: Path = EXPERIMENTOS, historico: Path = RUNS / "historico.csv") -> dict:
+    """Todo lo que necesita la página. Devuelve info.json.
+
+    Las curvas de entrenamiento salen de las ejecuciones del modelo final (`runs`, por defecto experimentos/).
+    El sesgo de la época necesita además las validaciones del modo completo, que solo están en el histórico
+    local (`historico`); sin él, se conserva la tabla que ya tenía resultados.json si es del mismo modelo.
+    """
     modelo, manifiesto = cargar_modelo_final(carpeta_final)
     modelo.eval()
     ruta = exportar_onnx(modelo, Path(web) / "modelo" / "modelo.onnx")
@@ -426,7 +449,7 @@ def exportar(carpeta_final: Path = CARPETA_FINAL, web: Path = WEB, ejemplos_app:
     copiar_ejemplos(ejemplos, comprobacion, Path(web) / "ejemplos", ejemplos_app)
     from src.models.datos_web import escribir_resultados
 
-    escribir_resultados(manifiesto, Path(web) / "datos" / "resultados.json", resultados, runs)
+    escribir_resultados(manifiesto, Path(web) / "datos" / "resultados.json", resultados, runs, historico=historico)
     return info
 
 

@@ -18,16 +18,27 @@ RAIZ_DATOS = RAIZ_REPO / "breastdcedl"
 # Lo que generan los scripts (informes, figuras, tablas): una carpeta por paso, numerada en el
 # orden en que se ejecutan (D26): 1_auditoria, 2_cierre, 3_clinico y 4_test.
 RESULTADOS = RAIZ_REPO / "docs" / "resultados"
+# Ejecuciones: cada entrenamiento crea su carpeta en runs/, que se queda en local; experimentos/ (se
+# versiona) guarda una copia exacta de las del modelo final.
+RUNS = RAIZ_REPO / "runs"
+EXPERIMENTOS = RAIZ_REPO / "experimentos"
 
 if str(RAIZ_DATOS) not in sys.path:
     sys.path.insert(0, str(RAIZ_DATOS))
 
 import utils_caso as uc
 
-__all__ = ["NOMBRE_COHORTE", "RAIZ_DATOS", "RAIZ_REPO", "RESULTADOS", "imagenes_descargadas", "uc"]
+__all__ = ["EXPERIMENTOS", "NOMBRE_COHORTE", "RAIZ_DATOS", "RAIZ_REPO", "RESULTADOS", "RUNS", "carpeta_ejecucion",
+           "imagenes_descargadas", "uc"]
 
 # Nombre legible de cada cohorte (en los CSV van en minúsculas).
 NOMBRE_COHORTE = {"spy1": "I-SPY1", "spy2": "I-SPY2", "duke": "Duke"}
+
+
+def carpeta_ejecucion(nombre: str) -> Path:
+    """Dónde está una ejecución: en experimentos/ si es del modelo final; si no, en runs/."""
+    copia = EXPERIMENTOS / nombre
+    return copia if copia.is_dir() else RUNS / nombre
 
 
 def imagenes_descargadas() -> int:

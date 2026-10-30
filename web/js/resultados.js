@@ -622,7 +622,7 @@ function sesgo(c) {
 // ---------- Entrenamiento (múltiplos pequeños) ----------
 function entrenamiento(c) {
   const versiones = estado.datos.entrenamiento;
-  if (!versiones.length) { c.replaceChildren(nodo("p", "Las curvas salen de runs/, que solo está en el PC donde se entrenó.", "nota")); return; }
+  if (!versiones.length) { c.replaceChildren(nodo("p", "Faltan las curvas: salen de las ejecuciones del modelo final, en experimentos/.", "nota")); return; }
   const columnas = c.clientWidth > 900 ? 3 : c.clientWidth > 560 ? 2 : 1;
   const contenedor = nodo("div", null, "multiples");
   contenedor.style.gridTemplateColumns = `repeat(${columnas}, minmax(0, 1fr))`;
