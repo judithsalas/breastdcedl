@@ -170,15 +170,8 @@
               <button type="button" class="hueco__quitar" data-fase="LATE" aria-label="Quitar la imagen LATE" hidden>×</button>
             </div>
           </div>
-          <p class="subir__todos">Si tus tres PNG se llaman como en el dataset (…_PRE.png, …_EARLY.png, …_LATE.png), puedes
-            <label class="subir__varios">elegirlos los tres a la vez<input type="file" id="ficheros" accept=".png,image/png" multiple></label>
-            o arrastrarlos juntos sobre los huecos: se colocan solos.</p>
+          <p class="subir__nota" id="requisitos">PNG en gris de 8 bits, de 256 × 256 píxeles y hasta 2 MB cada uno.</p>
           <button type="button" class="boton boton--discreto" id="vaciar-huecos" hidden>Quitar las tres imágenes</button>
-          <ul class="requisitos" id="requisitos">
-            <li>PNG en gris de 8 bits, de 256 × 256 píxeles y 2 MB como máximo cada uno.</li>
-            <li>El nombre del fichero da igual: la fase la marca el hueco donde lo pones.</li>
-            <li>Las imágenes no salen de tu ordenador: el modelo se ejecuta en este navegador.</li>
-          </ul>
         </div>
       </div>
       <div class="mensajes" id="mensajes" aria-live="polite"></div>

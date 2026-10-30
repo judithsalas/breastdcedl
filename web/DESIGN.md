@@ -115,8 +115,9 @@ Escala de 4 px: `--e-1` 4 · `--e-2` 8 · `--e-3` 12 · `--e-4` 16 · `--e-5` 24
 - **Huecos para subir un corte** (D47): tres recuadros en fila, PRE, EARLY y LATE, cada uno con su
   monitor cuadrado, el nombre de la fase, qué momento es y el fichero. Vacío: borde discontinuo `--linea-2`
   e icono de subir; al arrastrar encima o al pasar el cursor, borde `--acento`; con imagen, borde continuo,
-  la miniatura y un botón × redondo de 28 px. Debajo, un enlace para elegir los tres a la vez y «Quitar las
-  tres imágenes» (botón discreto). El foco del teclado rodea todo el recuadro.
+  la miniatura y un botón × redondo de 28 px. Debajo, una sola línea con lo que tiene que cumplir cada
+  imagen y «Quitar las tres imágenes» (botón discreto). Sin explicaciones de nombres de fichero ni de cómo
+  valida la página (D48). El foco del teclado rodea todo el recuadro.
 - **Pie:** aviso completo, el proyecto y los datos, en tres columnas.
 
 ## Iconos e imágenes

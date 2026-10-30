@@ -368,18 +368,6 @@ async function analizar(ficheros, esperado = null, corte = null, subir = true, {
   }
 }
 
-// ---------- Subir ficheros ----------
-async function leerFicheros(lista) {
-  const grandes = lista.filter((f) => f.size > LECTURA_MAXIMA);
-  if (grandes.length) {
-    mensajes(grandes.map((f) => ["error", `${f.name}: ocupa ${(f.size / 1e6).toFixed(1)} MB; el máximo es ${(TAMANO_MAXIMO / 1e6).toFixed(0)} MB.`]));
-    return;
-  }
-  const ficheros = await Promise.all(lista.map(async (f) => ({ nombre: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
-  for (const b of document.querySelectorAll(".ejemplos button")) b.setAttribute("aria-pressed", "false");
-  await analizar(ficheros);
-}
-
 // ---------- Subir un corte propio: un hueco por fase (D47) ----------
 // La fase la marca el hueco, no el nombre del fichero. Para validar, cada fichero se nombra por dentro como en el
 // dataset (<corte>_<FASE>.png) y pasa por la MISMA validación que en Python (validar.js = entrada.py); los mensajes
@@ -446,13 +434,13 @@ async function despuesDeColocar() {
     { titulo: "Tu corte", subtitulo: base === "tu_corte" ? "" : base }, true, { traducir, avisos });
 }
 
-// Varios ficheros a la vez: si sus nombres dicen la fase (una de cada), se colocan solos; si no, se validan tal cual
-// llegan, con los mismos mensajes que en Python (fase que falta, duplicada, nombre sin fase…)
+// Varios ficheros soltados a la vez (o uno fuera de los huecos): si sus nombres dicen la fase, una de cada, se colocan
+// solos (D47); si no, se pide ponerlos en su hueco. Sin explicaciones de nombres: quien sube no tiene por qué saberlas (D48)
 async function leerVarios(lista) {
   const fases = lista.map((f) => identificar(f.name)?.[1]);
   const colocables = lista.length <= 3 && fases.every(Boolean) && new Set(fases).size === fases.length;
   if (!colocables) {
-    await leerFicheros(lista);
+    mensajes([["info", "Suelta cada imagen sobre su hueco: PRE, EARLY o LATE."]]);
     return;
   }
   for (let i = 0; i < lista.length; i++) await ponerEnHueco(fases[i], lista[i]);
@@ -493,12 +481,6 @@ function prepararSubida() {
       mensajes([]);
     });
   }
-  const varios = $("ficheros");
-  varios.addEventListener("change", () => {
-    const lista = [...varios.files];
-    varios.value = "";
-    if (lista.length) leerVarios(lista);
-  });
   const zona = $("subir");
   zona.addEventListener("dragover", (e) => e.preventDefault());
   zona.addEventListener("drop", (e) => {
